@@ -21,6 +21,7 @@ async function getCurrentUser() {
     return user;
 }
 
+
 async function getUserProfile(userId) {
     const { data, error } = await supabase
         .from('profiles')
