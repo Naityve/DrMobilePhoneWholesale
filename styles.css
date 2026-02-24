@@ -435,12 +435,13 @@ nav {
     width: 100%;
     border: 1px solid var(--gray-200);
     border-radius: 14px;
-    overflow: hidden;
+    overflow-x: auto;
 }
 
 .user-table table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 850px;
 }
 
 .user-table th {
