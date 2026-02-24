@@ -122,7 +122,7 @@
             setLoading(btn, true);
 
             try {
-                const { data, error } = await supabase.auth.signUp({
+                const { data, error } = await db.auth.signUp({
                     email: email,
                     password: password,
                     options: {

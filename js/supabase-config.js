@@ -11,19 +11,18 @@ const SUPABASE_URL = 'https://btzbifpqtzgpyvlyipxk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0emJpZnBxdHpncHl2bHlpcHhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTM0ODMsImV4cCI6MjA4NzUyOTQ4M30.oIdVuiKlstdYUi6bSjev61wGNr4hbL5rIWtwIwT_R-s';
 
 // Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── Auth Helpers ──
 
 async function getCurrentUser() {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { user }, error } = await db.auth.getUser();
     if (error || !user) return null;
     return user;
 }
 
-
 async function getUserProfile(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await db
         .from('profiles')
         .select('*')
         .eq('id', userId)
@@ -33,7 +32,7 @@ async function getUserProfile(userId) {
 }
 
 async function signOut() {
-    await supabase.auth.signOut();
+    await db.auth.signOut();
     window.location.href = '/login.html';
 }
 

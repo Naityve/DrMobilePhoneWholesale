@@ -83,7 +83,7 @@
 
         // ── Load all users ──
         async function loadUsers() {
-            const { data, error } = await supabase
+            const { data, error } = await db
                 .from('profiles')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -142,7 +142,7 @@
 
         // ── Update user status ──
         async function updateStatus(userId, newStatus) {
-            const { error } = await supabase
+            const { error } = await db
                 .from('profiles')
                 .update({ status: newStatus })
                 .eq('id', userId);
