@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg>
+            </div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links">
+            <a href="/store.html">Store</a>
+            <a href="/admin.html" style="color: var(--orange);">Admin</a>
+            <a href="#" onclick="signOut(); return false;" class="nav-cta">Sign Out</a>
+        </div>
+    </nav>
+
+    <div class="admin-wrapper">
+        <h1>Admin Dashboard</h1>
+        <p class="subtitle">Manage trade account registrations.</p>
+
+        <div id="alert" class="alert"></div>
+
+        <div class="admin-tabs">
+            <button class="admin-tab active" data-filter="pending" onclick="filterUsers('pending', this)">
+                Pending <span class="count" id="pendingCount">0</span>
+            </button>
+            <button class="admin-tab" data-filter="approved" onclick="filterUsers('approved', this)">
+                Approved
+            </button>
+            <button class="admin-tab" data-filter="rejected" onclick="filterUsers('rejected', this)">
+                Rejected
+            </button>
+            <button class="admin-tab" data-filter="all" onclick="filterUsers('all', this)">
+                All
+            </button>
+        </div>
+
+        <div class="user-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Business</th>
+                        <th>Contact</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th>Registered</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr>
+                        <td colspan="7" class="empty-state">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script>
+        let allUsers = [];
+        let currentFilter = 'pending';
+
+        // ── Init: check admin access ──
+        (async () => {
+            const result = await requireAdmin();
+            if (!result) return;
+            await loadUsers();
+        })();
+
+        // ── Load all users ──
+        async function loadUsers() {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                showAlert('alert', 'Failed to load users: ' + error.message, 'error');
+                return;
+            }
+
+            allUsers = data || [];
+
+            // Update pending count
+            const pendingCount = allUsers.filter(u => u.status === 'pending').length;
+            document.getElementById('pendingCount').textContent = pendingCount;
+
+            renderUsers();
+        }
+
+        // ── Filter + Render ──
+        function filterUsers(status, tabEl) {
+            currentFilter = status;
+
+            // Update active tab
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            tabEl.classList.add('active');
+
+            renderUsers();
+        }
+
+        function renderUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            const filtered = currentFilter === 'all'
+                ? allUsers
+                : allUsers.filter(u => u.status === currentFilter);
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No ${currentFilter === 'all' ? '' : currentFilter} users found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(user => `
+                <tr>
+                    <td><strong>${escapeHtml(user.business_name)}</strong></td>
+                    <td>${escapeHtml(user.contact_name)}</td>
+                    <td>${escapeHtml(user.email)}</td>
+                    <td>${escapeHtml(user.phone || '—')}</td>
+                    <td><span class="status-badge status-${user.status}">${capitalize(user.status)}</span></td>
+                    <td>${formatDate(user.created_at)}</td>
+                    <td class="actions">
+                        ${user.status !== 'approved' ? `<button class="btn btn-sm btn-approve" onclick="updateStatus('${user.id}', 'approved')">Approve</button>` : ''}
+                        ${user.status !== 'rejected' ? `<button class="btn btn-sm btn-reject" onclick="updateStatus('${user.id}', 'rejected')">Reject</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ── Update user status ──
+        async function updateStatus(userId, newStatus) {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ status: newStatus })
+                .eq('id', userId);
+
+            if (error) {
+                showAlert('alert', 'Failed to update: ' + error.message, 'error');
+                return;
+            }
+
+            showAlert('alert', `User ${newStatus} successfully.`, 'success');
+            await loadUsers();
+        }
+
+        // ── Helpers ──
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-IE', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Pending — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg>
+            </div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links">
+            <a href="#" onclick="signOut(); return false;" class="nav-cta">Sign Out</a>
+        </div>
+    </nav>
+
+    <div class="pending-wrapper">
+        <div class="pending-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+            </svg>
+        </div>
+        <h1>Account under review</h1>
+        <p>
+            Thanks for registering with DrMobilePhone. Your trade account is currently being reviewed by our team. We'll be in touch shortly once your account has been approved.
+        </p>
+        <p style="margin-top: 1rem; font-size: 0.9rem;">
+            Questions? Contact us at
+            <a href="mailto:info@drmobilephone.ie" style="color: var(--orange); font-weight: 500;">info@drmobilephone.ie</a>
+        </p>
+        <button class="btn btn-secondary" onclick="signOut()">Sign Out</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script>
+        // Check if user is logged in and actually pending
+        (async () => {
+            const user = await getCurrentUser();
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+            const profile = await getUserProfile(user.id);
+            if (profile?.status === 'approved') {
+                window.location.href = '/store.html';
+            }
+        })();
+    </script>
+</body>
+</html>

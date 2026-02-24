@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg>
+            </div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links">
+            <a href="/login.html">Login</a>
+            <a href="/register.html" class="nav-cta">Register</a>
+        </div>
+    </nav>
+
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <h1>Open a trade account</h1>
+            <p class="subtitle">Register your business to access wholesale pricing.</p>
+
+            <div id="alert" class="alert"></div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="business_name">Business Name *</label>
+                    <input type="text" id="business_name" placeholder="e.g. ABC Electronics Ltd" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="contact_name">Contact Name *</label>
+                        <input type="text" id="contact_name" placeholder="Your full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" placeholder="+353 ...">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" placeholder="you@yourbusiness.com" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Password *</label>
+                        <input type="password" id="password" placeholder="Min. 8 characters" required minlength="8">
+                    </div>
+                    <div class="form-group">
+                        <label for="password_confirm">Confirm Password *</label>
+                        <input type="password" id="password_confirm" placeholder="Repeat password" required minlength="8">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn">Create Account</button>
+            </form>
+
+            <div class="divider"></div>
+
+            <p class="footer-text">
+                Already have an account? <a href="/login.html">Sign in</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script>
+        // If already logged in, redirect
+        (async () => {
+            const user = await getCurrentUser();
+            if (user) {
+                const profile = await getUserProfile(user.id);
+                if (profile?.status === 'approved') {
+                    window.location.href = '/store.html';
+                } else {
+                    window.location.href = '/pending.html';
+                }
+            }
+        })();
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAlert('alert');
+
+            const businessName = document.getElementById('business_name').value.trim();
+            const contactName = document.getElementById('contact_name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('password_confirm').value;
+
+            // Validation
+            if (!businessName || !contactName || !email || !password) {
+                showAlert('alert', 'Please fill in all required fields.', 'error');
+                return;
+            }
+
+            if (password.length < 8) {
+                showAlert('alert', 'Password must be at least 8 characters.', 'error');
+                return;
+            }
+
+            if (password !== passwordConfirm) {
+                showAlert('alert', 'Passwords do not match.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            setLoading(btn, true);
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            business_name: businessName,
+                            contact_name: contactName,
+                            phone: phone
+                        }
+                    }
+                });
+
+                if (error) {
+                    showAlert('alert', error.message, 'error');
+                    setLoading(btn, false);
+                    return;
+                }
+
+                // Success — redirect to pending page
+                window.location.href = '/pending.html';
+
+            } catch (err) {
+                showAlert('alert', 'Something went wrong. Please try again.', 'error');
+                setLoading(btn, false);
+            }
+        });
+    </script>
+</body>
+</html>

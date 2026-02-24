@@ -7,116 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
     <style>
-        :root {
-            --orange: #E8611A;
-            --orange-light: #FF7A33;
-            --black: #0A0A0A;
-            --white: #FAFAFA;
-            --gray-100: #F2F2F2;
-            --gray-200: #E0E0E0;
-            --gray-500: #8A8A8A;
-            --gray-700: #3A3A3A;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--white);
-            color: var(--black);
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* ── NAV ── */
-        nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            padding: 1.25rem 2.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(250, 250, 250, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid var(--gray-200);
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            text-decoration: none;
-        }
-
-        .logo-icon {
-            width: 38px;
-            height: 38px;
-            background: var(--orange);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .logo-icon svg {
-            width: 20px;
-            height: 20px;
-            fill: white;
-        }
-
-        .logo-text {
-            font-weight: 700;
-            font-size: 1.3rem;
-            color: var(--black);
-            letter-spacing: -0.03em;
-        }
-
-        .logo-text span {
-            color: var(--orange);
-        }
-
-        .nav-contact {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        .nav-contact a {
-            font-size: 0.9rem;
-            color: var(--gray-700);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-
-        .nav-contact a:hover {
-            color: var(--orange);
-        }
-
-        .nav-cta {
-            background: var(--black) !important;
-            color: var(--white) !important;
-            padding: 0.6rem 1.3rem;
-            border-radius: 8px;
-            font-size: 0.85rem !important;
-            font-weight: 500 !important;
-            transition: background 0.2s !important;
-        }
-
-        .nav-cta:hover {
-            background: var(--gray-700) !important;
-        }
-
-        /* ── HERO ── */
+        /* ── Landing-page-specific styles ── */
         .hero {
             min-height: 100vh;
             display: flex;
@@ -192,10 +85,7 @@
             animation: fadeUp 0.8s 0.1s ease both;
         }
 
-        .hero h1 em {
-            color: var(--orange);
-            font-style: italic;
-        }
+        .hero h1 em { color: var(--orange); font-style: italic; }
 
         .hero-sub {
             font-size: 1.15rem;
@@ -215,65 +105,16 @@
             animation: fadeUp 0.8s 0.3s ease both;
         }
 
-        .btn {
-            padding: 0.9rem 2rem;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            font-weight: 500;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.25s ease;
-            font-family: 'DM Sans', sans-serif;
-            cursor: pointer;
-            border: none;
-        }
+        .hero-actions .btn { width: auto; }
 
-        .btn-primary {
-            background: var(--orange);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--orange-light);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(232, 97, 26, 0.25);
-        }
-
-        .btn-secondary {
-            background: var(--white);
-            color: var(--black);
-            border: 1.5px solid var(--gray-200);
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--gray-500);
-            transform: translateY(-2px);
-        }
-
-        @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ── CATEGORIES STRIP ── */
+        /* Categories */
         .categories {
             padding: 4rem 2rem;
             background: var(--black);
             color: var(--white);
         }
 
-        .categories-inner {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
+        .categories-inner { max-width: 1100px; margin: 0 auto; }
 
         .section-label {
             font-size: 0.8rem;
@@ -311,34 +152,13 @@
             transition: background 0.3s;
         }
 
-        .cat-item:hover {
-            background: #151515;
-        }
+        .cat-item:hover { background: #151515; }
+        .cat-icon { font-size: 1.8rem; line-height: 1; }
+        .cat-item h3 { font-weight: 500; font-size: 1rem; }
+        .cat-item p { font-size: 0.82rem; color: var(--gray-500); line-height: 1.5; font-weight: 300; }
 
-        .cat-icon {
-            font-size: 1.8rem;
-            line-height: 1;
-        }
-
-        .cat-item h3 {
-            font-weight: 500;
-            font-size: 1rem;
-            letter-spacing: -0.01em;
-        }
-
-        .cat-item p {
-            font-size: 0.82rem;
-            color: var(--gray-500);
-            line-height: 1.5;
-            font-weight: 300;
-        }
-
-        /* ── WHY WHOLESALE ── */
-        .why {
-            padding: 6rem 2rem;
-            max-width: 1100px;
-            margin: 0 auto;
-        }
+        /* Why section */
+        .why { padding: 6rem 2rem; max-width: 1100px; margin: 0 auto; }
 
         .why h2 {
             font-family: 'Instrument Serif', serif;
@@ -375,31 +195,12 @@
             margin-bottom: 1rem;
         }
 
-        .why-card h3 {
-            font-weight: 700;
-            font-size: 1.05rem;
-            margin-bottom: 0.6rem;
-            letter-spacing: -0.01em;
-        }
+        .why-card h3 { font-weight: 700; font-size: 1.05rem; margin-bottom: 0.6rem; }
+        .why-card p { font-size: 0.9rem; color: var(--gray-500); line-height: 1.7; font-weight: 300; }
 
-        .why-card p {
-            font-size: 0.9rem;
-            color: var(--gray-500);
-            line-height: 1.7;
-            font-weight: 300;
-        }
-
-        /* ── CONTACT / CTA ── */
-        .contact {
-            padding: 5rem 2rem;
-            background: var(--gray-100);
-            text-align: center;
-        }
-
-        .contact-inner {
-            max-width: 600px;
-            margin: 0 auto;
-        }
+        /* Contact */
+        .contact { padding: 5rem 2rem; background: var(--gray-100); text-align: center; }
+        .contact-inner { max-width: 600px; margin: 0 auto; }
 
         .contact h2 {
             font-family: 'Instrument Serif', serif;
@@ -422,7 +223,6 @@
             gap: 1.5rem;
             justify-content: center;
             flex-wrap: wrap;
-            margin-bottom: 2rem;
         }
 
         .contact-card {
@@ -451,13 +251,9 @@
             margin-bottom: 0.5rem;
         }
 
-        .contact-card-value {
-            font-weight: 700;
-            font-size: 1rem;
-            letter-spacing: -0.01em;
-        }
+        .contact-card-value { font-weight: 700; font-size: 1rem; }
 
-        /* ── FOOTER ── */
+        /* Footer */
         footer {
             padding: 2.5rem 2rem;
             border-top: 1px solid var(--gray-200);
@@ -470,102 +266,43 @@
             margin: 0 auto;
         }
 
-        footer p {
-            font-size: 0.82rem;
-            color: var(--gray-500);
-            font-weight: 300;
-        }
+        footer p { font-size: 0.82rem; color: var(--gray-500); font-weight: 300; }
+        .footer-right { font-size: 0.82rem; color: var(--gray-500); font-weight: 500; }
 
-        .footer-right {
-            font-size: 0.82rem;
-            color: var(--gray-500);
-            font-weight: 500;
-        }
-
-        /* ── RESPONSIVE ── */
         @media (max-width: 768px) {
-            nav {
-                padding: 1rem 1.25rem;
-            }
-
-            .nav-contact a:not(.nav-cta) {
-                display: none;
-            }
-
-            .hero {
-                padding: 7rem 1.5rem 3rem;
-            }
-
-            .hero-sub {
-                font-size: 1rem;
-            }
-
-            .hero-actions {
-                flex-direction: column;
-                width: 100%;
-                max-width: 320px;
-            }
-
-            .btn {
-                justify-content: center;
-            }
-
-            .categories {
-                padding: 3rem 1.25rem;
-            }
-
-            .cat-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .why {
-                padding: 4rem 1.25rem;
-            }
-
-            .contact {
-                padding: 3.5rem 1.25rem;
-            }
-
-            .contact-methods {
-                flex-direction: column;
-                align-items: center;
-            }
-
-            .contact-card {
-                width: 100%;
-                max-width: 320px;
-            }
-
-            footer {
-                flex-direction: column;
-                text-align: center;
-            }
+            .hero { padding: 7rem 1.5rem 3rem; }
+            .hero-sub { font-size: 1rem; }
+            .hero-actions { flex-direction: column; width: 100%; max-width: 320px; }
+            .hero-actions .btn { width: 100%; }
+            .categories { padding: 3rem 1.25rem; }
+            .cat-grid { grid-template-columns: 1fr 1fr; }
+            .why { padding: 4rem 1.25rem; }
+            .contact { padding: 3.5rem 1.25rem; }
+            .contact-methods { flex-direction: column; align-items: center; }
+            .contact-card { width: 100%; max-width: 320px; }
+            footer { flex-direction: column; text-align: center; }
         }
 
         @media (max-width: 480px) {
-            .cat-grid {
-                grid-template-columns: 1fr;
-            }
+            .cat-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-    <!-- NAV -->
     <nav>
-        <a href="#" class="logo">
+        <a href="/" class="logo">
             <div class="logo-icon">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="currentColor" style="fill:#E8611A"/></svg>
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg>
             </div>
             <div class="logo-text">DrMobile<span>Phone</span></div>
         </a>
-        <div class="nav-contact">
-            <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a>
-            <a href="tel:+3530899899550" class="nav-cta">Call Us</a>
+        <div class="nav-links">
+            <a href="/login.html">Login</a>
+            <a href="/register.html" class="nav-cta">Register</a>
         </div>
     </nav>
 
-    <!-- HERO -->
     <section class="hero">
         <div class="badge">
             <div class="badge-dot"></div>
@@ -576,18 +313,16 @@
             DrMobilePhone supplies cables, chargers, earbuds, phone accessories and more — at wholesale prices, exclusively for business customers across Ireland.
         </p>
         <div class="hero-actions">
-            <a href="mailto:info@drmobilephone.ie" class="btn btn-primary">
-                Get in Touch
+            <a href="/register.html" class="btn btn-primary">
+                Open a Trade Account
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </a>
-            <a href="tel:+3530899899550" class="btn btn-secondary">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.13.81.36 1.6.68 2.35a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.75.32 1.54.55 2.35.68A2 2 0 0122 16.92z"/></svg>
-                +353 089 989 9550
+            <a href="/login.html" class="btn btn-secondary">
+                Sign In
             </a>
         </div>
     </section>
 
-    <!-- CATEGORIES -->
     <section class="categories">
         <div class="categories-inner">
             <div class="section-label">What We Supply</div>
@@ -627,7 +362,6 @@
         </div>
     </section>
 
-    <!-- WHY SECTION -->
     <section class="why">
         <h2>Why businesses choose DrMobilePhone</h2>
         <div class="why-grid">
@@ -649,7 +383,6 @@
         </div>
     </section>
 
-    <!-- CONTACT -->
     <section class="contact">
         <div class="contact-inner">
             <div class="section-label" style="color: var(--orange);">Get Started</div>
@@ -668,11 +401,22 @@
         </div>
     </section>
 
-    <!-- FOOTER -->
     <footer>
         <p>&copy; 2025 DrMobilePhone. All rights reserved.</p>
         <div class="footer-right">Wholesale Consumer Electronics — Ireland</div>
     </footer>
 
+    <!-- Supabase: update nav if user is logged in -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script>
+        (async () => {
+            const user = await getCurrentUser();
+            if (user) {
+                const profile = await getUserProfile(user.id);
+                renderNav(profile);
+            }
+        })();
+    </script>
 </body>
 </html>

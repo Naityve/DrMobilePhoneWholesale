@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg>
+            </div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links" id="navLinks">
+            <!-- Populated by JS -->
+        </div>
+    </nav>
+
+    <div class="store-wrapper">
+        <h1>Welcome, <span id="userName">...</span></h1>
+        <p class="subtitle">Browse our wholesale catalogue.</p>
+
+        <div class="store-placeholder">
+            <h2>Store coming soon</h2>
+            <p style="color: var(--gray-500); margin-top: 0.5rem;">
+                We're building the product catalogue. In the meantime, contact us at
+                <a href="mailto:info@drmobilephone.ie" style="color: var(--orange); font-weight: 500;">info@drmobilephone.ie</a>
+                for pricing and availability.
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script>
+        (async () => {
+            // Only approved users can see this page
+            const result = await requireAuth(['approved']);
+            if (!result) return;
+
+            const { profile } = result;
+
+            // Update welcome name
+            document.getElementById('userName').textContent = profile.contact_name || profile.business_name;
+
+            // Render nav
+            renderNav(profile);
+        })();
+    </script>
+</body>
+</html>

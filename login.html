@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg>
+            </div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links">
+            <a href="/login.html">Login</a>
+            <a href="/register.html" class="nav-cta">Register</a>
+        </div>
+    </nav>
+
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <h1>Welcome back</h1>
+            <p class="subtitle">Sign in to access your wholesale account.</p>
+
+            <div id="alert" class="alert"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="you@yourbusiness.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Your password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn">Sign In</button>
+            </form>
+
+            <div class="divider"></div>
+
+            <p class="footer-text">
+                Don't have an account? <a href="/register.html">Register your business</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script>
+        // If already logged in, redirect appropriately
+        (async () => {
+            const user = await getCurrentUser();
+            if (user) {
+                const profile = await getUserProfile(user.id);
+                if (profile?.is_admin) {
+                    window.location.href = '/admin.html';
+                } else if (profile?.status === 'approved') {
+                    window.location.href = '/store.html';
+                } else {
+                    window.location.href = '/pending.html';
+                }
+            }
+        })();
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAlert('alert');
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showAlert('alert', 'Please enter your email and password.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            setLoading(btn, true);
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    showAlert('alert', 'Invalid email or password.', 'error');
+                    setLoading(btn, false);
+                    return;
+                }
+
+                // Get profile to check status
+                const profile = await getUserProfile(data.user.id);
+
+                if (!profile) {
+                    showAlert('alert', 'Account profile not found. Please contact support.', 'error');
+                    setLoading(btn, false);
+                    return;
+                }
+
+                if (profile.status === 'rejected') {
+                    showAlert('alert', 'Your account application was not approved. Please contact us at info@drmobilephone.ie for more information.', 'error');
+                    await supabase.auth.signOut();
+                    setLoading(btn, false);
+                    return;
+                }
+
+                if (profile.status === 'pending') {
+                    window.location.href = '/pending.html';
+                    return;
+                }
+
+                // Approved — redirect based on role
+                if (profile.is_admin) {
+                    window.location.href = '/admin.html';
+                } else {
+                    window.location.href = '/store.html';
+                }
+
+            } catch (err) {
+                showAlert('alert', 'Something went wrong. Please try again.', 'error');
+                setLoading(btn, false);
+            }
+        });
+    </script>
+</body>
+</html>
