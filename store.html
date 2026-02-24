@@ -8,6 +8,72 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .store-header { padding: 7rem 2rem 1rem; max-width: 1200px; margin: 0 auto; }
+        .store-header h1 { font-family: 'Instrument Serif', serif; font-size: 2rem; font-weight: 400; letter-spacing: -0.02em; }
+        .store-header .subtitle { font-size: 0.92rem; color: var(--gray-500); margin-bottom: 0; }
+
+        /* Featured Banner */
+        .featured-banner { max-width: 1200px; margin: 1.5rem auto; padding: 0 2rem; }
+        .featured-scroll { display: flex; gap: 1.25rem; overflow-x: auto; padding-bottom: 0.5rem; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+        .featured-scroll::-webkit-scrollbar { height: 4px; }
+        .featured-scroll::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 4px; }
+        .featured-card { min-width: 300px; max-width: 340px; scroll-snap-align: start; border: 1px solid var(--gray-200); border-radius: 16px; overflow: hidden; background: white; flex-shrink: 0; transition: box-shadow 0.2s, transform 0.2s; }
+        .featured-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.07); transform: translateY(-2px); }
+        .featured-card img { width: 100%; height: 180px; object-fit: cover; background: var(--gray-100); }
+        .featured-card .no-img { width: 100%; height: 180px; background: var(--gray-100); display: flex; align-items: center; justify-content: center; color: var(--gray-300); font-size: 2.5rem; }
+        .featured-card-body { padding: 1.2rem; }
+        .featured-card-body .tag { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--orange); margin-bottom: 0.2rem; }
+        .featured-card-body h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .featured-card-body .price-row { display: flex; align-items: center; gap: 0.5rem; }
+        .featured-card-body .price { font-weight: 700; font-size: 1.05rem; }
+        .featured-card-body .sale-price { color: var(--orange); }
+        .featured-card-body .original-price { text-decoration: line-through; color: var(--gray-500); font-size: 0.85rem; }
+
+        .section-heading { max-width: 1200px; margin: 2rem auto 0; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; }
+        .section-heading h2 { font-family: 'Instrument Serif', serif; font-size: 1.5rem; font-weight: 400; }
+
+        /* Filters + Search */
+        .store-controls { max-width: 1200px; margin: 1.5rem auto; padding: 0 2rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .search-box { flex: 1; min-width: 200px; max-width: 360px; position: relative; }
+        .search-box input { width: 100%; padding: 0.7rem 1rem 0.7rem 2.5rem; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 0.9rem; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.2s; }
+        .search-box input:focus { border-color: var(--orange); }
+        .search-box svg { position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); color: var(--gray-300); }
+        .cat-filters { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+        .cat-filter { padding: 0.5rem 1rem; border-radius: 100px; border: 1.5px solid var(--gray-200); background: white; font-size: 0.82rem; font-weight: 500; font-family: 'DM Sans', sans-serif; color: var(--gray-500); cursor: pointer; transition: all 0.2s; }
+        .cat-filter.active { background: var(--black); color: white; border-color: var(--black); }
+        .cat-filter:hover:not(.active) { border-color: var(--gray-500); color: var(--black); }
+
+        /* Product Grid */
+        .store-grid { max-width: 1200px; margin: 1.5rem auto 3rem; padding: 0 2rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.25rem; }
+        .product-card { border: 1px solid var(--gray-200); border-radius: 14px; overflow: hidden; background: white; transition: box-shadow 0.2s, transform 0.2s; }
+        .product-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.06); transform: translateY(-2px); }
+        .product-card img { width: 100%; height: 200px; object-fit: cover; background: var(--gray-100); }
+        .product-card .no-img { width: 100%; height: 200px; background: var(--gray-100); display: flex; align-items: center; justify-content: center; color: var(--gray-300); font-size: 2.5rem; }
+        .product-card-body { padding: 1.2rem; }
+        .product-card-body .cat { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; color: var(--orange); margin-bottom: 0.25rem; }
+        .product-card-body h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.15rem; line-height: 1.3; }
+        .product-card-body .desc { font-size: 0.82rem; color: var(--gray-500); margin-bottom: 0.6rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .product-card-body .price-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem; }
+        .product-card-body .price { font-weight: 700; font-size: 1.1rem; }
+        .product-card-body .sale-price { color: var(--orange); }
+        .product-card-body .original-price { text-decoration: line-through; color: var(--gray-500); font-size: 0.85rem; }
+        .product-card-body .stock { font-size: 0.78rem; color: var(--gray-500); margin-bottom: 0.8rem; }
+        .product-card-body .stock.low { color: var(--red); }
+        .btn-cart { width: 100%; padding: 0.65rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500; border: 1.5px solid var(--gray-200); background: white; color: var(--black); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+        .btn-cart:hover { border-color: var(--orange); color: var(--orange); }
+
+        .no-results { grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--gray-500); }
+
+        @media (max-width: 768px) {
+            .store-header { padding: 6rem 1.25rem 1rem; }
+            .featured-banner { padding: 0 1.25rem; }
+            .section-heading { padding: 0 1.25rem; }
+            .store-controls { padding: 0 1.25rem; }
+            .store-grid { padding: 0 1.25rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+            .search-box { max-width: 100%; }
+        }
+    </style>
 </head>
 <body>
 
@@ -18,41 +84,157 @@
             </div>
             <div class="logo-text">DrMobile<span>Phone</span></div>
         </a>
-        <div class="nav-links" id="navLinks">
-            <!-- Populated by JS -->
-        </div>
+        <div class="nav-links" id="navLinks"></div>
     </nav>
 
-    <div class="store-wrapper">
+    <div class="store-header">
         <h1>Welcome, <span id="userName">...</span></h1>
         <p class="subtitle">Browse our wholesale catalogue.</p>
+    </div>
 
-        <div class="store-placeholder">
-            <h2>Store coming soon</h2>
-            <p style="color: var(--gray-500); margin-top: 0.5rem;">
-                We're building the product catalogue. In the meantime, contact us at
-                <a href="mailto:info@drmobilephone.ie" style="color: var(--orange); font-weight: 500;">info@drmobilephone.ie</a>
-                for pricing and availability.
-            </p>
+    <!-- Featured / Deals Banner (only shows if there are featured or sale items) -->
+    <div class="section-heading" id="featuredHeading" style="display:none;">
+        <h2>🔥 Featured & Deals</h2>
+    </div>
+    <div class="featured-banner" id="featuredBanner" style="display:none;">
+        <div class="featured-scroll" id="featuredScroll"></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="store-controls">
+        <div class="search-box">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="searchInput" placeholder="Search products...">
         </div>
+        <div class="cat-filters" id="catFilters">
+            <button class="cat-filter active" onclick="filterCategory('all', this)">All</button>
+        </div>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="store-grid" id="storeGrid">
+        <div class="no-results">Loading products...</div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script>
+        let products = [];
+        let activeCategory = 'all';
+        let searchTerm = '';
+
         (async () => {
-            // Only approved users can see this page
             const result = await requireAuth(['approved']);
             if (!result) return;
-
             const { profile } = result;
-
-            // Update welcome name
             document.getElementById('userName').textContent = profile.contact_name || profile.business_name;
-
-            // Render nav
             renderNav(profile);
+            await loadStoreProducts();
         })();
+
+        async function loadStoreProducts() {
+            const { data, error } = await db
+                .from('products')
+                .select('*')
+                .eq('is_active', true)
+                .order('created_at', { ascending: false });
+
+            if (error) { console.error(error); return; }
+            products = data || [];
+
+            buildCategoryFilters();
+            renderFeatured();
+            renderGrid();
+        }
+
+        function buildCategoryFilters() {
+            const cats = [...new Set(products.map(p => p.category))].sort();
+            const container = document.getElementById('catFilters');
+            container.innerHTML = '<button class="cat-filter active" onclick="filterCategory(\'all\', this)">All</button>' +
+                cats.map(c => `<button class="cat-filter" onclick="filterCategory('${esc(c)}', this)">${esc(c)}</button>`).join('');
+        }
+
+        function renderFeatured() {
+            const featured = products.filter(p => p.is_featured || p.is_on_sale);
+            if (featured.length === 0) return;
+
+            document.getElementById('featuredHeading').style.display = '';
+            document.getElementById('featuredBanner').style.display = '';
+
+            document.getElementById('featuredScroll').innerHTML = featured.map(p => {
+                const hasImg = p.image_url && p.image_url.length > 0;
+                const hasSale = p.is_on_sale && p.sale_price;
+                return `<div class="featured-card">
+                    ${hasImg ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : `<div class="no-img">📦</div>`}
+                    <div class="featured-card-body">
+                        <div class="tag">${p.is_on_sale ? '🏷 Sale' : '⭐ Featured'}</div>
+                        <h3>${esc(p.name)}</h3>
+                        <div class="price-row">${hasSale
+                            ? `<span class="price sale-price">€${Number(p.sale_price).toFixed(2)}</span><span class="original-price">€${Number(p.price).toFixed(2)}</span>`
+                            : `<span class="price">€${Number(p.price).toFixed(2)}</span>`}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('storeGrid');
+            let filtered = products;
+
+            if (activeCategory !== 'all') {
+                filtered = filtered.filter(p => p.category === activeCategory);
+            }
+            if (searchTerm) {
+                const q = searchTerm.toLowerCase();
+                filtered = filtered.filter(p =>
+                    p.name.toLowerCase().includes(q) ||
+                    (p.description && p.description.toLowerCase().includes(q)) ||
+                    (p.sku && p.sku.toLowerCase().includes(q))
+                );
+            }
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="no-results">No products found.</div>';
+                return;
+            }
+
+            grid.innerHTML = filtered.map(p => {
+                const hasImg = p.image_url && p.image_url.length > 0;
+                const hasSale = p.is_on_sale && p.sale_price;
+                const lowStock = p.stock_quantity > 0 && p.stock_quantity <= 10;
+                const noStock = p.stock_quantity === 0;
+
+                return `<div class="product-card">
+                    ${hasImg ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : `<div class="no-img">📦</div>`}
+                    <div class="product-card-body">
+                        <div class="cat">${esc(p.category)}</div>
+                        <h3>${esc(p.name)}</h3>
+                        ${p.description ? `<div class="desc">${esc(p.description)}</div>` : ''}
+                        <div class="price-row">${hasSale
+                            ? `<span class="price sale-price">€${Number(p.sale_price).toFixed(2)}</span><span class="original-price">€${Number(p.price).toFixed(2)}</span>`
+                            : `<span class="price">€${Number(p.price).toFixed(2)}</span>`}</div>
+                        <div class="stock ${lowStock ? 'low' : ''}">${noStock ? 'Out of stock' : lowStock ? `Only ${p.stock_quantity} left` : `${p.stock_quantity} in stock`}</div>
+                        <button class="btn-cart" ${noStock ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''}>
+                            ${noStock ? 'Out of Stock' : 'Add to Cart'}
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function filterCategory(cat, el) {
+            activeCategory = cat;
+            document.querySelectorAll('.cat-filter').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            renderGrid();
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchTerm = e.target.value.trim();
+            renderGrid();
+        });
+
+        function esc(t) { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }
     </script>
 </body>
 </html>
