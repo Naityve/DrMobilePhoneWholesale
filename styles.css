@@ -467,6 +467,8 @@ nav {
 .user-table .actions {
     display: flex;
     gap: 0.5rem;
+    flex-wrap: nowrap;
+    min-width: 170px;
 }
 
 .status-badge {
