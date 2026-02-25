@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .cart-wrapper { max-width: 900px; margin: 0 auto; padding: 7rem 2rem 3rem; }
+        .cart-wrapper h1 { font-family: 'Instrument Serif', serif; font-size: 2rem; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 0.3rem; }
+        .cart-wrapper .subtitle { font-size: 0.92rem; color: var(--gray-500); margin-bottom: 2rem; }
+
+        .nav-cart { position: relative; display: flex; align-items: center; gap: 0.3rem; }
+        .cart-badge { position: absolute; top: -6px; right: -10px; min-width: 18px; height: 18px; background: var(--orange); color: white; font-size: 0.68rem; font-weight: 700; border-radius: 100px; display: none; align-items: center; justify-content: center; padding: 0 4px; }
+
+        /* Cart Items */
+        .cart-items { display: flex; flex-direction: column; gap: 0; }
+
+        .cart-item {
+            display: grid;
+            grid-template-columns: 80px 1fr auto auto auto;
+            align-items: center;
+            gap: 1.25rem;
+            padding: 1.25rem 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .cart-item-img { width: 80px; height: 80px; border-radius: 10px; overflow: hidden; background: var(--gray-100); flex-shrink: 0; }
+        .cart-item-img img { width: 100%; height: 100%; object-fit: cover; }
+        .cart-item-img .no-img { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--gray-300); font-size: 1.5rem; }
+
+        .cart-item-info h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.15rem; }
+        .cart-item-info .cat { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--orange); font-weight: 500; }
+
+        .cart-item-price { font-weight: 700; font-size: 0.95rem; text-align: right; white-space: nowrap; }
+        .cart-item-price .sale { color: var(--orange); }
+        .cart-item-price .original { text-decoration: line-through; color: var(--gray-500); font-weight: 400; font-size: 0.82rem; display: block; }
+
+        .qty-controls { display: flex; align-items: center; gap: 0; border: 1.5px solid var(--gray-200); border-radius: 8px; overflow: hidden; }
+        .qty-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: white; border: none; cursor: pointer; font-size: 1rem; font-family: 'DM Sans', sans-serif; color: var(--gray-700); transition: background 0.15s; }
+        .qty-btn:hover { background: var(--gray-100); }
+        .qty-value { width: 40px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 0.88rem; font-weight: 600; border-left: 1.5px solid var(--gray-200); border-right: 1.5px solid var(--gray-200); }
+
+        .remove-btn { background: none; border: none; cursor: pointer; color: var(--gray-300); transition: color 0.2s; padding: 0.5rem; }
+        .remove-btn:hover { color: var(--red); }
+
+        /* Summary */
+        .cart-summary { margin-top: 2rem; padding: 2rem; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 16px; }
+
+        .cart-summary-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; }
+        .cart-summary-row.total { border-top: 2px solid var(--gray-200); margin-top: 0.5rem; padding-top: 1rem; }
+        .cart-summary-row.total .label { font-weight: 700; font-size: 1rem; }
+        .cart-summary-row.total .value { font-weight: 700; font-size: 1.3rem; }
+        .cart-summary-row .label { color: var(--gray-500); font-size: 0.9rem; }
+        .cart-summary-row .value { font-weight: 600; font-size: 0.95rem; }
+
+        .cart-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+        .cart-actions .btn { width: auto; flex: 1; }
+
+        .empty-cart { text-align: center; padding: 4rem 1rem; }
+        .empty-cart-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .empty-cart h2 { font-family: 'Instrument Serif', serif; font-size: 1.5rem; font-weight: 400; margin-bottom: 0.5rem; }
+        .empty-cart p { color: var(--gray-500); margin-bottom: 1.5rem; }
+        .empty-cart .btn { width: auto; display: inline-flex; }
+
+        @media (max-width: 768px) {
+            .cart-wrapper { padding: 6rem 1.25rem 2rem; }
+            .cart-item { grid-template-columns: 60px 1fr; gap: 0.75rem; }
+            .cart-item-img { width: 60px; height: 60px; }
+            .cart-item-price, .qty-controls, .remove-btn { grid-column: 2; }
+            .cart-item-controls { display: flex; align-items: center; gap: 1rem; grid-column: 2; }
+            .cart-actions { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg>
+            </div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links" id="navLinks"></div>
+    </nav>
+
+    <div class="cart-wrapper">
+        <h1>Your Cart</h1>
+        <p class="subtitle" id="cartSubtitle">Loading...</p>
+
+        <div id="cartContent"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/cart.js"></script>
+    <script>
+        let cartItems = [];
+
+        (async () => {
+            const result = await requireAuth(['approved']);
+            if (!result) return;
+            renderNavWithCart(result.profile);
+            await loadCart();
+            await updateCartBadge();
+        })();
+
+        function renderNavWithCart(profile) {
+            const navLinks = document.querySelector('.nav-links');
+            if (!navLinks) return;
+            let links = '';
+            if (profile.is_admin) links += '<a href="/admin.html">Admin</a>';
+            links += '<a href="/store.html">Store</a>';
+            links += `<a href="/cart.html" class="nav-cart" style="color:var(--orange);">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                Cart <span class="cart-badge">0</span></a>`;
+            links += '<a href="/orders.html">Orders</a>';
+            links += `<a href="#" onclick="signOut(); return false;" class="nav-cta">Sign Out</a>`;
+            navLinks.innerHTML = links;
+        }
+
+        async function loadCart() {
+            cartItems = await getCartItems();
+            renderCart();
+        }
+
+        function renderCart() {
+            const content = document.getElementById('cartContent');
+            const subtitle = document.getElementById('cartSubtitle');
+
+            if (cartItems.length === 0) {
+                subtitle.textContent = '';
+                content.innerHTML = `
+                    <div class="empty-cart">
+                        <div class="empty-cart-icon">🛒</div>
+                        <h2>Your cart is empty</h2>
+                        <p>Browse our catalogue and add products to get started.</p>
+                        <a href="/store.html" class="btn btn-primary">Browse Store</a>
+                    </div>`;
+                return;
+            }
+
+            const totalItems = cartItems.reduce((s, i) => s + i.quantity, 0);
+            subtitle.textContent = `${totalItems} item${totalItems !== 1 ? 's' : ''} in your cart`;
+
+            const total = calculateCartTotal(cartItems);
+
+            let html = '<div class="cart-items">';
+            html += cartItems.map(item => {
+                const p = item.product;
+                const hasImg = p.image_url && p.image_url.length > 0;
+                const hasSale = p.is_on_sale && p.sale_price;
+                const unitPrice = hasSale ? Number(p.sale_price) : Number(p.price);
+                const lineTotal = unitPrice * item.quantity;
+
+                return `<div class="cart-item">
+                    <div class="cart-item-img">
+                        ${hasImg ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : `<div class="no-img">📦</div>`}
+                    </div>
+                    <div class="cart-item-info">
+                        <div class="cat">${esc(p.category)}</div>
+                        <h3>${esc(p.name)}</h3>
+                    </div>
+                    <div class="cart-item-price">
+                        ${hasSale
+                            ? `<span class="sale">€${unitPrice.toFixed(2)}</span><span class="original">€${Number(p.price).toFixed(2)}</span>`
+                            : `€${unitPrice.toFixed(2)}`}
+                    </div>
+                    <div class="qty-controls">
+                        <button class="qty-btn" onclick="changeQty('${item.id}', ${item.quantity - 1})">−</button>
+                        <div class="qty-value">${item.quantity}</div>
+                        <button class="qty-btn" onclick="changeQty('${item.id}', ${item.quantity + 1})">+</button>
+                    </div>
+                    <button class="remove-btn" onclick="removeItem('${item.id}')" title="Remove">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14"/></svg>
+                    </button>
+                </div>`;
+            }).join('');
+            html += '</div>';
+
+            html += `<div class="cart-summary">
+                <div class="cart-summary-row">
+                    <span class="label">Subtotal (${totalItems} items)</span>
+                    <span class="value">€${total.toFixed(2)}</span>
+                </div>
+                <div class="cart-summary-row total">
+                    <span class="label">Total</span>
+                    <span class="value">€${total.toFixed(2)}</span>
+                </div>
+                <div class="cart-actions">
+                    <a href="/store.html" class="btn btn-secondary">Continue Shopping</a>
+                    <button class="btn btn-primary" onclick="proceedToCheckout()">Proceed to Checkout</button>
+                </div>
+            </div>`;
+
+            content.innerHTML = html;
+        }
+
+        async function changeQty(cartItemId, newQty) {
+            if (newQty <= 0) {
+                await removeItem(cartItemId);
+                return;
+            }
+            await updateCartQuantity(cartItemId, newQty);
+            await loadCart();
+        }
+
+        async function removeItem(cartItemId) {
+            await removeFromCart(cartItemId);
+            await loadCart();
+        }
+
+        function proceedToCheckout() {
+            // Placeholder — will be wired up in Phase 3b
+            alert('Checkout coming soon! This will be built in the next phase.');
+        }
+
+        function esc(t) { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }
+    </script>
+</body>
+</html>
