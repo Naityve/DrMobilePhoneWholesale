@@ -408,7 +408,7 @@
         function fmtDate(d) { return new Date(d).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' }); }
 
         // ── ORDERS ──
-        let allOrders = [], currentOrderFilter = 'all';
+        let allOrders = [], currentOrderFilter = 'all', allInvoices = {};
 
         async function loadOrders() {
             const { data, error } = await db
@@ -418,18 +418,21 @@
 
             if (error) { showAlert('alert', 'Failed to load orders: ' + error.message, 'error'); return; }
 
-            // Fetch customer profiles separately
             const userIds = [...new Set((data || []).map(o => o.user_id))];
             let profileMap = {};
             if (userIds.length > 0) {
-                const { data: profiles } = await db
-                    .from('profiles')
-                    .select('id, business_name, contact_name, email')
-                    .in('id', userIds);
+                const { data: profiles } = await db.from('profiles').select('id, business_name, contact_name, email, phone').in('id', userIds);
                 (profiles || []).forEach(p => profileMap[p.id] = p);
             }
 
-            allOrders = (data || []).map(o => ({ ...o, profiles: profileMap[o.user_id] || {} }));
+            // Load all invoices
+            const orderIds = (data || []).map(o => o.id);
+            if (orderIds.length > 0) {
+                const { data: invoices } = await db.from('invoices').select('*').in('order_id', orderIds);
+                (invoices || []).forEach(inv => allInvoices[inv.order_id] = inv);
+            }
+
+            allOrders = (data || []).map(o => ({ ...o, profiles: profileMap[o.user_id] || {}, invoice: allInvoices[o.id] || null }));
             renderOrders();
         }
 
@@ -442,9 +445,7 @@
 
         function renderOrders() {
             const tbody = document.getElementById('ordersTableBody');
-            const filtered = currentOrderFilter === 'all'
-                ? allOrders
-                : allOrders.filter(o => o.status === currentOrderFilter);
+            const filtered = currentOrderFilter === 'all' ? allOrders : allOrders.filter(o => o.status === currentOrderFilter);
 
             if (filtered.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No ${currentOrderFilter === 'all' ? '' : currentOrderFilter} orders.</td></tr>`;
@@ -455,10 +456,7 @@
                 const items = order.order_items || [];
                 const itemSummary = items.map(i => i.quantity + '× ' + esc(i.product_name)).join(', ');
                 const profile = order.profiles || {};
-                const statusMap = {
-                    pending: 'pending', paid: 'approved', invoiced: 'pending',
-                    shipped: 'approved', completed: 'approved', cancelled: 'rejected'
-                };
+                const statusMap = { pending: 'pending', paid: 'approved', invoiced: 'pending', shipped: 'approved', completed: 'approved', cancelled: 'rejected' };
                 const statusActions = [];
                 if (order.status === 'pending') statusActions.push('paid');
                 if (order.status === 'paid' || order.status === 'invoiced') statusActions.push('shipped');
@@ -473,7 +471,8 @@
                     <td>${order.payment_method ? cap(order.payment_method) : '—'}</td>
                     <td><span class="status-badge status-${statusMap[order.status] || 'pending'}">${cap(order.status)}</span></td>
                     <td>${fmtDate(order.created_at)}</td>
-                    <td class="actions">
+                    <td class="actions" style="min-width:200px;">
+                        <button class="btn btn-sm btn-secondary" onclick="viewAdminOrder('${order.id}')" style="margin-right:0.25rem;">View</button>
                         <select onchange="updateOrderStatus('${order.id}', this.value); this.value='';" style="padding:0.4rem;border-radius:6px;border:1px solid var(--gray-200);font-size:0.78rem;font-family:'DM Sans',sans-serif;">
                             <option value="">Update...</option>
                             ${statusActions.map(s => `<option value="${s}">${cap(s)}</option>`).join('')}
@@ -489,6 +488,107 @@
             if (error) { showAlert('alert', 'Failed: ' + error.message, 'error'); return; }
             showAlert('alert', `Order updated to ${newStatus}.`, 'success');
             await loadOrders();
+        }
+
+        function viewAdminOrder(orderId) {
+            const order = allOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const items = order.order_items || [];
+            const profile = order.profiles || {};
+            const invoice = order.invoice;
+            const subtotal = items.reduce((s, i) => s + (Number(i.unit_price) * i.quantity), 0);
+            const isInvoice = order.payment_method === 'invoice';
+            const docTitle = isInvoice && invoice ? 'Invoice' : 'Order';
+            const docNumber = isInvoice && invoice ? invoice.invoice_number : '#' + order.id.slice(0, 8).toUpperCase();
+
+            const panel = document.getElementById('panel-orders');
+            panel.innerHTML = `
+                <div class="back-link" onclick="restoreOrdersPanel()" style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.88rem;color:var(--gray-500);cursor:pointer;margin-bottom:1rem;">← Back to Orders</div>
+                <div style="margin-bottom:1rem;"><button class="btn btn-secondary btn-sm" onclick="printOrder()">🖨 Print ${docTitle}</button></div>
+                <div class="admin-print-doc" id="adminPrintDoc" style="background:white;border:1px solid var(--gray-200);border-radius:14px;padding:2rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:2px solid var(--black);">
+                        <div>
+                            <h2 style="font-family:'Instrument Serif',serif;font-size:1.5rem;font-weight:400;margin-bottom:0.2rem;">DrMobile<span style="color:var(--orange);">Phone</span></h2>
+                            <p style="font-size:0.8rem;color:var(--gray-500);line-height:1.5;">Wholesale Consumer Electronics<br>Dublin, Ireland<br>info@drmobilephone.ie<br>+353 089 989 9550</p>
+                        </div>
+                        <div style="text-align:right;">
+                            <h1 style="font-family:'Instrument Serif',serif;font-size:1.8rem;font-weight:400;margin-bottom:0.3rem;">${docTitle}</h1>
+                            <p style="font-size:0.85rem;color:var(--gray-500);"><strong>${docNumber}</strong><br>Date: ${fmtDate(order.created_at)}${isInvoice && invoice ? '<br>Due: ' + fmtDate(invoice.due_date) + '<br>Status: ' + cap(invoice.status) : ''}</p>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:2rem;">
+                        <div>
+                            <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--gray-500);display:block;margin-bottom:0.3rem;">Customer</label>
+                            <p style="font-size:0.88rem;line-height:1.5;"><strong>${esc(profile.business_name || '—')}</strong><br>${esc(profile.contact_name || '')}<br>${esc(profile.email || '')}<br>${esc(profile.phone || '')}</p>
+                        </div>
+                        <div>
+                            <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--gray-500);display:block;margin-bottom:0.3rem;">Order Details</label>
+                            <p style="font-size:0.88rem;line-height:1.5;">Order #${order.id.slice(0, 8).toUpperCase()}<br>Status: ${cap(order.status)}<br>Payment: ${order.payment_method === 'invoice' ? 'Trade Account (Invoice)' : 'Card'}</p>
+                        </div>
+                    </div>
+                    <table style="width:100%;border-collapse:collapse;margin-bottom:1.5rem;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);font-weight:600;padding:0.6rem 0.8rem;border-bottom:2px solid var(--gray-200);">#</th>
+                                <th style="text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);font-weight:600;padding:0.6rem 0.8rem;border-bottom:2px solid var(--gray-200);">Product</th>
+                                <th style="text-align:right;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);font-weight:600;padding:0.6rem 0.8rem;border-bottom:2px solid var(--gray-200);">Qty</th>
+                                <th style="text-align:right;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);font-weight:600;padding:0.6rem 0.8rem;border-bottom:2px solid var(--gray-200);">Unit Price</th>
+                                <th style="text-align:right;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);font-weight:600;padding:0.6rem 0.8rem;border-bottom:2px solid var(--gray-200);">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map((item, i) => `<tr>
+                                <td style="padding:0.7rem 0.8rem;font-size:0.88rem;border-bottom:1px solid var(--gray-100);">${i + 1}</td>
+                                <td style="padding:0.7rem 0.8rem;font-size:0.88rem;border-bottom:1px solid var(--gray-100);font-weight:500;">${esc(item.product_name)}</td>
+                                <td style="padding:0.7rem 0.8rem;font-size:0.88rem;border-bottom:1px solid var(--gray-100);text-align:right;">${item.quantity}</td>
+                                <td style="padding:0.7rem 0.8rem;font-size:0.88rem;border-bottom:1px solid var(--gray-100);text-align:right;">€${Number(item.unit_price).toFixed(2)}</td>
+                                <td style="padding:0.7rem 0.8rem;font-size:0.88rem;border-bottom:1px solid var(--gray-100);text-align:right;">€${(Number(item.unit_price) * item.quantity).toFixed(2)}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+                        <div style="width:260px;">
+                            <div style="display:flex;justify-content:space-between;padding:0.4rem 0;font-size:0.9rem;"><span>Subtotal</span><span>€${subtotal.toFixed(2)}</span></div>
+                            <div style="display:flex;justify-content:space-between;padding:0.6rem 0 0.4rem;font-size:1.1rem;font-weight:700;border-top:2px solid var(--black);margin-top:0.3rem;"><span>Total</span><span>€${Number(order.total).toFixed(2)}</span></div>
+                        </div>
+                    </div>
+                    ${order.notes ? `<div style="background:var(--gray-50);border-radius:8px;padding:1rem;"><label style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);font-weight:600;display:block;margin-bottom:0.3rem;">Notes</label><p style="font-size:0.85rem;color:var(--gray-700);">${esc(order.notes)}</p></div>` : ''}
+                </div>`;
+        }
+
+        function printOrder() {
+            const doc = document.getElementById('adminPrintDoc');
+            const win = window.open('', '_blank');
+            win.document.write('<html><head><title>Print Order</title>');
+            win.document.write('<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;500;700&family=Instrument+Serif&display=swap" rel="stylesheet">');
+            win.document.write('<style>body{font-family:"DM Sans",sans-serif;padding:20mm;color:#0A0A0A;} table{width:100%;border-collapse:collapse;} th,td{padding:0.6rem 0.8rem;} th{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:#8A8A8A;font-weight:600;border-bottom:2px solid #E0E0E0;text-align:left;} td{font-size:0.88rem;border-bottom:1px solid #F2F2F2;} .right{text-align:right;}</style>');
+            win.document.write('</head><body>');
+            win.document.write(doc.innerHTML);
+            win.document.write('</body></html>');
+            win.document.close();
+            win.onload = () => { win.print(); };
+        }
+
+        function restoreOrdersPanel() {
+            const panel = document.getElementById('panel-orders');
+            panel.innerHTML = `
+                <div class="admin-tabs">
+                    <button class="admin-tab active" onclick="filterOrders('all', this)">All</button>
+                    <button class="admin-tab" onclick="filterOrders('pending', this)">Pending</button>
+                    <button class="admin-tab" onclick="filterOrders('paid', this)">Paid</button>
+                    <button class="admin-tab" onclick="filterOrders('invoiced', this)">Invoiced</button>
+                    <button class="admin-tab" onclick="filterOrders('shipped', this)">Shipped</button>
+                    <button class="admin-tab" onclick="filterOrders('completed', this)">Completed</button>
+                </div>
+                <div class="user-table">
+                    <table>
+                        <thead><tr><th>Order #</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                        <tbody id="ordersTableBody"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody>
+                    </table>
+                </div>`;
+            currentOrderFilter = 'all';
+            renderOrders();
         }
     </script>
 </body>

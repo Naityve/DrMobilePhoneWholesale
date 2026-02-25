@@ -12,7 +12,6 @@
         .orders-wrapper { max-width: 900px; margin: 0 auto; padding: 7rem 2rem 3rem; }
         .orders-wrapper h1 { font-family: 'Instrument Serif', serif; font-size: 2rem; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 0.3rem; }
         .orders-wrapper .subtitle { font-size: 0.92rem; color: var(--gray-500); margin-bottom: 2rem; }
-
         .nav-cart { position: relative; display: flex; align-items: center; gap: 0.3rem; }
         .cart-badge { position: absolute; top: -6px; right: -10px; min-width: 18px; height: 18px; background: var(--orange); color: white; font-size: 0.68rem; font-weight: 700; border-radius: 100px; display: none; align-items: center; justify-content: center; padding: 0 4px; }
 
@@ -21,27 +20,86 @@
         .empty-orders p { color: var(--gray-500); margin-bottom: 1.5rem; }
         .empty-orders .btn { width: auto; display: inline-flex; }
 
-        .order-card { border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
-        .order-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
-        .order-card-header .order-id { font-weight: 700; font-size: 0.9rem; }
-        .order-card-header .order-date { font-size: 0.82rem; color: var(--gray-500); }
-        .order-card-items { font-size: 0.88rem; color: var(--gray-700); margin-bottom: 0.8rem; line-height: 1.6; }
-        .order-card-footer { display: flex; justify-content: space-between; align-items: center; }
-        .order-card-footer .total { font-weight: 700; font-size: 1rem; }
+        /* Order list */
+        .order-card { border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s; }
+        .order-card:hover { border-color: var(--orange); box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+        .order-card-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .order-card .order-id { font-weight: 700; font-size: 0.9rem; }
+        .order-card .order-date { font-size: 0.82rem; color: var(--gray-500); }
+        .order-card .order-summary { font-size: 0.84rem; color: var(--gray-500); margin-top: 0.3rem; }
+        .order-card .total { font-weight: 700; font-size: 1rem; }
 
-        @media (max-width: 768px) { .orders-wrapper { padding: 6rem 1.25rem 2rem; } }
+        /* Back link */
+        .back-link { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.88rem; color: var(--gray-500); margin-bottom: 1.5rem; cursor: pointer; transition: color 0.2s; }
+        .back-link:hover { color: var(--orange); }
+
+        /* ═══ PRINTABLE ORDER DETAIL ═══ */
+        .order-detail { background: white; }
+
+        .print-doc { max-width: 800px; margin: 0 auto; }
+
+        .print-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--black); }
+        .print-header .company h2 { font-family: 'Instrument Serif', serif; font-size: 1.5rem; font-weight: 400; margin-bottom: 0.2rem; }
+        .print-header .company h2 span { color: var(--orange); }
+        .print-header .company p { font-size: 0.8rem; color: var(--gray-500); line-height: 1.5; }
+        .print-header .doc-title { text-align: right; }
+        .print-header .doc-title h1 { font-family: 'Instrument Serif', serif; font-size: 1.8rem; font-weight: 400; margin-bottom: 0.3rem; }
+        .print-header .doc-title p { font-size: 0.85rem; color: var(--gray-500); }
+
+        .info-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        .info-block label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--gray-500); display: block; margin-bottom: 0.3rem; }
+        .info-block p { font-size: 0.88rem; line-height: 1.5; }
+        .info-block p strong { font-weight: 600; }
+
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+        .items-table thead th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-500); font-weight: 600; padding: 0.6rem 0.8rem; border-bottom: 2px solid var(--gray-200); }
+        .items-table thead th.right { text-align: right; }
+        .items-table tbody td { padding: 0.7rem 0.8rem; font-size: 0.88rem; border-bottom: 1px solid var(--gray-100); }
+        .items-table tbody td.right { text-align: right; }
+        .items-table tbody td.product-name { font-weight: 500; }
+
+        .totals-section { display: flex; justify-content: flex-end; margin-bottom: 2rem; }
+        .totals-box { width: 260px; }
+        .totals-row { display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.9rem; }
+        .totals-row.grand { border-top: 2px solid var(--black); margin-top: 0.3rem; padding-top: 0.6rem; font-weight: 700; font-size: 1.1rem; }
+
+        .order-notes { background: var(--gray-50); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+        .order-notes label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-500); font-weight: 600; display: block; margin-bottom: 0.3rem; }
+        .order-notes p { font-size: 0.85rem; color: var(--gray-700); }
+
+        .print-btn { margin-bottom: 1.5rem; }
+        .print-btn .btn { width: auto; }
+
+        /* Print styles */
+        @media print {
+            body * { visibility: hidden; }
+            .print-doc, .print-doc * { visibility: visible; }
+            .print-doc { position: absolute; left: 0; top: 0; width: 100%; padding: 20mm; }
+            .print-btn, nav, .orders-wrapper > h1, .orders-wrapper > .subtitle, .back-link { display: none !important; }
+            .order-card { display: none !important; }
+            .print-header { border-bottom-color: #000; }
+            .items-table thead th { border-bottom-color: #ccc; }
+            .items-table tbody td { border-bottom-color: #eee; }
+            .totals-row.grand { border-top-color: #000; }
+        }
+
+        @media (max-width: 768px) {
+            .orders-wrapper { padding: 6rem 1.25rem 2rem; }
+            .print-header { flex-direction: column; gap: 1rem; }
+            .print-header .doc-title { text-align: left; }
+            .info-columns { grid-template-columns: 1fr; gap: 1rem; }
+        }
     </style>
 </head>
 <body>
 
     <nav>
         <a href="/" class="logo">
-            <div class="logo-icon">
-                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg>
-            </div>
+            <div class="logo-icon"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg></div>
             <div class="logo-text">DrMobile<span>Phone</span></div>
         </a>
         <div class="nav-links" id="navLinks"></div>
+        <button class="hamburger" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
     </nav>
 
     <div class="orders-wrapper">
@@ -54,9 +112,13 @@
     <script src="js/supabase-config.js"></script>
     <script src="js/cart.js"></script>
     <script>
+        let userProfile = null;
+        let allOrders = [];
+
         (async () => {
             const result = await requireAuth(['approved']);
             if (!result) return;
+            userProfile = result.profile;
             renderNavWithCart(result.profile);
             await updateCartBadge();
             await loadOrders();
@@ -65,15 +127,14 @@
         function renderNavWithCart(profile) {
             const navLinks = document.querySelector('.nav-links');
             if (!navLinks) return;
-            let links = '';
+            let links = '<button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
             if (profile.is_admin) links += '<a href="/admin.html">Admin</a>';
             links += '<a href="/store.html">Store</a>';
-            links += `<a href="/cart.html" class="nav-cart">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
-                Cart <span class="cart-badge">0</span></a>`;
+            links += `<a href="/cart.html" class="nav-cart"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg> Cart <span class="cart-badge">0</span></a>`;
             links += '<a href="/orders.html" style="color:var(--orange);">Orders</a>';
             links += `<a href="#" onclick="signOut(); return false;" class="nav-cta">Sign Out</a>`;
             navLinks.innerHTML = links;
+            ensureHamburger();
         }
 
         async function loadOrders() {
@@ -85,38 +146,112 @@
                 .order('created_at', { ascending: false });
 
             const content = document.getElementById('ordersContent');
-
             if (error || !orders || orders.length === 0) {
-                content.innerHTML = `
-                    <div class="empty-orders">
-                        <h2>No orders yet</h2>
-                        <p>Once you place an order, it will appear here.</p>
-                        <a href="/store.html" class="btn btn-primary">Browse Store</a>
-                    </div>`;
+                content.innerHTML = `<div class="empty-orders"><h2>No orders yet</h2><p>Once you place an order, it will appear here.</p><a href="/store.html" class="btn btn-primary">Browse Store</a></div>`;
                 return;
             }
 
-            content.innerHTML = orders.map(order => {
+            // Load invoices for all orders
+            const orderIds = orders.map(o => o.id);
+            const { data: invoices } = await db.from('invoices').select('*').in('order_id', orderIds);
+            const invoiceMap = {};
+            (invoices || []).forEach(inv => invoiceMap[inv.order_id] = inv);
+
+            allOrders = orders.map(o => ({ ...o, invoice: invoiceMap[o.id] || null }));
+            renderOrderList();
+        }
+
+        function renderOrderList() {
+            const content = document.getElementById('ordersContent');
+            content.innerHTML = allOrders.map(order => {
                 const items = order.order_items || [];
-                const itemSummary = items.map(i => `${i.quantity}× ${esc(i.product_name)}`).join(', ');
-                return `<div class="order-card">
-                    <div class="order-card-header">
+                const itemCount = items.reduce((s, i) => s + i.quantity, 0);
+                const statusClass = order.status === 'paid' || order.status === 'completed' ? 'approved' : order.status === 'cancelled' ? 'rejected' : 'pending';
+                return `<div class="order-card" onclick="viewOrder('${order.id}')">
+                    <div class="order-card-row">
                         <span class="order-id">Order #${order.id.slice(0, 8).toUpperCase()}</span>
-                        <span><span class="status-badge status-${order.status === 'paid' || order.status === 'completed' ? 'approved' : order.status === 'cancelled' ? 'rejected' : 'pending'}">${cap(order.status)}</span></span>
+                        <span class="status-badge status-${statusClass}">${cap(order.status)}</span>
                         <span class="order-date">${fmtDate(order.created_at)}</span>
-                    </div>
-                    <div class="order-card-items">${itemSummary || 'No items'}</div>
-                    <div class="order-card-footer">
-                        <span>Payment: ${order.payment_method ? cap(order.payment_method) : '—'}</span>
                         <span class="total">€${Number(order.total).toFixed(2)}</span>
                     </div>
+                    <div class="order-summary">${itemCount} item${itemCount !== 1 ? 's' : ''} · ${order.payment_method === 'invoice' ? 'Invoice' : 'Card'}</div>
                 </div>`;
             }).join('');
         }
 
+        function viewOrder(orderId) {
+            const order = allOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const items = order.order_items || [];
+            const subtotal = items.reduce((s, i) => s + (Number(i.unit_price) * i.quantity), 0);
+            const invoice = order.invoice;
+            const isInvoice = order.payment_method === 'invoice';
+            const docTitle = isInvoice && invoice ? 'Invoice' : 'Order Confirmation';
+            const docNumber = isInvoice && invoice ? invoice.invoice_number : '#' + order.id.slice(0, 8).toUpperCase();
+
+            const content = document.getElementById('ordersContent');
+            content.innerHTML = `
+                <div class="back-link" onclick="renderOrderList()">← Back to Orders</div>
+                <div class="print-btn"><button class="btn btn-secondary btn-sm" onclick="window.print()">🖨 Print ${docTitle}</button></div>
+                <div class="print-doc">
+                    <div class="print-header">
+                        <div class="company">
+                            <h2>DrMobile<span>Phone</span></h2>
+                            <p>Wholesale Consumer Electronics<br>Dublin, Ireland<br>info@drmobilephone.ie<br>+353 089 989 9550</p>
+                        </div>
+                        <div class="doc-title">
+                            <h1>${docTitle}</h1>
+                            <p><strong>${docNumber}</strong><br>Date: ${fmtDate(order.created_at)}${isInvoice && invoice ? '<br>Due: ' + fmtDate(invoice.due_date) : ''}${isInvoice && invoice ? '<br>Status: ' + cap(invoice.status) : ''}</p>
+                        </div>
+                    </div>
+
+                    <div class="info-columns">
+                        <div class="info-block">
+                            <label>Bill To</label>
+                            <p><strong>${esc(userProfile.business_name)}</strong><br>${esc(userProfile.contact_name)}<br>${esc(userProfile.email)}<br>${esc(userProfile.phone || '')}</p>
+                        </div>
+                        <div class="info-block">
+                            <label>Order Details</label>
+                            <p>Order #${order.id.slice(0, 8).toUpperCase()}<br>Status: ${cap(order.status)}<br>Payment: ${order.payment_method === 'invoice' ? 'Trade Account (Invoice)' : 'Card'}</p>
+                        </div>
+                    </div>
+
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Product</th>
+                                <th class="right">Qty</th>
+                                <th class="right">Unit Price</th>
+                                <th class="right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map((item, i) => `<tr>
+                                <td>${i + 1}</td>
+                                <td class="product-name">${esc(item.product_name)}</td>
+                                <td class="right">${item.quantity}</td>
+                                <td class="right">€${Number(item.unit_price).toFixed(2)}</td>
+                                <td class="right">€${(Number(item.unit_price) * item.quantity).toFixed(2)}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+
+                    <div class="totals-section">
+                        <div class="totals-box">
+                            <div class="totals-row"><span>Subtotal</span><span>€${subtotal.toFixed(2)}</span></div>
+                            <div class="totals-row grand"><span>Total</span><span>€${Number(order.total).toFixed(2)}</span></div>
+                        </div>
+                    </div>
+
+                    ${order.notes ? `<div class="order-notes"><label>Notes</label><p>${esc(order.notes)}</p></div>` : ''}
+                </div>`;
+        }
+
         function esc(t) { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }
-        function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-        function fmtDate(d) { return new Date(d).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' }); }
+        function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+        function fmtDate(d) { return new Date(d).toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' }); }
     </script>
 </body>
 </html>
