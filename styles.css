@@ -602,6 +602,7 @@ nav {
         align-items: center;
         gap: 1.5rem;
         z-index: 200;
+        padding: 2rem;
     }
 
     .nav-links.open { display: flex; }
@@ -610,6 +611,12 @@ nav {
     .nav-links a {
         font-size: 1.2rem;
         padding: 0.5rem 1rem;
+    }
+
+    .nav-links .nav-cart {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
     }
 
     .nav-links .nav-cta {
