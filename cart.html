@@ -42,7 +42,8 @@
         .qty-controls { display: flex; align-items: center; gap: 0; border: 1.5px solid var(--gray-200); border-radius: 8px; overflow: hidden; }
         .qty-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: white; border: none; cursor: pointer; font-size: 1rem; font-family: 'DM Sans', sans-serif; color: var(--gray-700); transition: background 0.15s; }
         .qty-btn:hover { background: var(--gray-100); }
-        .qty-value { width: 40px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 0.88rem; font-weight: 600; border-left: 1.5px solid var(--gray-200); border-right: 1.5px solid var(--gray-200); }
+        .qty-value-input { width: 50px; height: 34px; text-align: center; font-size: 0.88rem; font-weight: 600; font-family: 'DM Sans', sans-serif; color: var(--black); border: none; border-left: 1.5px solid var(--gray-200); border-right: 1.5px solid var(--gray-200); outline: none; -moz-appearance: textfield; }
+        .qty-value-input::-webkit-outer-spin-button, .qty-value-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
         .remove-btn { background: none; border: none; cursor: pointer; color: var(--gray-300); transition: color 0.2s; padding: 0.5rem; }
         .remove-btn:hover { color: var(--red); }
@@ -172,7 +173,9 @@
                     </div>
                     <div class="qty-controls">
                         <button class="qty-btn" onclick="changeQty('${item.id}', ${item.quantity - 1})">−</button>
-                        <div class="qty-value">${item.quantity}</div>
+                        <input type="number" class="qty-value-input" value="${item.quantity}" min="1" max="9999"
+                            onchange="changeQty('${item.id}', parseInt(this.value) || 1)"
+                            onkeydown="if(event.key==='Enter'){this.blur();}">
                         <button class="qty-btn" onclick="changeQty('${item.id}', ${item.quantity + 1})">+</button>
                     </div>
                     <button class="remove-btn" onclick="removeItem('${item.id}')" title="Remove">

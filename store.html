@@ -63,6 +63,14 @@
         .btn-cart.added { background: var(--green-dim); border-color: var(--green); color: #15803D; }
         .btn-cart:disabled { opacity: 0.4; cursor: not-allowed; }
 
+        .add-row { display: flex; gap: 0.5rem; align-items: stretch; }
+        .qty-input-wrap { display: flex; border: 1.5px solid var(--gray-200); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+        .qty-input-btn { width: 30px; display: flex; align-items: center; justify-content: center; background: white; border: none; cursor: pointer; font-size: 0.9rem; font-family: 'DM Sans', sans-serif; color: var(--gray-700); transition: background 0.15s; }
+        .qty-input-btn:hover { background: var(--gray-100); }
+        .qty-input { width: 44px; text-align: center; border: none; border-left: 1.5px solid var(--gray-200); border-right: 1.5px solid var(--gray-200); font-size: 0.85rem; font-weight: 600; font-family: 'DM Sans', sans-serif; color: var(--black); outline: none; -moz-appearance: textfield; }
+        .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .add-row .btn-cart { flex: 1; min-width: 0; }
+
         .no-results { grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--gray-500); }
 
         /* Cart nav link */
@@ -184,7 +192,14 @@
                         <div class="price-row">${hasSale
                             ? `<span class="price sale-price">€${Number(p.sale_price).toFixed(2)}</span><span class="original-price">€${Number(p.price).toFixed(2)}</span>`
                             : `<span class="price">€${Number(p.price).toFixed(2)}</span>`}</div>
-                        <button class="btn-cart" onclick="handleAddToCart('${p.id}', this)">Add to Cart</button>
+                        <div class="add-row">
+                            <div class="qty-input-wrap">
+                                <button class="qty-input-btn" onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'))">−</button>
+                                <input type="number" class="qty-input" id="qty-f-${p.id}" value="1" min="1" max="9999">
+                                <button class="qty-input-btn" onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'))">+</button>
+                            </div>
+                            <button class="btn-cart" onclick="handleAddToCart('${p.id}', this, 'qty-f-${p.id}')">Add</button>
+                        </div>
                     </div></div>`;
             }).join('');
         }
@@ -213,16 +228,25 @@
                             ? `<span class="price sale-price">€${Number(p.sale_price).toFixed(2)}</span><span class="original-price">€${Number(p.price).toFixed(2)}</span>`
                             : `<span class="price">€${Number(p.price).toFixed(2)}</span>`}</div>
                         <div class="stock ${lowStock ? 'low' : ''}">${noStock ? 'Out of stock' : lowStock ? `Only ${p.stock_quantity} left` : `${p.stock_quantity} in stock`}</div>
-                        <button class="btn-cart" ${noStock ? 'disabled' : ''} onclick="handleAddToCart('${p.id}', this)">
-                            ${noStock ? 'Out of Stock' : 'Add to Cart'}
-                        </button>
+                        <div class="add-row">
+                            <div class="qty-input-wrap">
+                                <button class="qty-input-btn" onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'))">−</button>
+                                <input type="number" class="qty-input" id="qty-${p.id}" value="1" min="1" max="9999" ${noStock ? 'disabled' : ''}>
+                                <button class="qty-input-btn" onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'))">+</button>
+                            </div>
+                            <button class="btn-cart" ${noStock ? 'disabled' : ''} onclick="handleAddToCart('${p.id}', this, 'qty-${p.id}')">
+                                ${noStock ? 'Out of Stock' : 'Add'}
+                            </button>
+                        </div>
                     </div></div>`;
             }).join('');
         }
 
-        async function handleAddToCart(productId, btnEl) {
+        async function handleAddToCart(productId, btnEl, qtyInputId) {
+            const qtyInput = document.getElementById(qtyInputId);
+            const qty = Math.max(1, parseInt(qtyInput.value) || 1);
             btnEl.disabled = true;
-            const { error } = await addToCart(productId);
+            const { error } = await addToCart(productId, qty);
             if (error) {
                 btnEl.disabled = false;
                 return;
@@ -231,8 +255,9 @@
             btnEl.textContent = '✓ Added';
             setTimeout(() => {
                 btnEl.classList.remove('added');
-                btnEl.textContent = 'Add to Cart';
+                btnEl.textContent = 'Add';
                 btnEl.disabled = false;
+                qtyInput.value = 1;
             }, 1500);
         }
 
