@@ -116,7 +116,7 @@ function renderNav(profile = null) {
     if (!navLinks) return;
 
     if (profile) {
-        let links = '';
+        let links = '<button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
         if (profile.is_admin) {
             links += '<a href="/admin.html">Admin</a>';
         }
@@ -127,8 +127,27 @@ function renderNav(profile = null) {
         navLinks.innerHTML = links;
     } else {
         navLinks.innerHTML = `
+            <button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             <a href="/login.html">Login</a>
             <a href="/register.html" class="nav-cta">Register</a>
         `;
     }
+
+    ensureHamburger();
+}
+
+function ensureHamburger() {
+    if (document.querySelector('.hamburger')) return;
+    const nav = document.querySelector('nav');
+    if (!nav) return;
+    const btn = document.createElement('button');
+    btn.className = 'hamburger';
+    btn.setAttribute('onclick', 'toggleMobileMenu()');
+    btn.innerHTML = '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>';
+    nav.appendChild(btn);
+}
+
+function toggleMobileMenu() {
+    const navLinks = document.querySelector('.nav-links');
+    if (navLinks) navLinks.classList.toggle('open');
 }

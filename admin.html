@@ -74,10 +74,12 @@
             <div class="logo-text">DrMobile<span>Phone</span></div>
         </a>
         <div class="nav-links">
+            <button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             <a href="/store.html">Store</a>
             <a href="/admin.html" style="color: var(--orange);">Admin</a>
             <a href="#" onclick="signOut(); return false;" class="nav-cta">Sign Out</a>
         </div>
+        <button class="hamburger" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
     </nav>
 
     <div class="admin-wrapper" style="max-width: 1100px;">
@@ -88,6 +90,7 @@
         <div class="admin-main-tabs">
             <button class="admin-main-tab active" onclick="switchMainTab('users', this)">Users</button>
             <button class="admin-main-tab" onclick="switchMainTab('products', this)">Products</button>
+            <button class="admin-main-tab" onclick="switchMainTab('orders', this)">Orders</button>
         </div>
 
         <!-- USERS PANEL -->
@@ -175,6 +178,25 @@
                 <div class="empty-state" style="grid-column:1/-1;">Loading products...</div>
             </div>
         </div>
+
+        <!-- ORDERS PANEL -->
+        <div id="panel-orders" class="tab-panel">
+            <div class="admin-tabs">
+                <button class="admin-tab active" onclick="filterOrders('all', this)">All</button>
+                <button class="admin-tab" onclick="filterOrders('pending', this)">Pending</button>
+                <button class="admin-tab" onclick="filterOrders('paid', this)">Paid</button>
+                <button class="admin-tab" onclick="filterOrders('invoiced', this)">Invoiced</button>
+                <button class="admin-tab" onclick="filterOrders('shipped', this)">Shipped</button>
+                <button class="admin-tab" onclick="filterOrders('completed', this)">Completed</button>
+            </div>
+            <div class="user-table">
+                <table>
+                    <thead><tr><th>Order #</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                    <tbody id="ordersTableBody"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -187,6 +209,7 @@
             if (!result) return;
             await loadUsers();
             await loadProducts();
+            await loadOrders();
         })();
 
         function switchMainTab(tab, el) {
@@ -383,6 +406,78 @@
         function esc(t) { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }
         function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
         function fmtDate(d) { return new Date(d).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' }); }
+
+        // ── ORDERS ──
+        let allOrders = [], currentOrderFilter = 'all';
+
+        async function loadOrders() {
+            const { data, error } = await db
+                .from('orders')
+                .select('*, order_items(*), profiles:user_id(business_name, contact_name, email)')
+                .order('created_at', { ascending: false });
+
+            if (error) { showAlert('alert', 'Failed to load orders: ' + error.message, 'error'); return; }
+            allOrders = data || [];
+            renderOrders();
+        }
+
+        function filterOrders(status, tabEl) {
+            currentOrderFilter = status;
+            document.querySelectorAll('#panel-orders .admin-tab').forEach(t => t.classList.remove('active'));
+            tabEl.classList.add('active');
+            renderOrders();
+        }
+
+        function renderOrders() {
+            const tbody = document.getElementById('ordersTableBody');
+            const filtered = currentOrderFilter === 'all'
+                ? allOrders
+                : allOrders.filter(o => o.status === currentOrderFilter);
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No ${currentOrderFilter === 'all' ? '' : currentOrderFilter} orders.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(order => {
+                const items = order.order_items || [];
+                const itemSummary = items.map(i => i.quantity + '× ' + esc(i.product_name)).join(', ');
+                const profile = order.profiles || {};
+                const statusMap = {
+                    pending: 'pending', paid: 'approved', invoiced: 'pending',
+                    shipped: 'approved', completed: 'approved', cancelled: 'rejected'
+                };
+                const statusActions = [];
+                if (order.status === 'pending') statusActions.push('paid');
+                if (order.status === 'paid' || order.status === 'invoiced') statusActions.push('shipped');
+                if (order.status === 'shipped') statusActions.push('completed');
+                if (order.status !== 'cancelled' && order.status !== 'completed') statusActions.push('cancelled');
+
+                return `<tr>
+                    <td><strong>#${order.id.slice(0, 8).toUpperCase()}</strong></td>
+                    <td>${esc(profile.business_name || '—')}<br><span style="font-size:0.78rem;color:var(--gray-500);">${esc(profile.email || '')}</span></td>
+                    <td style="font-size:0.82rem;max-width:200px;">${itemSummary || '—'}</td>
+                    <td><strong>€${Number(order.total).toFixed(2)}</strong></td>
+                    <td>${order.payment_method ? cap(order.payment_method) : '—'}</td>
+                    <td><span class="status-badge status-${statusMap[order.status] || 'pending'}">${cap(order.status)}</span></td>
+                    <td>${fmtDate(order.created_at)}</td>
+                    <td class="actions">
+                        <select onchange="updateOrderStatus('${order.id}', this.value); this.value='';" style="padding:0.4rem;border-radius:6px;border:1px solid var(--gray-200);font-size:0.78rem;font-family:'DM Sans',sans-serif;">
+                            <option value="">Update...</option>
+                            ${statusActions.map(s => `<option value="${s}">${cap(s)}</option>`).join('')}
+                        </select>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            if (!newStatus) return;
+            const { error } = await db.from('orders').update({ status: newStatus }).eq('id', orderId);
+            if (error) { showAlert('alert', 'Failed: ' + error.message, 'error'); return; }
+            showAlert('alert', `Order updated to ${newStatus}.`, 'success');
+            await loadOrders();
+        }
     </script>
 </body>
 </html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmed — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .success-wrapper { max-width: 600px; margin: 0 auto; padding: 8rem 2rem 3rem; text-align: center; }
+        .success-icon { width: 80px; height: 80px; border-radius: 50%; background: var(--green-dim); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2.5rem; }
+        .success-wrapper h1 { font-family: 'Instrument Serif', serif; font-size: 2rem; font-weight: 400; margin-bottom: 0.5rem; }
+        .success-wrapper .subtitle { font-size: 0.95rem; color: var(--gray-500); margin-bottom: 2rem; line-height: 1.5; }
+
+        .nav-cart { position: relative; display: flex; align-items: center; gap: 0.3rem; }
+        .cart-badge { position: absolute; top: -6px; right: -10px; min-width: 18px; height: 18px; background: var(--orange); color: white; font-size: 0.68rem; font-weight: 700; border-radius: 100px; display: none; align-items: center; justify-content: center; padding: 0 4px; }
+
+        .order-detail-card { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.5rem; margin-bottom: 2rem; text-align: left; }
+        .order-detail-card .row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100); }
+        .order-detail-card .row:last-child { border-bottom: none; }
+        .order-detail-card .row .label { color: var(--gray-500); font-size: 0.88rem; }
+        .order-detail-card .row .value { font-weight: 600; font-size: 0.88rem; }
+
+        .success-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+        .success-actions .btn { width: auto; }
+
+        @media (max-width: 768px) { .success-wrapper { padding: 6rem 1.25rem 2rem; } }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg>
+            </div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links" id="navLinks"></div>
+        <button class="hamburger" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+    </nav>
+
+    <div class="success-wrapper">
+        <div class="success-icon">✓</div>
+        <h1 id="successTitle">Order Confirmed!</h1>
+        <p class="subtitle" id="successSubtitle">Loading order details...</p>
+
+        <div class="order-detail-card" id="orderDetails" style="display:none;"></div>
+
+        <div class="success-actions">
+            <a href="/orders.html" class="btn btn-primary">View Orders</a>
+            <a href="/store.html" class="btn btn-secondary">Continue Shopping</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/cart.js"></script>
+    <script>
+        (async () => {
+            const result = await requireAuth(['approved']);
+            if (!result) return;
+
+            const navLinks = document.querySelector('.nav-links');
+            let links = '<button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
+            if (result.profile.is_admin) links += '<a href="/admin.html">Admin</a>';
+            links += '<a href="/store.html">Store</a>';
+            links += `<a href="/cart.html" class="nav-cart">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                Cart <span class="cart-badge">0</span></a>`;
+            links += '<a href="/orders.html">Orders</a>';
+            links += `<a href="#" onclick="signOut(); return false;" class="nav-cta">Sign Out</a>`;
+            navLinks.innerHTML = links;
+            ensureHamburger();
+
+            const params = new URLSearchParams(window.location.search);
+            const orderId = params.get('order_id');
+            const method = params.get('method');
+            const sessionId = params.get('session_id');
+
+            if (!orderId) {
+                document.getElementById('successSubtitle').textContent = 'No order found.';
+                return;
+            }
+
+            // If card payment, update order status to paid and clear cart
+            if (sessionId) {
+                await db.from('orders')
+                    .update({ status: 'paid', stripe_session_id: sessionId })
+                    .eq('id', orderId);
+                await clearCart();
+            }
+
+            // Load order
+            const { data: order } = await db
+                .from('orders')
+                .select('*, order_items(*)')
+                .eq('id', orderId)
+                .single();
+
+            if (!order) {
+                document.getElementById('successSubtitle').textContent = 'Order not found.';
+                return;
+            }
+
+            const isInvoice = order.payment_method === 'invoice';
+
+            document.getElementById('successTitle').textContent = isInvoice
+                ? 'Order Placed on Account!'
+                : 'Payment Successful!';
+
+            document.getElementById('successSubtitle').textContent = isInvoice
+                ? 'Your order has been placed. An invoice has been generated for your records.'
+                : 'Your payment has been processed. Thank you for your order!';
+
+            // Load invoice if applicable
+            let invoiceInfo = '';
+            if (isInvoice) {
+                const { data: invoice } = await db
+                    .from('invoices')
+                    .select('*')
+                    .eq('order_id', orderId)
+                    .single();
+
+                if (invoice) {
+                    invoiceInfo = `
+                        <div class="row"><span class="label">Invoice #</span><span class="value">${invoice.invoice_number}</span></div>
+                        <div class="row"><span class="label">Due Date</span><span class="value">${new Date(invoice.due_date).toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>`;
+                }
+            }
+
+            const items = order.order_items || [];
+            const detailCard = document.getElementById('orderDetails');
+            detailCard.style.display = '';
+            detailCard.innerHTML = `
+                <div class="row"><span class="label">Order #</span><span class="value">${order.id.slice(0, 8).toUpperCase()}</span></div>
+                <div class="row"><span class="label">Status</span><span class="value">${cap(order.status)}</span></div>
+                <div class="row"><span class="label">Items</span><span class="value">${items.map(i => i.quantity + '× ' + i.product_name).join(', ')}</span></div>
+                <div class="row"><span class="label">Total</span><span class="value">€${Number(order.total).toFixed(2)}</span></div>
+                <div class="row"><span class="label">Payment</span><span class="value">${order.payment_method === 'invoice' ? 'Invoice (Trade Account)' : 'Card'}</span></div>
+                ${invoiceInfo}
+            `;
+
+            await updateCartBadge();
+        })();
+
+        function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+    </script>
+</body>
+</html>
