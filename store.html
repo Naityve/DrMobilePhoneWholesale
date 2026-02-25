@@ -100,6 +100,7 @@
             <div class="logo-text">DrMobile<span>Phone</span></div>
         </a>
         <div class="nav-links" id="navLinks"></div>
+        <button class="hamburger" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
     </nav>
 
     <div class="store-header">
@@ -149,7 +150,7 @@
         function renderNavWithCart(profile) {
             const navLinks = document.querySelector('.nav-links');
             if (!navLinks) return;
-            let links = '';
+            let links = '<button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
             if (profile.is_admin) links += '<a href="/admin.html">Admin</a>';
             links += '<a href="/store.html" style="color:var(--orange);">Store</a>';
             links += `<a href="/cart.html" class="nav-cart">
@@ -158,6 +159,7 @@
             links += '<a href="/orders.html">Orders</a>';
             links += `<a href="#" onclick="signOut(); return false;" class="nav-cta">Sign Out</a>`;
             navLinks.innerHTML = links;
+            ensureHamburger();
         }
 
         async function loadStoreProducts() {

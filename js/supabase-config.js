@@ -122,6 +122,10 @@ function renderNav(profile = null) {
         }
         if (profile.status === 'approved') {
             links += '<a href="/store.html">Store</a>';
+            links += `<a href="/cart.html" class="nav-cart">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                Cart <span class="cart-badge" style="display:none;">0</span></a>`;
+            links += '<a href="/orders.html">Orders</a>';
         }
         links += `<a href="#" onclick="signOut(); return false;" class="nav-cta">Sign Out</a>`;
         navLinks.innerHTML = links;
@@ -151,3 +155,11 @@ function toggleMobileMenu() {
     const navLinks = document.querySelector('.nav-links');
     if (navLinks) navLinks.classList.toggle('open');
 }
+
+// Close mobile menu when any link inside it is clicked
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.nav-links a')) {
+        const navLinks = document.querySelector('.nav-links');
+        if (navLinks) navLinks.classList.remove('open');
+    }
+});
