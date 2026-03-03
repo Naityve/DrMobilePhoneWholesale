@@ -228,22 +228,35 @@
         })();
 
         function getRetailPrice(p) {
+            if (p.is_on_sale_retail && p.retail_sale_price) return Number(p.retail_sale_price);
             return p.retail_price ? Number(p.retail_price) : Number(p.price);
         }
 
+        function getRetailOriginalPrice(p) {
+            return p.retail_price ? Number(p.retail_price) : Number(p.price);
+        }
+
+        function isRetailSale(p) {
+            return p.is_on_sale_retail && p.retail_sale_price;
+        }
+
         function renderFeatured() {
-            const featured = products.filter(p => p.is_featured || p.is_on_sale);
+            const featured = products.filter(p => p.is_featured || p.is_on_sale_retail);
             if (featured.length === 0) return;
             document.getElementById('featuredSection').style.display = '';
             document.getElementById('featuredScroll').innerHTML = featured.map(p => {
                 const hasImg = p.image_url && p.image_url.length > 0;
                 const price = getRetailPrice(p);
+                const origPrice = getRetailOriginalPrice(p);
+                const onSale = isRetailSale(p);
                 return `<div class="p-card">
                     ${hasImg ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : `<div class="no-img">📦</div>`}
                     <div class="p-card-body">
-                        <div class="cat">${p.is_on_sale ? '🏷 Sale' : '⭐ Featured'}</div>
+                        <div class="cat">${onSale ? '🏷 Sale' : '⭐ Featured'}</div>
                         <h3>${esc(p.name)}</h3>
-                        <div class="price">€${price.toFixed(2)}</div>
+                        <div class="price">${onSale
+                            ? `<span style="color:var(--orange);">€${price.toFixed(2)}</span> <span style="text-decoration:line-through;color:var(--gray-500);font-weight:400;font-size:0.85rem;">€${origPrice.toFixed(2)}</span>`
+                            : `€${price.toFixed(2)}`}</div>
                         <div class="add-row">
                             <div class="qty-input-wrap">
                                 <button class="qty-input-btn" onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'))">−</button>
@@ -275,6 +288,8 @@
             grid.innerHTML = filtered.map(p => {
                 const hasImg = p.image_url && p.image_url.length > 0;
                 const price = getRetailPrice(p);
+                const origPrice = getRetailOriginalPrice(p);
+                const onSale = isRetailSale(p);
                 const noStock = p.stock_quantity === 0;
                 const lowStock = p.stock_quantity > 0 && p.stock_quantity <= 10;
                 return `<div class="p-card">
@@ -283,7 +298,9 @@
                         <div class="cat">${esc(p.category)}</div>
                         <h3>${esc(p.name)}</h3>
                         ${p.description ? `<div class="desc">${esc(p.description)}</div>` : ''}
-                        <div class="price">€${price.toFixed(2)}</div>
+                        <div class="price">${onSale
+                            ? `<span style="color:var(--orange);">€${price.toFixed(2)}</span> <span style="text-decoration:line-through;color:var(--gray-500);font-weight:400;font-size:0.85rem;">€${origPrice.toFixed(2)}</span>`
+                            : `€${price.toFixed(2)}`}</div>
                         <div class="stock-info ${lowStock ? 'low' : ''}">${noStock ? 'Out of stock' : lowStock ? 'Low stock' : 'In stock'}</div>
                         <div class="add-row">
                             <div class="qty-input-wrap">

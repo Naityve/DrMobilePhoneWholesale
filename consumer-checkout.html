@@ -84,7 +84,7 @@
             const b = document.getElementById('consumerCartBadge');
             if (b) { b.textContent = count; b.style.display = count > 0 ? 'flex' : 'none'; }
         }
-        function getRetailPrice(p) { return p.retail_price ? Number(p.retail_price) : Number(p.price); }
+        function getRetailPrice(p) { if (p.is_on_sale_retail && p.retail_sale_price) return Number(p.retail_sale_price); return p.retail_price ? Number(p.retail_price) : Number(p.price); }
 
         (async () => {
             updateBadge();
