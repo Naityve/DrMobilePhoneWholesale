@@ -143,17 +143,24 @@
                             <input type="number" id="prodPrice" placeholder="0.00" step="0.01" min="0" required>
                         </div>
                         <div class="form-group">
+                            <label for="prodRetailPrice">Retail Price (€)</label>
+                            <input type="number" id="prodRetailPrice" placeholder="Consumer price" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
                             <label for="prodSalePrice">Sale Price (€)</label>
                             <input type="number" id="prodSalePrice" placeholder="Leave blank if none" step="0.01" min="0">
                         </div>
+                    </div>
+                    <div class="form-grid-3">
                         <div class="form-group">
                             <label for="prodStock">Stock Quantity *</label>
                             <input type="number" id="prodStock" placeholder="0" min="0" required>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="prodSku">SKU</label>
-                        <input type="text" id="prodSku" placeholder="e.g. USBC-FC-1M">
+                        <div class="form-group">
+                            <label for="prodSku">SKU</label>
+                            <input type="text" id="prodSku" placeholder="e.g. USBC-FC-1M">
+                        </div>
+                        <div class="form-group"></div>
                     </div>
                     <label style="font-size:0.82rem;font-weight:500;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Product Image</label>
                     <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('prodImage').click()">
@@ -283,7 +290,7 @@
                         <h3>${esc(p.name)}</h3>
                         <div class="price-row">${hasSale
                             ? `<span class="price sale-price">€${Number(p.sale_price).toFixed(2)}</span><span class="original-price">€${Number(p.price).toFixed(2)}</span>`
-                            : `<span class="price">€${Number(p.price).toFixed(2)}</span>`}</div>
+                            : `<span class="price">€${Number(p.price).toFixed(2)}</span>`}${p.retail_price ? ` <span style="font-size:0.78rem;color:var(--gray-500);">Retail: €${Number(p.retail_price).toFixed(2)}</span>` : ''}</div>
                         <div class="meta">SKU: ${esc(p.sku || '—')} · Stock: ${p.stock_quantity}</div>
                         ${badges ? `<div class="badges">${badges}</div>` : ''}
                         <div class="card-actions">
@@ -334,6 +341,7 @@
                     name: document.getElementById('prodName').value.trim(),
                     description: document.getElementById('prodDesc').value.trim(),
                     price: parseFloat(document.getElementById('prodPrice').value),
+                    retail_price: document.getElementById('prodRetailPrice').value ? parseFloat(document.getElementById('prodRetailPrice').value) : null,
                     sale_price: document.getElementById('prodSalePrice').value ? parseFloat(document.getElementById('prodSalePrice').value) : null,
                     category: document.getElementById('prodCategory').value,
                     sku: document.getElementById('prodSku').value.trim(),
@@ -366,6 +374,7 @@
             document.getElementById('prodName').value = p.name;
             document.getElementById('prodDesc').value = p.description || '';
             document.getElementById('prodPrice').value = p.price;
+            document.getElementById('prodRetailPrice').value = p.retail_price || '';
             document.getElementById('prodSalePrice').value = p.sale_price || '';
             document.getElementById('prodCategory').value = p.category;
             document.getElementById('prodSku').value = p.sku || '';

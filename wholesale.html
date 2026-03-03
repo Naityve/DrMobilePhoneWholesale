@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DrMobilePhone — Wholesale Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ── Landing-page-specific styles ── */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 8rem 2rem 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(232, 97, 26, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(232, 97, 26, 0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            padding: 0.5rem 1.2rem;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            color: var(--gray-700);
+            font-weight: 500;
+            margin-bottom: 2.5rem;
+            animation: fadeUp 0.8s ease both;
+        }
+
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--orange);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.85); }
+        }
+
+        .hero h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(3rem, 7vw, 5.5rem);
+            font-weight: 400;
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+            max-width: 800px;
+            margin-bottom: 1.5rem;
+            animation: fadeUp 0.8s 0.1s ease both;
+        }
+
+        .hero h1 em { color: var(--orange); font-style: italic; }
+
+        .hero-sub {
+            font-size: 1.15rem;
+            color: var(--gray-500);
+            max-width: 520px;
+            line-height: 1.7;
+            font-weight: 300;
+            margin-bottom: 3rem;
+            animation: fadeUp 0.8s 0.2s ease both;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            animation: fadeUp 0.8s 0.3s ease both;
+        }
+
+        .hero-actions .btn { width: auto; }
+
+        /* Categories */
+        .categories {
+            padding: 4rem 2rem;
+            background: var(--black);
+            color: var(--white);
+        }
+
+        .categories-inner { max-width: 1100px; margin: 0 auto; }
+
+        .section-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--orange);
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .categories h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 400;
+            margin-bottom: 3rem;
+            letter-spacing: -0.02em;
+        }
+
+        .cat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1px;
+            background: var(--gray-700);
+            border: 1px solid var(--gray-700);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .cat-item {
+            background: var(--black);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            transition: background 0.3s;
+        }
+
+        .cat-item:hover { background: #151515; }
+        .cat-icon { font-size: 1.8rem; line-height: 1; }
+        .cat-item h3 { font-weight: 500; font-size: 1rem; }
+        .cat-item p { font-size: 0.82rem; color: var(--gray-500); line-height: 1.5; font-weight: 300; }
+
+        /* Why section */
+        .why { padding: 6rem 2rem; max-width: 1100px; margin: 0 auto; }
+
+        .why h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 400;
+            margin-bottom: 3.5rem;
+            letter-spacing: -0.02em;
+            text-align: center;
+        }
+
+        .why-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .why-card {
+            padding: 2.5rem 2rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            transition: all 0.3s;
+        }
+
+        .why-card:hover {
+            border-color: var(--orange);
+            box-shadow: 0 4px 20px rgba(232, 97, 26, 0.08);
+        }
+
+        .why-number {
+            font-family: 'Instrument Serif', serif;
+            font-size: 2.5rem;
+            color: var(--orange);
+            line-height: 1;
+            margin-bottom: 1rem;
+        }
+
+        .why-card h3 { font-weight: 700; font-size: 1.05rem; margin-bottom: 0.6rem; }
+        .why-card p { font-size: 0.9rem; color: var(--gray-500); line-height: 1.7; font-weight: 300; }
+
+        /* Contact */
+        .contact { padding: 5rem 2rem; background: var(--gray-100); text-align: center; }
+        .contact-inner { max-width: 600px; margin: 0 auto; }
+
+        .contact h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+
+        .contact p {
+            color: var(--gray-500);
+            font-size: 1rem;
+            line-height: 1.7;
+            margin-bottom: 2.5rem;
+            font-weight: 300;
+        }
+
+        .contact-methods {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .contact-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 14px;
+            padding: 1.8rem 2.2rem;
+            text-decoration: none;
+            color: var(--black);
+            min-width: 220px;
+            transition: all 0.25s;
+        }
+
+        .contact-card:hover {
+            border-color: var(--orange);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        }
+
+        .contact-card-label {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--gray-500);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-card-value { font-weight: 700; font-size: 1rem; }
+
+        /* Footer */
+        footer {
+            padding: 2.5rem 2rem;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        footer p { font-size: 0.82rem; color: var(--gray-500); font-weight: 300; }
+        .footer-right { font-size: 0.82rem; color: var(--gray-500); font-weight: 500; }
+
+        @media (max-width: 768px) {
+            .hero { padding: 7rem 1.5rem 3rem; }
+            .hero-sub { font-size: 1rem; }
+            .hero-actions { flex-direction: column; width: 100%; max-width: 320px; }
+            .hero-actions .btn { width: 100%; }
+            .categories { padding: 3rem 1.25rem; }
+            .cat-grid { grid-template-columns: 1fr 1fr; }
+            .why { padding: 4rem 1.25rem; }
+            .contact { padding: 3.5rem 1.25rem; }
+            .contact-methods { flex-direction: column; align-items: center; }
+            .contact-card { width: 100%; max-width: 320px; }
+            footer { flex-direction: column; text-align: center; }
+        }
+
+        @media (max-width: 480px) {
+            .cat-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg>
+            </div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links" id="navLinks">
+            <button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <a href="/login.html">Login</a>
+            <a href="/register.html" class="nav-cta">Trade Account</a>
+        </div>
+        <button class="hamburger" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+    </nav>
+
+    <section class="hero">
+        <div class="badge">
+            <div class="badge-dot"></div>
+            Wholesale Only — Trade Accounts Welcome
+        </div>
+        <h1>Your <em>wholesale</em> partner for consumer electronics</h1>
+        <p class="hero-sub">
+            DrMobilePhone supplies cables, chargers, earbuds, phone accessories and more — at wholesale prices, exclusively for business customers across Ireland.
+        </p>
+        <div class="hero-actions">
+            <a href="/register.html" class="btn btn-primary">
+                Open a Trade Account
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="/login.html" class="btn btn-secondary">
+                Sign In
+            </a>
+        </div>
+    </section>
+
+    <section class="categories">
+        <div class="categories-inner">
+            <div class="section-label">What We Supply</div>
+            <h2>Everything your store needs, in bulk</h2>
+            <div class="cat-grid">
+                <div class="cat-item">
+                    <div class="cat-icon">🔌</div>
+                    <h3>Cables &amp; Chargers</h3>
+                    <p>Lightning, USB-C, Micro USB, multi-port chargers and more.</p>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">🎧</div>
+                    <h3>Earbuds &amp; Audio</h3>
+                    <p>Wired and wireless earbuds, headphones, Bluetooth speakers.</p>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">📱</div>
+                    <h3>Phone Accessories</h3>
+                    <p>Cases, screen protectors, stands, mounts and grips.</p>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">🔋</div>
+                    <h3>Power &amp; Plugs</h3>
+                    <p>Wall adapters, power banks, car chargers, extension leads.</p>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">💡</div>
+                    <h3>Smart &amp; LED</h3>
+                    <p>Smart plugs, LED strips, ring lights and gadgets.</p>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">📦</div>
+                    <h3>Bulk Deals</h3>
+                    <p>Custom bundles and volume pricing for retailers.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="why">
+        <h2>Why businesses choose DrMobilePhone</h2>
+        <div class="why-grid">
+            <div class="why-card">
+                <div class="why-number">01</div>
+                <h3>Wholesale Pricing</h3>
+                <p>Competitive bulk rates designed for resellers, shop owners and trade customers. The more you order, the better the price.</p>
+            </div>
+            <div class="why-card">
+                <div class="why-number">02</div>
+                <h3>Fast Irish Delivery</h3>
+                <p>Based in Ireland with quick turnaround. Get your stock when you need it, without the long international wait times.</p>
+            </div>
+            <div class="why-card">
+                <div class="why-number">03</div>
+                <h3>Wide Range</h3>
+                <p>From cables to earbuds to smart accessories — source everything from a single supplier and simplify your purchasing.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="contact">
+        <div class="contact-inner">
+            <div class="section-label" style="color: var(--orange);">Get Started</div>
+            <h2>Ready to open a trade account?</h2>
+            <p>Reach out to our team to discuss pricing, product availability, and bulk order options. We're here to help your business grow.</p>
+            <div class="contact-methods">
+                <a href="mailto:info@drmobilephone.ie" class="contact-card">
+                    <div class="contact-card-label">Email</div>
+                    <div class="contact-card-value">info@drmobilephone.ie</div>
+                </a>
+                <a href="tel:+3530899899550" class="contact-card">
+                    <div class="contact-card-label">Phone</div>
+                    <div class="contact-card-value">+353 089 989 9550</div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 DrMobilePhone. All rights reserved.</p>
+        <div class="footer-right">Wholesale Consumer Electronics — Ireland</div>
+    </footer>
+
+    <!-- Supabase: update nav if user is logged in -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script>
+        (async () => {
+            const user = await getCurrentUser();
+            if (user) {
+                const profile = await getUserProfile(user.id);
+                renderNav(profile);
+            }
+        })();
+    </script>
+</body>
+</html>
