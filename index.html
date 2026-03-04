@@ -41,7 +41,7 @@
         .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.25rem; }
         .p-card { border: 1px solid var(--gray-200); border-radius: 14px; overflow: hidden; background: white; transition: box-shadow 0.2s, transform 0.2s; }
         .p-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.06); transform: translateY(-2px); }
-        .p-card img { width: 100%; height: 220px; object-fit: cover; background: var(--gray-100); }
+        .p-card img { width: 100%; height: 220px; object-fit: contain; background: var(--gray-100); padding: 0.5rem; }
         .p-card .no-img { width: 100%; height: 220px; background: var(--gray-100); display: flex; align-items: center; justify-content: center; color: var(--gray-300); font-size: 2.5rem; }
         .p-card-body { padding: 1.2rem; }
         .p-card-body .cat { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; color: var(--orange); margin-bottom: 0.25rem; }
@@ -85,6 +85,28 @@
 
         .no-results { grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--gray-500); }
 
+        /* ── Promo Banner ── */
+        .promo-banner { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem 0; }
+        .promo-banner a { display: block; border-radius: 16px; overflow: hidden; position: relative; }
+        .promo-banner img { width: 100%; height: 280px; object-fit: cover; display: block; transition: transform 0.4s; }
+        .promo-banner a:hover img { transform: scale(1.02); }
+        .promo-banner .banner-overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,0.5) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: center; padding: 2.5rem; }
+        .promo-banner .banner-overlay h2 { font-family: 'Instrument Serif', serif; font-size: 2rem; font-weight: 400; color: white; margin-bottom: 0.3rem; }
+        .promo-banner .banner-overlay p { font-size: 0.95rem; color: rgba(255,255,255,0.8); margin-bottom: 1rem; }
+        .promo-banner .banner-overlay .banner-btn { display: inline-flex; padding: 0.6rem 1.5rem; background: white; color: var(--black); border-radius: 8px; font-size: 0.88rem; font-weight: 600; width: fit-content; transition: background 0.2s; }
+        .promo-banner .banner-overlay .banner-btn:hover { background: var(--orange); color: white; }
+
+        /* ── Category Shortcuts ── */
+        .cat-shortcuts { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 0; }
+        .cat-shortcuts h2 { font-family: 'Instrument Serif', serif; font-size: 1.8rem; font-weight: 400; margin-bottom: 1.25rem; }
+        .cat-shortcut-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+        .cat-shortcut { display: flex; align-items: center; justify-content: space-between; padding: 1.3rem 1.5rem; border: 1.5px solid var(--gray-200); border-radius: 12px; background: white; cursor: pointer; transition: all 0.2s; text-decoration: none; color: var(--black); }
+        .cat-shortcut:hover { border-color: var(--orange); box-shadow: 0 4px 16px rgba(0,0,0,0.05); transform: translateY(-1px); }
+        .cat-shortcut .cs-text h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.15rem; }
+        .cat-shortcut .cs-text p { font-size: 0.8rem; color: var(--gray-500); }
+        .cat-shortcut .cs-arrow { color: var(--orange); font-size: 1.2rem; transition: transform 0.2s; }
+        .cat-shortcut:hover .cs-arrow { transform: translateX(4px); }
+
         /* ── Search ── */
         .search-bar { max-width: 400px; position: relative; margin-bottom: 1.5rem; }
         .search-bar input { width: 100%; padding: 0.7rem 1rem 0.7rem 2.5rem; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 0.9rem; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.2s; }
@@ -97,6 +119,13 @@
             .section { padding: 2rem 1.25rem; }
             .product-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
             .footer-inner { grid-template-columns: 1fr; gap: 2rem; }
+            .promo-banner { padding: 1.25rem 1.25rem 0; }
+            .promo-banner img { height: 180px; }
+            .promo-banner .banner-overlay h2 { font-size: 1.3rem; }
+            .promo-banner .banner-overlay p { font-size: 0.82rem; }
+            .promo-banner .banner-overlay { padding: 1.5rem; }
+            .cat-shortcuts { padding: 2rem 1.25rem 0; }
+            .cat-shortcut-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -127,6 +156,49 @@
             <a href="/wholesale.html" class="btn btn-secondary">Wholesale Portal</a>
         </div>
     </section>
+
+    <!-- Promo Banner -->
+    <div class="promo-banner">
+        <a href="#products" onclick="jumpToCategory('Warhammer')">
+            <img src="WARHAMMER_BANNER_URL" alt="Warhammer 40,000" id="promoBannerImg">
+            <div class="banner-overlay">
+                <h2>Warhammer 40,000</h2>
+                <p>Miniatures, paints and accessories now in stock.</p>
+                <span class="banner-btn">Shop Warhammer →</span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Category Shortcuts -->
+    <div class="cat-shortcuts">
+        <h2>Shop by Category</h2>
+        <div class="cat-shortcut-grid">
+            <a href="#products" class="cat-shortcut" onclick="jumpToCategory('Warhammer')">
+                <div class="cs-text"><h3>Warhammer</h3><p>Miniatures, paint sets & hobby supplies</p></div>
+                <span class="cs-arrow">→</span>
+            </a>
+            <a href="#products" class="cat-shortcut" onclick="jumpToCategory('Power & Plugs')">
+                <div class="cs-text"><h3>Power Delivery & Charging</h3><p>Fast chargers, cables & power banks</p></div>
+                <span class="cs-arrow">→</span>
+            </a>
+            <a href="#products" class="cat-shortcut" onclick="jumpToCategory('Earbuds & Audio')">
+                <div class="cs-text"><h3>Headphones, Earbuds & Audio</h3><p>Wireless earbuds, headsets & speakers</p></div>
+                <span class="cs-arrow">→</span>
+            </a>
+            <a href="#products" class="cat-shortcut" onclick="jumpToCategory('Phone Accessories')">
+                <div class="cs-text"><h3>Phone Accessories</h3><p>Cases, screen protectors & mounts</p></div>
+                <span class="cs-arrow">→</span>
+            </a>
+            <a href="#products" class="cat-shortcut" onclick="jumpToCategory('Cables & Chargers')">
+                <div class="cs-text"><h3>Cables & Chargers</h3><p>USB-C, Lightning & multi-device cables</p></div>
+                <span class="cs-arrow">→</span>
+            </a>
+            <a href="#products" class="cat-shortcut" onclick="jumpToCategory('Smart & LED')">
+                <div class="cs-text"><h3>Smart & LED</h3><p>Smart bulbs, LED strips & accessories</p></div>
+                <span class="cs-arrow">→</span>
+            </a>
+        </div>
+    </div>
 
     <!-- Featured -->
     <div class="section" id="featuredSection" style="display:none;">
@@ -331,6 +403,25 @@
         }
 
         document.getElementById('searchInput').addEventListener('input', (e) => { searchTerm = e.target.value.trim(); renderGrid(); });
+
+        function jumpToCategory(cat) {
+            activeCategory = cat;
+            // Update the pills UI
+            document.querySelectorAll('.cat-pill').forEach(b => {
+                b.classList.toggle('active', b.textContent.trim() === cat);
+            });
+            // Also deactivate "All" pill if it's not the target
+            if (cat !== 'all') {
+                document.querySelectorAll('.cat-pill').forEach(b => {
+                    if (b.textContent.trim() === 'All') b.classList.remove('active');
+                });
+            }
+            renderGrid();
+            // Scroll to products section after a brief delay for rendering
+            setTimeout(() => {
+                document.getElementById('products').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
 
         function esc(t) { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }
     </script>
