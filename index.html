@@ -168,6 +168,22 @@
                 <div class="cs-text"><h3>Warhammer</h3><p>Miniatures, paint sets & hobby supplies</p></div>
                 <span class="cs-arrow">→</span>
             </a>
+            <a href="#products" class="cat-shortcut" onclick="jumpToCategory('Warhammer : 40,000')">
+                <div class="cs-text"><h3>Warhammer : 40,000</h3><p>Space Marines, Xenos & the 41st Millennium</p></div>
+                <span class="cs-arrow">→</span>
+            </a>
+            <a href="#products" class="cat-shortcut" onclick="jumpToCategory('Warhammer : Age of Sigmar')">
+                <div class="cs-text"><h3>Warhammer : Age of Sigmar</h3><p>Fantasy battles in the Mortal Realms</p></div>
+                <span class="cs-arrow">→</span>
+            </a>
+            <a href="#products" class="cat-shortcut" onclick="jumpToCategory('Citadel')">
+                <div class="cs-text"><h3>Citadel</h3><p>Paints, brushes & hobby accessories</p></div>
+                <span class="cs-arrow">→</span>
+            </a>
+            <a href="#products" class="cat-shortcut" onclick="jumpToCategory('Games Workshop')">
+                <div class="cs-text"><h3>Games Workshop</h3><p>All Games Workshop products</p></div>
+                <span class="cs-arrow">→</span>
+            </a>
             <a href="#products" class="cat-shortcut" onclick="jumpToCategory('Power & Plugs')">
                 <div class="cs-text"><h3>Power Delivery & Charging</h3><p>Fast chargers, cables & power banks</p></div>
                 <span class="cs-arrow">→</span>
@@ -357,8 +373,14 @@
             }).join('');
         }
 
+        function getProductCategories(p) {
+            if (p.categories && p.categories.length) return p.categories;
+            if (p.category) return [p.category];
+            return ['Other'];
+        }
+
         function buildCategoryPills() {
-            const cats = [...new Set(products.map(p => p.category))].sort();
+            const cats = [...new Set(products.flatMap(p => getProductCategories(p)))].sort();
             document.getElementById('catPills').innerHTML =
                 '<button class="cat-pill active" onclick="filterCat(\'all\', this)">All</button>' +
                 cats.map(c => `<button class="cat-pill" onclick="filterCat('${esc(c)}', this)">${esc(c)}</button>`).join('');
@@ -367,7 +389,7 @@
         function renderGrid() {
             const grid = document.getElementById('productGrid');
             let filtered = products;
-            if (activeCategory !== 'all') filtered = filtered.filter(p => p.category === activeCategory);
+            if (activeCategory !== 'all') filtered = filtered.filter(p => getProductCategories(p).includes(activeCategory));
             if (searchTerm) {
                 const q = searchTerm.toLowerCase();
                 filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q)));
@@ -380,16 +402,17 @@
                 const onSale = isRetailSale(p);
                 const noStock = p.stock_quantity === 0;
                 const lowStock = p.stock_quantity > 0 && p.stock_quantity <= 10;
+                const cats = getProductCategories(p);
                 return `<div class="p-card">
                     ${hasImg ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : `<div class="no-img">📦</div>`}
                     <div class="p-card-body">
-                        <div class="cat">${esc(p.category)}</div>
+                        <div class="cat">${cats.map(c => esc(c)).join(' · ')}</div>
                         <h3>${esc(p.name)}</h3>
                         ${p.description ? `<div class="desc">${esc(p.description)}</div>` : ''}
                         <div class="price">${onSale
                             ? `<span style="color:var(--orange);">€${price.toFixed(2)}</span> <span style="text-decoration:line-through;color:var(--gray-500);font-weight:400;font-size:0.85rem;">€${origPrice.toFixed(2)}</span>`
                             : `€${price.toFixed(2)}`}</div>
-                        <div class="stock-info ${lowStock ? 'low' : ''}">${noStock ? 'Out of stock' : lowStock ? 'Low stock' : 'In stock'}</div>
+                        <div class="stock-info ${noStock ? 'low' : lowStock ? 'low' : ''}">${noStock ? 'Out of stock' : p.stock_quantity + ' in stock'}</div>
                         <div class="add-row">
                             <div class="qty-input-wrap">
                                 <button class="qty-input-btn" onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'))">−</button>

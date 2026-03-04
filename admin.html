@@ -122,17 +122,8 @@
                             <input type="text" id="prodName" placeholder="e.g. USB-C Fast Charging Cable" required>
                         </div>
                         <div class="form-group">
-                            <label for="prodCategory">Category *</label>
-                            <select id="prodCategory" required>
-                                <option value="">Select category...</option>
-                                <option value="Cables & Chargers">Cables & Chargers</option>
-                                <option value="Earbuds & Audio">Earbuds & Audio</option>
-                                <option value="Phone Accessories">Phone Accessories</option>
-                                <option value="Power & Plugs">Power & Plugs</option>
-                                <option value="Smart & LED">Smart & LED</option>
-                                <option value="Warhammer">Warhammer</option>
-                                <option value="Other">Other</option>
-                            </select>
+                            <label>Categories *</label>
+                            <div id="prodCategories" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.3rem;padding:0.75rem;border:1.5px solid var(--gray-200);border-radius:10px;max-height:180px;overflow-y:auto;"></div>
                         </div>
                     </div>
                     <div class="form-group">
@@ -236,11 +227,15 @@
                             <select id="bannerCategory">
                                 <option value="">None (use custom URL)</option>
                                 <option value="Cables & Chargers">Cables & Chargers</option>
+                                <option value="Citadel">Citadel</option>
                                 <option value="Earbuds & Audio">Earbuds & Audio</option>
+                                <option value="Games Workshop">Games Workshop</option>
                                 <option value="Phone Accessories">Phone Accessories</option>
                                 <option value="Power & Plugs">Power & Plugs</option>
                                 <option value="Smart & LED">Smart & LED</option>
                                 <option value="Warhammer">Warhammer</option>
+                                <option value="Warhammer : 40,000">Warhammer : 40,000</option>
+                                <option value="Warhammer : Age of Sigmar">Warhammer : Age of Sigmar</option>
                                 <option value="Other">Other</option>
                             </select>
                         </div>
@@ -284,6 +279,40 @@
     <script>
         let allUsers = [], allProducts = [], currentFilter = 'pending', selectedImageFile = null;
 
+        const ALL_CATEGORIES = [
+            'Cables & Chargers',
+            'Citadel',
+            'Earbuds & Audio',
+            'Games Workshop',
+            'Phone Accessories',
+            'Power & Plugs',
+            'Smart & LED',
+            'Warhammer',
+            'Warhammer : 40,000',
+            'Warhammer : Age of Sigmar',
+            'Other'
+        ];
+
+        function renderCategoryCheckboxes(selected = []) {
+            const container = document.getElementById('prodCategories');
+            container.innerHTML = ALL_CATEGORIES.map(cat => {
+                const checked = selected.includes(cat) ? 'checked' : '';
+                return `<label style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;cursor:pointer;padding:0.3rem 0.6rem;border:1px solid var(--gray-200);border-radius:8px;white-space:nowrap;${checked ? 'background:var(--orange-dim);border-color:var(--orange);' : ''}">
+                    <input type="checkbox" value="${esc(cat)}" ${checked} onchange="updateCatStyle(this)" style="accent-color:var(--orange);"> ${esc(cat)}
+                </label>`;
+            }).join('');
+        }
+
+        function updateCatStyle(cb) {
+            const label = cb.parentElement;
+            if (cb.checked) { label.style.background = 'var(--orange-dim)'; label.style.borderColor = 'var(--orange)'; }
+            else { label.style.background = ''; label.style.borderColor = 'var(--gray-200)'; }
+        }
+
+        function getSelectedCategories() {
+            return [...document.querySelectorAll('#prodCategories input:checked')].map(cb => cb.value);
+        }
+
         (async () => {
             const result = await requireAdmin();
             if (!result) return;
@@ -291,6 +320,7 @@
             await loadProducts();
             await loadOrders();
             await loadBanners();
+            renderCategoryCheckboxes();
         })();
 
         function switchMainTab(tab, el) {
@@ -361,7 +391,7 @@
                 return `<div class="product-admin-card">
                     ${hasImg ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : `<div class="no-image">📦</div>`}
                     <div class="product-admin-info">
-                        <div class="category-tag">${esc(p.category)}</div>
+                        <div class="category-tag">${(p.categories && p.categories.length ? p.categories : (p.category ? [p.category] : ['Uncategorised'])).map(c => esc(c)).join(', ')}</div>
                         <h3>${esc(p.name)}</h3>
                         <div class="price-row">${hasSale
                             ? `<span class="price sale-price">€${Number(p.sale_price).toFixed(2)}</span><span class="original-price">€${Number(p.price).toFixed(2)}</span>`
@@ -412,6 +442,11 @@
                     const existing = allProducts.find(p => p.id === editId);
                     imageUrl = existing?.image_url || '';
                 }
+                if (getSelectedCategories().length === 0) {
+                    showAlert('alert', 'Please select at least one category.', 'error');
+                    setLoading(btn, false);
+                    return;
+                }
                 const productData = {
                     name: document.getElementById('prodName').value.trim(),
                     description: document.getElementById('prodDesc').value.trim(),
@@ -419,7 +454,8 @@
                     retail_price: document.getElementById('prodRetailPrice').value ? parseFloat(document.getElementById('prodRetailPrice').value) : null,
                     sale_price: document.getElementById('prodSalePrice').value ? parseFloat(document.getElementById('prodSalePrice').value) : null,
                     retail_sale_price: document.getElementById('prodRetailSalePrice').value ? parseFloat(document.getElementById('prodRetailSalePrice').value) : null,
-                    category: document.getElementById('prodCategory').value,
+                    category: document.getElementById('prodCategory')?.value || '',
+                    categories: getSelectedCategories(),
                     sku: document.getElementById('prodSku').value.trim(),
                     stock_quantity: parseInt(document.getElementById('prodStock').value) || 0,
                     image_url: imageUrl,
@@ -454,7 +490,7 @@
             document.getElementById('prodRetailPrice').value = p.retail_price || '';
             document.getElementById('prodSalePrice').value = p.sale_price || '';
             document.getElementById('prodRetailSalePrice').value = p.retail_sale_price || '';
-            document.getElementById('prodCategory').value = p.category;
+            renderCategoryCheckboxes(p.categories || (p.category ? [p.category] : []));
             document.getElementById('prodSku').value = p.sku || '';
             document.getElementById('prodStock').value = p.stock_quantity;
             document.getElementById('prodFeatured').checked = p.is_featured;
@@ -489,6 +525,7 @@
             document.getElementById('imagePreview').innerHTML = '<p>📷 Click to upload an image</p><p style="font-size:0.78rem;color:var(--gray-300);">JPG, PNG, WebP — max 5MB</p>';
             document.getElementById('imageUploadArea').classList.remove('has-image');
             selectedImageFile = null;
+            renderCategoryCheckboxes();
         }
 
         function esc(t) { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }

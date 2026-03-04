@@ -171,8 +171,14 @@
             renderGrid();
         }
 
+        function getProductCategories(p) {
+            if (p.categories && p.categories.length) return p.categories;
+            if (p.category) return [p.category];
+            return ['Other'];
+        }
+
         function buildCategoryFilters() {
-            const cats = [...new Set(products.map(p => p.category))].sort();
+            const cats = [...new Set(products.flatMap(p => getProductCategories(p)))].sort();
             const container = document.getElementById('catFilters');
             container.innerHTML = '<button class="cat-filter active" onclick="filterCategory(\'all\', this)">All</button>' +
                 cats.map(c => `<button class="cat-filter" onclick="filterCategory('${esc(c)}', this)">${esc(c)}</button>`).join('');
@@ -209,7 +215,7 @@
         function renderGrid() {
             const grid = document.getElementById('storeGrid');
             let filtered = products;
-            if (activeCategory !== 'all') filtered = filtered.filter(p => p.category === activeCategory);
+            if (activeCategory !== 'all') filtered = filtered.filter(p => getProductCategories(p).includes(activeCategory));
             if (searchTerm) {
                 const q = searchTerm.toLowerCase();
                 filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q)));
@@ -220,10 +226,11 @@
                 const hasSale = p.is_on_sale && p.sale_price;
                 const lowStock = p.stock_quantity > 0 && p.stock_quantity <= 10;
                 const noStock = p.stock_quantity === 0;
+                const cats = getProductCategories(p);
                 return `<div class="product-card">
                     ${hasImg ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : `<div class="no-img">📦</div>`}
                     <div class="product-card-body">
-                        <div class="cat">${esc(p.category)}</div>
+                        <div class="cat">${cats.map(c => esc(c)).join(' · ')}</div>
                         <h3>${esc(p.name)}</h3>
                         ${p.description ? `<div class="desc">${esc(p.description)}</div>` : ''}
                         <div class="price-row">${hasSale
