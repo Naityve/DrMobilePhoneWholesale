@@ -157,17 +157,8 @@
         </div>
     </section>
 
-    <!-- Promo Banner -->
-    <div class="promo-banner">
-        <a href="#products" onclick="jumpToCategory('Warhammer')">
-            <img src="WARHAMMER_BANNER_URL" alt="Warhammer 40,000" id="promoBannerImg">
-            <div class="banner-overlay">
-                <h2>Warhammer 40,000</h2>
-                <p>Miniatures, paints and accessories now in stock.</p>
-                <span class="banner-btn">Shop Warhammer →</span>
-            </div>
-        </a>
-    </div>
+    <!-- Promo Banners (loaded from database) -->
+    <div class="promo-banner" id="promoBanners"></div>
 
     <!-- Category Shortcuts -->
     <div class="cat-shortcuts">
@@ -288,9 +279,13 @@
             }
         });
 
-        // ── Load products ──
+        // ── Load products + banners ──
         (async () => {
             updateConsumerBadge();
+            // Load banners
+            const { data: banners } = await db.from('banners').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+            renderBanners(banners || []);
+            // Load products
             const { data, error } = await db.from('products').select('*').eq('is_active', true).order('created_at', { ascending: false });
             if (error) { console.error(error); return; }
             products = data || [];
@@ -298,6 +293,27 @@
             buildCategoryPills();
             renderGrid();
         })();
+
+        function renderBanners(banners) {
+            const container = document.getElementById('promoBanners');
+            if (!banners || banners.length === 0) { container.style.display = 'none'; return; }
+            container.innerHTML = banners.map(b => {
+                const href = b.link_category
+                    ? `#products`
+                    : (b.link_url || '#products');
+                const onclick = b.link_category
+                    ? `jumpToCategory('${b.link_category.replace(/'/g, "\\'")}')`
+                    : '';
+                return `<a href="${href}" ${onclick ? 'onclick="' + onclick + '"' : ''} style="margin-bottom:1rem;">
+                    <img src="${esc(b.image_url)}" alt="${esc(b.title)}">
+                    <div class="banner-overlay">
+                        <h2>${esc(b.title)}</h2>
+                        <p>${esc(b.subtitle || '')}</p>
+                        <span class="banner-btn">${esc(b.button_text || 'Shop Now →')}</span>
+                    </div>
+                </a>`;
+            }).join('');
+        }
 
         function getRetailPrice(p) {
             if (p.is_on_sale_retail && p.retail_sale_price) return Number(p.retail_sale_price);

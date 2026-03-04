@@ -91,6 +91,7 @@
             <button class="admin-main-tab active" onclick="switchMainTab('users', this)">Users</button>
             <button class="admin-main-tab" onclick="switchMainTab('products', this)">Products</button>
             <button class="admin-main-tab" onclick="switchMainTab('orders', this)">Orders</button>
+            <button class="admin-main-tab" onclick="switchMainTab('banners', this)">Banners</button>
         </div>
 
         <!-- USERS PANEL -->
@@ -209,6 +210,73 @@
             </div>
         </div>
 
+        <!-- BANNERS PANEL -->
+        <div id="panel-banners" class="tab-panel">
+            <div class="product-form-card" style="margin-bottom:2rem;">
+                <h3 id="bannerFormTitle" style="font-family:'Instrument Serif',serif;font-size:1.3rem;font-weight:400;margin-bottom:1rem;">Add New Banner</h3>
+                <form id="bannerForm" onsubmit="handleBannerSubmit(event)">
+                    <input type="hidden" id="editBannerId" value="">
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="bannerTitle">Title *</label>
+                            <input type="text" id="bannerTitle" placeholder="e.g. Warhammer 40,000" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="bannerSubtitle">Subtitle</label>
+                            <input type="text" id="bannerSubtitle" placeholder="e.g. Miniatures now in stock">
+                        </div>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="bannerBtnText">Button Text</label>
+                            <input type="text" id="bannerBtnText" placeholder="Shop Now →" value="Shop Now →">
+                        </div>
+                        <div class="form-group">
+                            <label for="bannerCategory">Link to Category</label>
+                            <select id="bannerCategory">
+                                <option value="">None (use custom URL)</option>
+                                <option value="Cables & Chargers">Cables & Chargers</option>
+                                <option value="Earbuds & Audio">Earbuds & Audio</option>
+                                <option value="Phone Accessories">Phone Accessories</option>
+                                <option value="Power & Plugs">Power & Plugs</option>
+                                <option value="Smart & LED">Smart & LED</option>
+                                <option value="Warhammer">Warhammer</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="bannerUrl">Custom Link URL (optional)</label>
+                            <input type="text" id="bannerUrl" placeholder="e.g. /consumer-cart.html">
+                        </div>
+                        <div class="form-group">
+                            <label for="bannerSort">Sort Order</label>
+                            <input type="number" id="bannerSort" value="0" min="0">
+                        </div>
+                    </div>
+                    <label style="font-size:0.82rem;font-weight:500;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Banner Image *</label>
+                    <div class="image-upload-area" id="bannerImageUploadArea" onclick="document.getElementById('bannerImage').click()">
+                        <div id="bannerImagePreview">
+                            <p>📷 Click to upload a banner image</p>
+                            <p style="font-size:0.78rem;color:var(--gray-300);">Wide landscape images work best (1200×300+)</p>
+                        </div>
+                        <input type="file" id="bannerImage" accept="image/jpeg,image/png,image/webp" onchange="handleBannerImageSelect(event)" style="display:none">
+                    </div>
+                    <div class="toggle-row" style="margin-top:0.75rem;">
+                        <label class="toggle-item"><input type="checkbox" id="bannerActive" checked> Active (visible on storefront)</label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-sm" id="bannerSubmitBtn">Add Banner</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="resetBannerForm()" style="display:none;" id="cancelBannerEditBtn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <div id="bannersGrid" style="display:grid;grid-template-columns:1fr;gap:1rem;">
+                <div class="empty-state">Loading banners...</div>
+            </div>
+        </div>
+
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -222,6 +290,7 @@
             await loadUsers();
             await loadProducts();
             await loadOrders();
+            await loadBanners();
         })();
 
         function switchMainTab(tab, el) {
@@ -608,6 +677,140 @@
                 </div>`;
             currentOrderFilter = 'all';
             renderOrders();
+        }
+
+        // ── BANNERS ──
+        let allBanners = [], selectedBannerImageFile = null;
+
+        async function loadBanners() {
+            const { data, error } = await db.from('banners').select('*').order('sort_order', { ascending: true });
+            if (error) { console.error('Failed to load banners:', error.message); return; }
+            allBanners = data || [];
+            renderBanners();
+        }
+
+        function renderBanners() {
+            const grid = document.getElementById('bannersGrid');
+            if (allBanners.length === 0) { grid.innerHTML = '<div class="empty-state">No banners yet. Add your first banner above.</div>'; return; }
+            grid.innerHTML = allBanners.map(b => {
+                return `<div style="border:1px solid var(--gray-200);border-radius:14px;overflow:hidden;background:white;">
+                    <div style="position:relative;height:160px;overflow:hidden;">
+                        <img src="${esc(b.image_url)}" alt="${esc(b.title)}" style="width:100%;height:100%;object-fit:cover;">
+                        <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,0.5) 0%,transparent 60%);display:flex;flex-direction:column;justify-content:center;padding:1.5rem;">
+                            <h3 style="font-family:'Instrument Serif',serif;font-size:1.3rem;color:white;margin-bottom:0.2rem;">${esc(b.title)}</h3>
+                            <p style="font-size:0.82rem;color:rgba(255,255,255,0.8);">${esc(b.subtitle || '')}</p>
+                        </div>
+                        ${!b.is_active ? '<span style="position:absolute;top:0.75rem;right:0.75rem;background:var(--red);color:white;padding:0.2rem 0.6rem;border-radius:6px;font-size:0.72rem;font-weight:600;">Inactive</span>' : '<span style="position:absolute;top:0.75rem;right:0.75rem;background:var(--green);color:white;padding:0.2rem 0.6rem;border-radius:6px;font-size:0.72rem;font-weight:600;">Active</span>'}
+                    </div>
+                    <div style="padding:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+                        <div style="font-size:0.82rem;color:var(--gray-500);">
+                            ${b.link_category ? 'Category: <strong>' + esc(b.link_category) + '</strong>' : b.link_url ? 'URL: ' + esc(b.link_url) : 'No link'}
+                            · Button: "${esc(b.button_text)}" · Order: ${b.sort_order}
+                        </div>
+                        <div style="display:flex;gap:0.5rem;">
+                            <button class="btn btn-sm btn-secondary" onclick="editBanner('${b.id}')">Edit</button>
+                            <button class="btn btn-sm btn-reject" onclick="deleteBanner('${b.id}','${esc(b.title).replace(/'/g,"\\'")}')">Delete</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function handleBannerImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) { alert('Image must be under 5MB.'); return; }
+            selectedBannerImageFile = file;
+            const reader = new FileReader();
+            reader.onload = e => {
+                document.getElementById('bannerImagePreview').innerHTML = `<img src="${e.target.result}" alt="Preview" style="max-height:120px;border-radius:8px;">`;
+                document.getElementById('bannerImageUploadArea').classList.add('has-image');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function handleBannerSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('bannerSubmitBtn');
+            setLoading(btn, true);
+            try {
+                let imageUrl = '';
+                const editId = document.getElementById('editBannerId').value;
+                if (selectedBannerImageFile) {
+                    imageUrl = await uploadImage(selectedBannerImageFile);
+                } else if (editId) {
+                    const existing = allBanners.find(b => b.id === editId);
+                    imageUrl = existing?.image_url || '';
+                }
+                if (!imageUrl && !editId) { showAlert('alert', 'Please upload a banner image.', 'error'); setLoading(btn, false); return; }
+
+                const bannerData = {
+                    title: document.getElementById('bannerTitle').value.trim(),
+                    subtitle: document.getElementById('bannerSubtitle').value.trim(),
+                    button_text: document.getElementById('bannerBtnText').value.trim() || 'Shop Now →',
+                    link_category: document.getElementById('bannerCategory').value,
+                    link_url: document.getElementById('bannerUrl').value.trim(),
+                    image_url: imageUrl,
+                    sort_order: parseInt(document.getElementById('bannerSort').value) || 0,
+                    is_active: document.getElementById('bannerActive').checked
+                };
+
+                let error;
+                if (editId) {
+                    ({ error } = await db.from('banners').update(bannerData).eq('id', editId));
+                } else {
+                    ({ error } = await db.from('banners').insert(bannerData));
+                }
+                if (error) { showAlert('alert', 'Failed to save banner: ' + error.message, 'error'); setLoading(btn, false); return; }
+                showAlert('alert', editId ? 'Banner updated!' : 'Banner added!', 'success');
+                resetBannerForm();
+                await loadBanners();
+            } catch (err) {
+                showAlert('alert', 'Error: ' + err.message, 'error');
+            }
+            setLoading(btn, false);
+        }
+
+        function editBanner(bannerId) {
+            const b = allBanners.find(x => x.id === bannerId);
+            if (!b) return;
+            document.getElementById('editBannerId').value = b.id;
+            document.getElementById('bannerTitle').value = b.title;
+            document.getElementById('bannerSubtitle').value = b.subtitle || '';
+            document.getElementById('bannerBtnText').value = b.button_text || 'Shop Now →';
+            document.getElementById('bannerCategory').value = b.link_category || '';
+            document.getElementById('bannerUrl').value = b.link_url || '';
+            document.getElementById('bannerSort').value = b.sort_order || 0;
+            document.getElementById('bannerActive').checked = b.is_active;
+            if (b.image_url) {
+                document.getElementById('bannerImagePreview').innerHTML = `<img src="${b.image_url}" alt="Current" style="max-height:120px;border-radius:8px;">`;
+                document.getElementById('bannerImageUploadArea').classList.add('has-image');
+            }
+            document.getElementById('bannerFormTitle').textContent = 'Edit Banner';
+            document.getElementById('bannerSubmitBtn').textContent = 'Save Changes';
+            document.getElementById('cancelBannerEditBtn').style.display = '';
+            document.getElementById('panel-banners').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function deleteBanner(bannerId, name) {
+            if (!confirm(`Delete banner "${name}"? This cannot be undone.`)) return;
+            const { error } = await db.from('banners').delete().eq('id', bannerId);
+            if (error) { showAlert('alert', 'Failed to delete: ' + error.message, 'error'); return; }
+            showAlert('alert', 'Banner deleted.', 'success');
+            await loadBanners();
+        }
+
+        function resetBannerForm() {
+            document.getElementById('bannerForm').reset();
+            document.getElementById('editBannerId').value = '';
+            document.getElementById('bannerActive').checked = true;
+            document.getElementById('bannerBtnText').value = 'Shop Now →';
+            document.getElementById('bannerFormTitle').textContent = 'Add New Banner';
+            document.getElementById('bannerSubmitBtn').textContent = 'Add Banner';
+            document.getElementById('cancelBannerEditBtn').style.display = 'none';
+            document.getElementById('bannerImagePreview').innerHTML = '<p>📷 Click to upload a banner image</p><p style="font-size:0.78rem;color:var(--gray-300);">Wide landscape images work best (1200×300+)</p>';
+            document.getElementById('bannerImageUploadArea').classList.remove('has-image');
+            selectedBannerImageFile = null;
         }
     </script>
 </body>
