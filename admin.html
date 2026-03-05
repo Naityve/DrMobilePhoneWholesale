@@ -93,7 +93,8 @@
             <button class="admin-main-tab" onclick="switchMainTab('orders', this)">Orders</button>
             <button class="admin-main-tab" onclick="switchMainTab('banners', this)">Banners</button>
             <button class="admin-main-tab" onclick="switchMainTab('pos', this)">POS</button>
-            <button class="admin-main-tab" onclick="switchMainTab('finance', this)">Finance</button>
+            <button class="admin-main-tab" onclick="switchMainTab('finance', this)">Transactions</button>
+            <button class="admin-main-tab" onclick="switchMainTab('stock', this)">Stock</button>
         </div>
 
         <!-- USERS PANEL -->
@@ -152,9 +153,15 @@
                             <input type="number" id="prodRetailSalePrice" placeholder="Consumer sale price" step="0.01" min="0">
                         </div>
                         <div class="form-group">
+                            <label for="prodCostPrice">Cost Price (€)</label>
+                            <input type="number" id="prodCostPrice" placeholder="Your buying price" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
                             <label for="prodStock">Stock Quantity *</label>
                             <input type="number" id="prodStock" placeholder="0" min="0" required>
                         </div>
+                    </div>
+                    <div class="form-grid-3">
                         <div class="form-group">
                             <label for="prodSku">SKU</label>
                             <input type="text" id="prodSku" placeholder="e.g. USBC-FC-1M">
@@ -163,6 +170,7 @@
                             <label for="prodBarcode">Barcode (EAN/UPC)</label>
                             <input type="text" id="prodBarcode" placeholder="e.g. 5011921254309">
                         </div>
+                        <div class="form-group"></div>
                     </div>
                     <label style="font-size:0.82rem;font-weight:500;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Product Image</label>
                     <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('prodImage').click()">
@@ -177,6 +185,7 @@
                         <label class="toggle-item"><input type="checkbox" id="prodOnSale"> Wholesale sale</label>
                         <label class="toggle-item"><input type="checkbox" id="prodOnSaleRetail"> Retail sale</label>
                         <label class="toggle-item"><input type="checkbox" id="prodActive" checked> Active (visible)</label>
+                        <label class="toggle-item"><input type="checkbox" id="prodAvailOnline" checked> Available online</label>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary btn-sm" id="productSubmitBtn">Add Product</button>
@@ -462,6 +471,10 @@
                         <div class="fin-stat"><span class="label">Online Orders</span><span class="val" id="finOnlineCount">-</span></div>
                         <div class="fin-stat"><span class="label">Online Revenue</span><span class="val" id="finOnlineRevenue">-</span></div>
                         <div class="fin-stat total"><span>Total Revenue</span><span id="finTotalRevenue">-</span></div>
+                        <div style="height:0.5rem;"></div>
+                        <div class="fin-stat"><span class="label">Est. Cost of Goods</span><span class="val" id="finCostOfGoods">-</span></div>
+                        <div class="fin-stat" style="color:var(--green);"><span class="label">Est. Profit</span><span class="val" id="finProfit" style="color:var(--green);font-weight:700;">-</span></div>
+                        <div class="fin-stat"><span class="label">Profit Margin</span><span class="val" id="finMargin">-</span></div>
                     </div>
                 </div>
 
@@ -480,6 +493,86 @@
 
             <!-- Finance Receipt (print only) -->
             <div class="pos-receipt" id="finReceipt"></div>
+        </div>
+
+        <!-- STOCK PANEL -->
+        <div id="panel-stock" class="tab-panel">
+            <style>
+                .stk-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem; }
+                .stk-header h3 { font-family: 'Instrument Serif', serif; font-size: 1.3rem; font-weight: 400; }
+                .stk-search { padding: 0.6rem 1rem; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 0.88rem; font-family: 'DM Sans', sans-serif; outline: none; min-width: 250px; }
+                .stk-search:focus { border-color: var(--orange); }
+                .stk-stats { display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+                .stk-stat-card { padding: 1rem 1.25rem; border: 1px solid var(--gray-200); border-radius: 12px; flex: 1; min-width: 150px; }
+                .stk-stat-card .num { font-size: 1.5rem; font-weight: 700; }
+                .stk-stat-card .lbl { font-size: 0.78rem; color: var(--gray-500); }
+                .stk-table-wrap { overflow-x: auto; }
+                .stk-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+                .stk-table thead th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-500); font-weight: 600; padding: 0.6rem 0.5rem; border-bottom: 2px solid var(--gray-200); white-space: nowrap; }
+                .stk-table thead th.r { text-align: right; }
+                .stk-table tbody td { padding: 0.5rem; font-size: 0.84rem; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+                .stk-table tbody td.r { text-align: right; }
+                .stk-table tbody tr:hover { background: var(--gray-50); }
+                .stk-img { width: 40px; height: 40px; border-radius: 6px; object-fit: contain; background: var(--gray-100); }
+                .stk-no-img { width: 40px; height: 40px; border-radius: 6px; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--gray-300); }
+                .stk-online-badge { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.68rem; font-weight: 600; }
+                .stk-online-badge.yes { background: var(--green-dim); color: #15803D; }
+                .stk-online-badge.no { background: var(--gray-100); color: var(--gray-400); }
+                .stk-margin { font-weight: 600; }
+                .stk-margin.good { color: var(--green); }
+                .stk-margin.low { color: var(--orange); }
+                .stk-margin.neg { color: var(--red); }
+                .stk-quick-add { border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.25rem; margin-bottom: 1.5rem; }
+                .stk-quick-add h3 { font-family: 'Instrument Serif', serif; font-size: 1.15rem; font-weight: 400; margin-bottom: 0.75rem; }
+                .stk-quick-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; align-items: end; }
+                .stk-quick-form .form-group { margin-bottom: 0; }
+                .stk-quick-form .form-group label { font-size: 0.78rem; font-weight: 500; color: var(--gray-700); margin-bottom: 0.25rem; display: block; }
+                .stk-quick-form .form-group input, .stk-quick-form .form-group select { width: 100%; padding: 0.55rem 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; outline: none; }
+                .stk-quick-form .form-group input:focus, .stk-quick-form .form-group select:focus { border-color: var(--orange); }
+                .stk-photo-area { border: 1.5px dashed var(--gray-200); border-radius: 8px; padding: 0.5rem; text-align: center; cursor: pointer; min-height: 60px; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; color: var(--gray-400); transition: border-color 0.2s; }
+                .stk-photo-area:hover { border-color: var(--orange); }
+                .stk-photo-area img { max-height: 50px; border-radius: 4px; }
+            </style>
+
+            <div class="stk-stats" id="stockStats"></div>
+
+            <div class="stk-quick-add">
+                <h3>Quick Add Product</h3>
+                <div class="stk-quick-form">
+                    <div class="form-group"><label>Name *</label><input type="text" id="stkName" placeholder="Product name"></div>
+                    <div class="form-group"><label>Barcode</label><input type="text" id="stkBarcode" placeholder="EAN/UPC"></div>
+                    <div class="form-group"><label>Cost Price (€)</label><input type="number" id="stkCost" placeholder="0.00" step="0.01" min="0"></div>
+                    <div class="form-group"><label>Retail Price (€)</label><input type="number" id="stkRetail" placeholder="0.00" step="0.01" min="0"></div>
+                    <div class="form-group"><label>Stock Qty</label><input type="number" id="stkQty" placeholder="0" min="0"></div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="stkCategory">
+                            <option value="Other">Select...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Photo (internal)</label>
+                        <div class="stk-photo-area" onclick="document.getElementById('stkPhoto').click()">
+                            <span id="stkPhotoPreview">📷 Tap to take photo</span>
+                        </div>
+                        <input type="file" id="stkPhoto" accept="image/*" capture="environment" onchange="stkHandlePhoto(event)" style="display:none;">
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:flex-end;"><button class="btn btn-primary btn-sm" onclick="stkQuickAdd()" style="width:100%;">Add Product</button></div>
+                </div>
+            </div>
+
+            <div class="stk-header">
+                <h3>All Stock</h3>
+                <input type="text" class="stk-search" id="stkSearch" placeholder="Search by name, barcode, SKU..." oninput="stkRender()">
+            </div>
+            <div class="stk-table-wrap">
+                <table class="stk-table">
+                    <thead><tr>
+                        <th></th><th>Product</th><th>Barcode</th><th>SKU</th><th class="r">Cost</th><th class="r">Retail</th><th class="r">Margin</th><th class="r">Stock</th><th>Online</th><th>Categories</th>
+                    </tr></thead>
+                    <tbody id="stkTableBody"><tr><td colspan="10" class="empty-state">Loading...</td></tr></tbody>
+                </table>
+            </div>
         </div>
 
     </div>
@@ -543,6 +636,9 @@
                 finInitialized = true;
                 const todayBtn = document.querySelector('.fin-quick-btn');
                 if (todayBtn) finQuickDate('today', todayBtn);
+            }
+            if (tab === 'stock') {
+                stkInit();
             }
         }
 
@@ -678,7 +774,9 @@
                     is_featured: document.getElementById('prodFeatured').checked,
                     is_on_sale: document.getElementById('prodOnSale').checked,
                     is_on_sale_retail: document.getElementById('prodOnSaleRetail').checked,
-                    is_active: document.getElementById('prodActive').checked
+                    is_active: document.getElementById('prodActive').checked,
+                    available_online: document.getElementById('prodAvailOnline').checked,
+                    cost_price: document.getElementById('prodCostPrice').value ? parseFloat(document.getElementById('prodCostPrice').value) : 0
                 };
                 let error;
                 if (editId) {
@@ -714,6 +812,8 @@
             document.getElementById('prodOnSale').checked = p.is_on_sale;
             document.getElementById('prodOnSaleRetail').checked = p.is_on_sale_retail;
             document.getElementById('prodActive').checked = p.is_active;
+            document.getElementById('prodAvailOnline').checked = p.available_online !== false;
+            document.getElementById('prodCostPrice').value = p.cost_price || '';
             if (p.image_url) {
                 document.getElementById('imagePreview').innerHTML = `<img src="${p.image_url}" alt="Current">`;
                 document.getElementById('imageUploadArea').classList.add('has-image');
@@ -736,6 +836,7 @@
             document.getElementById('productForm').reset();
             document.getElementById('editProductId').value = '';
             document.getElementById('prodActive').checked = true;
+            document.getElementById('prodAvailOnline').checked = true;
             document.getElementById('formTitle').textContent = 'Add New Product';
             document.getElementById('productSubmitBtn').textContent = 'Add Product';
             document.getElementById('cancelEditBtn').style.display = 'none';
@@ -1466,6 +1567,32 @@
             document.getElementById('finOnlineCount').textContent = onlineCount;
             document.getElementById('finOnlineRevenue').textContent = '€' + onlineRevenue.toFixed(2);
             document.getElementById('finTotalRevenue').textContent = '€' + (posRevenue + onlineRevenue).toFixed(2);
+
+            // Profit calculation using cost_price
+            let totalCost = 0;
+            // POS cost
+            finPosTxns.forEach(t => {
+                (t.pos_transaction_items || []).forEach(i => {
+                    const prod = allProducts.find(p => p.id === i.product_id);
+                    const cost = prod ? Number(prod.cost_price || 0) : 0;
+                    totalCost += cost * i.quantity;
+                });
+            });
+            // Online cost
+            finOnlineOrders.filter(o => o.status !== 'cancelled').forEach(o => {
+                (o.order_items || []).forEach(i => {
+                    const prod = allProducts.find(p => p.id === i.product_id);
+                    const cost = prod ? Number(prod.cost_price || 0) : 0;
+                    totalCost += cost * i.quantity;
+                });
+            });
+            const totalRev = posRevenue + onlineRevenue;
+            const profit = totalRev - totalCost;
+            const margin = totalRev > 0 ? (profit / totalRev * 100) : 0;
+            document.getElementById('finCostOfGoods').textContent = '€' + totalCost.toFixed(2);
+            document.getElementById('finProfit').textContent = '€' + profit.toFixed(2);
+            document.getElementById('finProfit').style.color = profit >= 0 ? 'var(--green)' : 'var(--red)';
+            document.getElementById('finMargin').textContent = margin.toFixed(1) + '%';
         }
 
         function finRenderContent() {
@@ -1691,6 +1818,125 @@
 
         // Auto-load today on first visit to finance tab
         let finInitialized = false;
+
+        // ── STOCK PANEL ──
+        let stkPhotoFile = null;
+        let stkInitialized = false;
+
+        function stkInit() {
+            if (stkInitialized) return;
+            stkInitialized = true;
+            // Populate category dropdown
+            const sel = document.getElementById('stkCategory');
+            sel.innerHTML = ALL_CATEGORIES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+            stkRender();
+        }
+
+        function stkRender() {
+            const search = (document.getElementById('stkSearch')?.value || '').toLowerCase();
+            let prods = [...allProducts];
+            if (search) {
+                prods = prods.filter(p =>
+                    p.name.toLowerCase().includes(search) ||
+                    (p.barcode && p.barcode.includes(search)) ||
+                    (p.sku && p.sku.toLowerCase().includes(search))
+                );
+            }
+            prods.sort((a, b) => a.name.localeCompare(b.name));
+
+            // Stats
+            const totalProducts = allProducts.length;
+            const totalStock = allProducts.reduce((s, p) => s + (p.stock_quantity || 0), 0);
+            const totalValue = allProducts.reduce((s, p) => s + (Number(p.cost_price || 0) * (p.stock_quantity || 0)), 0);
+            const totalRetailValue = allProducts.reduce((s, p) => s + (Number(p.retail_price || p.price || 0) * (p.stock_quantity || 0)), 0);
+            const outOfStock = allProducts.filter(p => p.stock_quantity === 0).length;
+            document.getElementById('stockStats').innerHTML = `
+                <div class="stk-stat-card"><div class="num">${totalProducts}</div><div class="lbl">Products</div></div>
+                <div class="stk-stat-card"><div class="num">${totalStock}</div><div class="lbl">Total Units</div></div>
+                <div class="stk-stat-card"><div class="num">€${totalValue.toFixed(2)}</div><div class="lbl">Stock Cost Value</div></div>
+                <div class="stk-stat-card"><div class="num">€${totalRetailValue.toFixed(2)}</div><div class="lbl">Stock Retail Value</div></div>
+                <div class="stk-stat-card"><div class="num" style="color:${outOfStock > 0 ? 'var(--red)' : 'var(--green)'};">${outOfStock}</div><div class="lbl">Out of Stock</div></div>
+            `;
+
+            const tbody = document.getElementById('stkTableBody');
+            if (prods.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No products found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = prods.map(p => {
+                const cost = Number(p.cost_price || 0);
+                const retail = Number(p.retail_price || p.price || 0);
+                const margin = retail > 0 ? ((retail - cost) / retail * 100) : 0;
+                const marginClass = margin >= 30 ? 'good' : margin >= 10 ? 'low' : 'neg';
+                const img = p.internal_image_url || p.image_url;
+                const cats = (p.categories && p.categories.length) ? p.categories : (p.category ? [p.category] : []);
+                const online = p.available_online !== false;
+                return `<tr>
+                    <td>${img ? `<img src="${esc(img)}" class="stk-img">` : '<div class="stk-no-img">📦</div>'}</td>
+                    <td style="font-weight:500;">${esc(p.name)}</td>
+                    <td style="font-size:0.78rem;color:var(--gray-500);">${esc(p.barcode || '—')}</td>
+                    <td style="font-size:0.78rem;color:var(--gray-500);">${esc(p.sku || '—')}</td>
+                    <td class="r">€${cost.toFixed(2)}</td>
+                    <td class="r">€${retail.toFixed(2)}</td>
+                    <td class="r"><span class="stk-margin ${marginClass}">${margin.toFixed(1)}%</span></td>
+                    <td class="r" style="${p.stock_quantity === 0 ? 'color:var(--red);font-weight:600;' : ''}">${p.stock_quantity}</td>
+                    <td><span class="stk-online-badge ${online ? 'yes' : 'no'}">${online ? 'Online' : 'In-store'}</span></td>
+                    <td style="font-size:0.75rem;color:var(--gray-500);">${cats.map(c => esc(c)).join(', ') || '—'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function stkHandlePhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) { alert('Image must be under 5MB.'); return; }
+            stkPhotoFile = file;
+            const reader = new FileReader();
+            reader.onload = e => {
+                document.getElementById('stkPhotoPreview').innerHTML = `<img src="${e.target.result}" style="max-height:50px;border-radius:4px;">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function stkQuickAdd() {
+            const name = document.getElementById('stkName').value.trim();
+            if (!name) { showAlert('alert', 'Product name is required.', 'error'); return; }
+
+            let internalImageUrl = '';
+            if (stkPhotoFile) {
+                internalImageUrl = await uploadImage(stkPhotoFile);
+            }
+
+            const productData = {
+                name: name,
+                barcode: document.getElementById('stkBarcode').value.trim(),
+                cost_price: parseFloat(document.getElementById('stkCost').value) || 0,
+                retail_price: parseFloat(document.getElementById('stkRetail').value) || 0,
+                price: parseFloat(document.getElementById('stkRetail').value) || 0,
+                stock_quantity: parseInt(document.getElementById('stkQty').value) || 0,
+                categories: [document.getElementById('stkCategory').value],
+                category: document.getElementById('stkCategory').value,
+                internal_image_url: internalImageUrl,
+                is_active: true,
+                available_online: false
+            };
+
+            const { error } = await db.from('products').insert(productData);
+            if (error) { showAlert('alert', 'Error: ' + error.message, 'error'); return; }
+
+            showAlert('alert', 'Product added to stock!', 'success');
+            // Reset quick add form
+            document.getElementById('stkName').value = '';
+            document.getElementById('stkBarcode').value = '';
+            document.getElementById('stkCost').value = '';
+            document.getElementById('stkRetail').value = '';
+            document.getElementById('stkQty').value = '';
+            document.getElementById('stkPhotoPreview').innerHTML = '📷 Tap to take photo';
+            stkPhotoFile = null;
+
+            await loadProducts();
+            stkRender();
+        }
     </script>
 </body>
 </html>
