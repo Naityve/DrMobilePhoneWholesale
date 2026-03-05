@@ -93,6 +93,7 @@
             <button class="admin-main-tab" onclick="switchMainTab('orders', this)">Orders</button>
             <button class="admin-main-tab" onclick="switchMainTab('banners', this)">Banners</button>
             <button class="admin-main-tab" onclick="switchMainTab('pos', this)">POS</button>
+            <button class="admin-main-tab" onclick="switchMainTab('finance', this)">Finance</button>
         </div>
 
         <!-- USERS PANEL -->
@@ -396,6 +397,91 @@
             <div class="pos-receipt" id="posReceipt"></div>
         </div>
 
+        <!-- FINANCE PANEL -->
+        <div id="panel-finance" class="tab-panel">
+            <style>
+                .fin-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; }
+                .fin-sidebar { border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.25rem; position: sticky; top: 5rem; }
+                .fin-sidebar h3 { font-family: 'Instrument Serif', serif; font-size: 1.2rem; font-weight: 400; margin-bottom: 1rem; }
+                .fin-date-input { width: 100%; padding: 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 0.9rem; font-family: 'DM Sans', sans-serif; outline: none; margin-bottom: 0.75rem; }
+                .fin-date-input:focus { border-color: var(--orange); }
+                .fin-quick-dates { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+                .fin-quick-btn { padding: 0.4rem 0.8rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 0.78rem; background: white; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+                .fin-quick-btn:hover { border-color: var(--orange); color: var(--orange); }
+                .fin-quick-btn.active { background: var(--black); color: white; border-color: var(--black); }
+                .fin-day-summary { border-top: 1px solid var(--gray-100); padding-top: 0.75rem; margin-top: 0.5rem; }
+                .fin-stat { display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.85rem; }
+                .fin-stat .label { color: var(--gray-500); }
+                .fin-stat .val { font-weight: 600; }
+                .fin-stat.total { border-top: 2px solid var(--black); margin-top: 0.3rem; padding-top: 0.5rem; font-weight: 700; font-size: 1rem; }
+                .fin-content { min-height: 400px; }
+                .fin-section { margin-bottom: 2rem; }
+                .fin-section h3 { font-family: 'Instrument Serif', serif; font-size: 1.2rem; font-weight: 400; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+                .fin-section h3 .count { font-size: 0.75rem; background: var(--gray-100); padding: 0.15rem 0.5rem; border-radius: 100px; font-family: 'DM Sans', sans-serif; font-weight: 600; }
+                .fin-txn-card { border: 1px solid var(--gray-200); border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; transition: box-shadow 0.2s; }
+                .fin-txn-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+                .fin-txn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem; }
+                .fin-txn-id { font-weight: 700; font-size: 0.88rem; }
+                .fin-txn-time { font-size: 0.8rem; color: var(--gray-500); }
+                .fin-txn-meta { display: flex; gap: 1rem; font-size: 0.82rem; color: var(--gray-500); flex-wrap: wrap; }
+                .fin-txn-items { margin: 0.6rem 0; }
+                .fin-txn-items table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+                .fin-txn-items th { text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-500); padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--gray-100); }
+                .fin-txn-items th.r { text-align: right; }
+                .fin-txn-items td { padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--gray-50); }
+                .fin-txn-items td.r { text-align: right; }
+                .fin-txn-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; }
+                .fin-txn-total { font-weight: 700; font-size: 1.05rem; }
+                .fin-txn-actions { display: flex; gap: 0.4rem; }
+                .fin-empty { text-align: center; padding: 3rem; color: var(--gray-400); }
+
+                .fin-edit-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
+                .fin-edit-modal.show { display: flex; }
+                .fin-edit-box { background: white; border-radius: 16px; padding: 2rem; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+                .fin-edit-box h3 { font-family: 'Instrument Serif', serif; font-size: 1.3rem; font-weight: 400; margin-bottom: 1rem; }
+
+                @media (max-width: 768px) { .fin-layout { grid-template-columns: 1fr; } .fin-sidebar { position: static; } }
+            </style>
+
+            <div class="fin-layout">
+                <div class="fin-sidebar">
+                    <h3>Select Date</h3>
+                    <input type="date" class="fin-date-input" id="finDatePicker" onchange="finLoadDate(this.value)">
+                    <div class="fin-quick-dates">
+                        <button class="fin-quick-btn active" onclick="finQuickDate('today', this)">Today</button>
+                        <button class="fin-quick-btn" onclick="finQuickDate('yesterday', this)">Yesterday</button>
+                        <button class="fin-quick-btn" onclick="finQuickDate('week', this)">This Week</button>
+                        <button class="fin-quick-btn" onclick="finQuickDate('month', this)">This Month</button>
+                    </div>
+                    <div class="fin-day-summary" id="finDaySummary">
+                        <div class="fin-stat"><span class="label">POS Transactions</span><span class="val" id="finPosTxnCount">-</span></div>
+                        <div class="fin-stat"><span class="label">POS Revenue</span><span class="val" id="finPosRevenue">-</span></div>
+                        <div class="fin-stat"><span class="label">Cash Received</span><span class="val" id="finCashTotal">-</span></div>
+                        <div class="fin-stat"><span class="label">Card Received</span><span class="val" id="finCardTotal">-</span></div>
+                        <div style="height:0.5rem;"></div>
+                        <div class="fin-stat"><span class="label">Online Orders</span><span class="val" id="finOnlineCount">-</span></div>
+                        <div class="fin-stat"><span class="label">Online Revenue</span><span class="val" id="finOnlineRevenue">-</span></div>
+                        <div class="fin-stat total"><span>Total Revenue</span><span id="finTotalRevenue">-</span></div>
+                    </div>
+                </div>
+
+                <div class="fin-content" id="finContent">
+                    <div class="fin-empty">Select a date to view transactions</div>
+                </div>
+            </div>
+
+            <!-- Edit Transaction Modal -->
+            <div class="fin-edit-modal" id="finEditModal">
+                <div class="fin-edit-box">
+                    <h3 id="finEditTitle">Edit Transaction</h3>
+                    <div id="finEditContent"></div>
+                </div>
+            </div>
+
+            <!-- Finance Receipt (print only) -->
+            <div class="pos-receipt" id="finReceipt"></div>
+        </div>
+
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -453,6 +539,11 @@
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
             document.getElementById('panel-' + tab).classList.add('active');
             hideAlert('alert');
+            if (tab === 'finance' && !finInitialized) {
+                finInitialized = true;
+                const todayBtn = document.querySelector('.fin-quick-btn');
+                if (todayBtn) finQuickDate('today', todayBtn);
+            }
         }
 
         // ── USERS ──
@@ -1290,6 +1381,316 @@
 
         // Load recent transactions on init
         (async () => { await posLoadRecent(); })();
+
+        // ── FINANCE PANEL ──
+        let finPosTxns = [], finOnlineOrders = [], finDateStart = '', finDateEnd = '';
+
+        function finQuickDate(preset, el) {
+            document.querySelectorAll('.fin-quick-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let start, end;
+            if (preset === 'today') {
+                start = new Date(today);
+                end = new Date(today); end.setDate(end.getDate() + 1);
+            } else if (preset === 'yesterday') {
+                start = new Date(today); start.setDate(start.getDate() - 1);
+                end = new Date(today);
+            } else if (preset === 'week') {
+                start = new Date(today);
+                const day = start.getDay();
+                start.setDate(start.getDate() - (day === 0 ? 6 : day - 1));
+                end = new Date(today); end.setDate(end.getDate() + 1);
+            } else if (preset === 'month') {
+                start = new Date(today.getFullYear(), today.getMonth(), 1);
+                end = new Date(today); end.setDate(end.getDate() + 1);
+            }
+            document.getElementById('finDatePicker').value = start.toISOString().split('T')[0];
+            finDateStart = start.toISOString();
+            finDateEnd = end.toISOString();
+            finFetchData();
+        }
+
+        function finLoadDate(dateStr) {
+            if (!dateStr) return;
+            document.querySelectorAll('.fin-quick-btn').forEach(b => b.classList.remove('active'));
+            const start = new Date(dateStr + 'T00:00:00');
+            const end = new Date(dateStr + 'T23:59:59.999');
+            finDateStart = start.toISOString();
+            finDateEnd = end.toISOString();
+            finFetchData();
+        }
+
+        async function finFetchData() {
+            // Fetch POS transactions
+            const { data: posTxns } = await db.from('pos_transactions')
+                .select('*, pos_transaction_items(*)')
+                .gte('created_at', finDateStart)
+                .lte('created_at', finDateEnd)
+                .order('created_at', { ascending: false });
+            finPosTxns = posTxns || [];
+
+            // Fetch online orders
+            const { data: orders } = await db.from('orders')
+                .select('*, order_items(*)')
+                .gte('created_at', finDateStart)
+                .lte('created_at', finDateEnd)
+                .order('created_at', { ascending: false });
+
+            // Fetch customer profiles for online orders
+            const userIds = [...new Set((orders || []).map(o => o.user_id))];
+            let profileMap = {};
+            if (userIds.length > 0) {
+                const { data: profiles } = await db.from('profiles').select('id, business_name, email').in('id', userIds);
+                (profiles || []).forEach(p => profileMap[p.id] = p);
+            }
+            finOnlineOrders = (orders || []).map(o => ({ ...o, profile: profileMap[o.user_id] || {} }));
+
+            finRenderSummary();
+            finRenderContent();
+        }
+
+        function finRenderSummary() {
+            const posCount = finPosTxns.length;
+            const posRevenue = finPosTxns.reduce((s, t) => s + Number(t.total), 0);
+            const cashTotal = finPosTxns.reduce((s, t) => s + Number(t.cash_amount || 0), 0);
+            const cardTotal = finPosTxns.reduce((s, t) => s + Number(t.card_amount || 0), 0);
+            const onlineCount = finOnlineOrders.filter(o => o.status !== 'cancelled').length;
+            const onlineRevenue = finOnlineOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0);
+
+            document.getElementById('finPosTxnCount').textContent = posCount;
+            document.getElementById('finPosRevenue').textContent = '€' + posRevenue.toFixed(2);
+            document.getElementById('finCashTotal').textContent = '€' + cashTotal.toFixed(2);
+            document.getElementById('finCardTotal').textContent = '€' + cardTotal.toFixed(2);
+            document.getElementById('finOnlineCount').textContent = onlineCount;
+            document.getElementById('finOnlineRevenue').textContent = '€' + onlineRevenue.toFixed(2);
+            document.getElementById('finTotalRevenue').textContent = '€' + (posRevenue + onlineRevenue).toFixed(2);
+        }
+
+        function finRenderContent() {
+            let html = '';
+
+            // POS Section
+            html += `<div class="fin-section">
+                <h3>In-Store (POS) <span class="count">${finPosTxns.length}</span></h3>`;
+            if (finPosTxns.length === 0) {
+                html += '<div class="fin-empty">No POS transactions for this period.</div>';
+            } else {
+                html += finPosTxns.map(t => finRenderPosTxn(t)).join('');
+            }
+            html += '</div>';
+
+            // Online Section
+            html += `<div class="fin-section">
+                <h3>Online Orders <span class="count">${finOnlineOrders.length}</span></h3>`;
+            if (finOnlineOrders.length === 0) {
+                html += '<div class="fin-empty">No online orders for this period.</div>';
+            } else {
+                html += finOnlineOrders.map(o => finRenderOnlineOrder(o)).join('');
+            }
+            html += '</div>';
+
+            document.getElementById('finContent').innerHTML = html;
+        }
+
+        function finRenderPosTxn(t) {
+            const items = t.pos_transaction_items || [];
+            const time = new Date(t.created_at).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+            const payInfo = t.payment_method === 'both'
+                ? `Cash €${Number(t.cash_amount).toFixed(2)} + Card €${Number(t.card_amount).toFixed(2)}`
+                : cap(t.payment_method);
+            return `<div class="fin-txn-card">
+                <div class="fin-txn-header">
+                    <span class="fin-txn-id">${esc(t.transaction_number)}</span>
+                    <span class="fin-txn-time">${time}</span>
+                </div>
+                <div class="fin-txn-meta">
+                    <span>Payment: ${payInfo}</span>
+                    <span>${items.reduce((s, i) => s + i.quantity, 0)} items</span>
+                </div>
+                <div class="fin-txn-items">
+                    <table>
+                        <thead><tr><th>Product</th><th>Barcode</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Total</th></tr></thead>
+                        <tbody>${items.map(i => `<tr>
+                            <td>${esc(i.product_name)}</td>
+                            <td style="color:var(--gray-400);font-size:0.75rem;">${esc(i.barcode || '')}</td>
+                            <td class="r">${i.quantity}</td>
+                            <td class="r">€${Number(i.unit_price).toFixed(2)}</td>
+                            <td class="r">€${(Number(i.unit_price) * i.quantity).toFixed(2)}</td>
+                        </tr>`).join('')}</tbody>
+                    </table>
+                </div>
+                <div class="fin-txn-footer">
+                    <span class="fin-txn-total">€${Number(t.total).toFixed(2)}</span>
+                    <div class="fin-txn-actions">
+                        <button class="btn btn-sm btn-secondary" onclick="finReprintPos('${t.id}')">🖨 Reprint</button>
+                        <button class="btn btn-sm btn-secondary" onclick="finEditPos('${t.id}')">Edit</button>
+                        <button class="btn btn-sm btn-reject" onclick="finDeletePos('${t.id}', '${esc(t.transaction_number)}')">Delete</button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function finRenderOnlineOrder(o) {
+            const items = o.order_items || [];
+            const time = new Date(o.created_at).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+            const profile = o.profile || {};
+            const statusMap = { pending: 'pending', paid: 'approved', invoiced: 'pending', shipped: 'approved', completed: 'approved', cancelled: 'rejected' };
+            return `<div class="fin-txn-card">
+                <div class="fin-txn-header">
+                    <span class="fin-txn-id">#${o.id.slice(0, 8).toUpperCase()}</span>
+                    <span class="status-badge status-${statusMap[o.status] || 'pending'}">${cap(o.status)}</span>
+                    <span class="fin-txn-time">${time}</span>
+                </div>
+                <div class="fin-txn-meta">
+                    <span>${esc(profile.business_name || profile.email || 'Guest')}</span>
+                    <span>Payment: ${o.payment_method ? cap(o.payment_method) : '—'}</span>
+                    <span>${items.reduce((s, i) => s + i.quantity, 0)} items</span>
+                </div>
+                <div class="fin-txn-items">
+                    <table>
+                        <thead><tr><th>Product</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Total</th></tr></thead>
+                        <tbody>${items.map(i => `<tr>
+                            <td>${esc(i.product_name)}</td>
+                            <td class="r">${i.quantity}</td>
+                            <td class="r">€${Number(i.unit_price).toFixed(2)}</td>
+                            <td class="r">€${(Number(i.unit_price) * i.quantity).toFixed(2)}</td>
+                        </tr>`).join('')}</tbody>
+                    </table>
+                </div>
+                <div class="fin-txn-footer">
+                    <span class="fin-txn-total">€${Number(o.total).toFixed(2)}</span>
+                </div>
+            </div>`;
+        }
+
+        // ── Reprint POS receipt ──
+        function finReprintPos(txnId) {
+            const t = finPosTxns.find(x => x.id === txnId);
+            if (!t) return;
+            const items = t.pos_transaction_items || [];
+            const now = new Date(t.created_at);
+            const dateStr = now.toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+            const method = t.payment_method;
+            const cash = Number(t.cash_amount);
+            const card = Number(t.card_amount);
+            const total = Number(t.total);
+
+            const receipt = document.getElementById('finReceipt');
+            receipt.innerHTML = `
+                <div style="text-align:center;margin-bottom:8px;">
+                    <strong style="font-size:16px;">DrMobilePhone</strong><br>
+                    <span style="font-size:11px;">Dublin, Ireland</span><br>
+                    <span style="font-size:11px;">+353 089 989 9550</span>
+                </div>
+                <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin:6px 0;text-align:center;font-size:11px;">
+                    ${esc(t.transaction_number)}<br>${dateStr} ${timeStr}<br><em>REPRINT</em>
+                </div>
+                <table style="width:100%;font-size:11px;border-collapse:collapse;">
+                    <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left;padding:2px 0;">Item</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr>
+                    ${items.map(i => `<tr><td style="padding:2px 0;">${esc(i.product_name)}</td><td style="text-align:right;">${i.quantity}</td><td style="text-align:right;">€${Number(i.unit_price).toFixed(2)}</td><td style="text-align:right;">€${(Number(i.unit_price) * i.quantity).toFixed(2)}</td></tr>`).join('')}
+                </table>
+                <div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
+                    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:bold;"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
+                    <div style="font-size:11px;margin-top:2px;">${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}</div>
+                </div>
+                <div style="text-align:center;margin-top:10px;font-size:10px;color:#888;">Thank you for your purchase!</div>`;
+            receipt.style.display = 'block';
+            setTimeout(() => { window.print(); receipt.style.display = 'none'; }, 200);
+        }
+
+        // ── Edit POS transaction ──
+        function finEditPos(txnId) {
+            const t = finPosTxns.find(x => x.id === txnId);
+            if (!t) return;
+            const items = t.pos_transaction_items || [];
+            const total = Number(t.total);
+
+            document.getElementById('finEditTitle').textContent = 'Edit ' + t.transaction_number;
+            document.getElementById('finEditContent').innerHTML = `
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:0.3rem;">Payment Method</label>
+                    <select id="finEditPayMethod" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;">
+                        <option value="card" ${t.payment_method === 'card' ? 'selected' : ''}>Card</option>
+                        <option value="cash" ${t.payment_method === 'cash' ? 'selected' : ''}>Cash</option>
+                        <option value="both" ${t.payment_method === 'both' ? 'selected' : ''}>Both</option>
+                    </select>
+                </div>
+                <div id="finEditSplit" style="${t.payment_method === 'both' ? '' : 'display:none;'}margin-bottom:1rem;display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                    <div><label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:0.3rem;">Cash Amount (€)</label><input type="number" id="finEditCash" value="${Number(t.cash_amount).toFixed(2)}" step="0.01" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;"></div>
+                    <div><label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:0.3rem;">Card Amount (€)</label><input type="number" id="finEditCard" value="${Number(t.card_amount).toFixed(2)}" step="0.01" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;"></div>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:0.3rem;">Notes</label>
+                    <textarea id="finEditNotes" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;min-height:60px;">${esc(t.notes || '')}</textarea>
+                </div>
+                <div style="font-size:0.85rem;color:var(--gray-500);margin-bottom:1rem;">Total: <strong>€${total.toFixed(2)}</strong> · ${items.length} line items</div>
+                <div id="finEditAlert" class="alert" style="margin-bottom:1rem;"></div>
+                <div style="display:flex;gap:0.75rem;">
+                    <button class="btn btn-primary btn-sm" onclick="finSaveEdit('${t.id}')">Save Changes</button>
+                    <button class="btn btn-secondary btn-sm" onclick="finHideEdit()">Cancel</button>
+                </div>
+            `;
+
+            // Toggle split fields
+            document.getElementById('finEditPayMethod').addEventListener('change', function() {
+                document.getElementById('finEditSplit').style.display = this.value === 'both' ? 'grid' : 'none';
+            });
+
+            document.getElementById('finEditModal').classList.add('show');
+        }
+
+        function finHideEdit() {
+            document.getElementById('finEditModal').classList.remove('show');
+        }
+
+        async function finSaveEdit(txnId) {
+            const method = document.getElementById('finEditPayMethod').value;
+            const notes = document.getElementById('finEditNotes').value.trim();
+            const t = finPosTxns.find(x => x.id === txnId);
+            const total = Number(t.total);
+
+            let cashAmount = 0, cardAmount = 0;
+            if (method === 'card') { cardAmount = total; }
+            else if (method === 'cash') { cashAmount = total; }
+            else {
+                cashAmount = parseFloat(document.getElementById('finEditCash').value) || 0;
+                cardAmount = parseFloat(document.getElementById('finEditCard').value) || 0;
+                if (Math.round((cashAmount + cardAmount) * 100) !== Math.round(total * 100)) {
+                    showAlert('finEditAlert', `Cash + Card must equal €${total.toFixed(2)}`, 'error');
+                    return;
+                }
+            }
+
+            // Generate new transaction number (UUID-based)
+            const { data: newNum } = await db.rpc('next_pos_txn_number');
+
+            const { error } = await db.from('pos_transactions').update({
+                transaction_number: newNum || t.transaction_number,
+                payment_method: method,
+                cash_amount: cashAmount,
+                card_amount: cardAmount,
+                notes: notes
+            }).eq('id', txnId);
+
+            if (error) { showAlert('finEditAlert', 'Error: ' + error.message, 'error'); return; }
+            finHideEdit();
+            showAlert('alert', 'Transaction updated. New ID: ' + newNum, 'success');
+            await finFetchData();
+        }
+
+        async function finDeletePos(txnId, txnNumber) {
+            if (!confirm(`Delete transaction ${txnNumber}? This cannot be undone. Stock will NOT be restored.`)) return;
+            const { error } = await db.from('pos_transactions').delete().eq('id', txnId);
+            if (error) { showAlert('alert', 'Error: ' + error.message, 'error'); return; }
+            showAlert('alert', `Transaction ${txnNumber} deleted.`, 'success');
+            await finFetchData();
+        }
+
+        // Auto-load today on first visit to finance tab
+        let finInitialized = false;
     </script>
 </body>
 </html>
