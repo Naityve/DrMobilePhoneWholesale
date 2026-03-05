@@ -370,13 +370,13 @@
                     <h3>Payment</h3>
                     <div class="total-display" id="posPayTotal">€0.00</div>
                     <div class="pay-methods">
-                        <div class="pay-method selected" onclick="posSelectPayMethod('card')">
+                        <div class="pay-method selected" onclick="posSelectPayMethod('card', this)">
                             <div class="icon">💳</div><div class="label">Card</div>
                         </div>
-                        <div class="pay-method" onclick="posSelectPayMethod('cash')">
+                        <div class="pay-method" onclick="posSelectPayMethod('cash', this)">
                             <div class="icon">💶</div><div class="label">Cash</div>
                         </div>
-                        <div class="pay-method" onclick="posSelectPayMethod('both')">
+                        <div class="pay-method" onclick="posSelectPayMethod('both', this)">
                             <div class="icon">💳💶</div><div class="label">Both</div>
                         </div>
                     </div>
@@ -1123,10 +1123,17 @@
             document.getElementById('posPaymentModal').classList.remove('show');
         }
 
-        function posSelectPayMethod(method) {
+        function posSelectPayMethod(method, el) {
             posPayMethod = method;
-            document.querySelectorAll('.pay-method').forEach(el => el.classList.remove('selected'));
-            event.target.closest('.pay-method').classList.add('selected');
+            document.querySelectorAll('.pay-method').forEach(e => e.classList.remove('selected'));
+            if (el) {
+                el.closest('.pay-method').classList.add('selected');
+            } else {
+                // Programmatic call — select by index
+                const methods = document.querySelectorAll('.pay-method');
+                const idx = method === 'card' ? 0 : method === 'cash' ? 1 : 2;
+                if (methods[idx]) methods[idx].classList.add('selected');
+            }
             const splitFields = document.getElementById('posSplitFields');
             if (method === 'both') {
                 splitFields.classList.add('show');
