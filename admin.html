@@ -628,6 +628,14 @@
                     <label style="font-size:0.82rem;font-weight:600;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Receipt Width (mm)</label>
                     <input type="number" id="rcptWidth" value="80" min="40" max="120" style="width:120px;padding:0.7rem 1rem;border:1.5px solid var(--gray-200);border-radius:10px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;text-align:center;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'">
                 </div>
+                <div class="form-group" style="margin-bottom:1.25rem;">
+                    <label style="font-size:0.82rem;font-weight:600;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Minimum Height (mm) <span style="font-weight:400;color:var(--gray-400);">— prevents blank second page</span></label>
+                    <input type="number" id="rcptMinHeight" value="0" min="0" max="500" style="width:120px;padding:0.7rem 1rem;border:1.5px solid var(--gray-200);border-radius:10px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;text-align:center;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'">
+                </div>
+                <div class="form-group" style="margin-bottom:1.25rem;">
+                    <label style="font-size:0.82rem;font-weight:600;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Font Size (px)</label>
+                    <input type="number" id="rcptFontSize" value="12" min="8" max="20" style="width:120px;padding:0.7rem 1rem;border:1.5px solid var(--gray-200);border-radius:10px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;text-align:center;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'">
+                </div>
 
                 <div style="display:flex;gap:0.75rem;margin-bottom:2rem;">
                     <button class="btn btn-primary" onclick="rcptSaveSettings()">Save Settings</button>
@@ -1525,13 +1533,17 @@
         }
 
         function openPrintWindow(receiptHtml) {
-            const w = getReceiptWidth();
+            const s = rcptGetSettings();
+            const w = s.width;
+            const minH = s.minHeight;
+            const fs = s.fontSize;
             const win = window.open('', '_blank', 'width=400,height=600');
             win.document.write(`<html><head><title>Receipt</title><style>
                 @page { margin: 0; size: ${w}mm auto; }
                 @media print { html, body { margin: 0; padding: 0; } }
-                body { font-family: 'Courier New', monospace; width: ${w}mm; margin: 0 auto; padding: 3mm; box-sizing: border-box; }
-                table { width: 100%; border-collapse: collapse; }
+                body { font-family: 'Courier New', monospace; width: ${w}mm; margin: 0 auto; padding: 3mm; box-sizing: border-box; font-size: ${fs}px; ${minH > 0 ? 'min-height: ' + minH + 'mm;' : ''} }
+                table { width: 100%; border-collapse: collapse; font-size: inherit; }
+                th, td { font-size: inherit; }
             </style></head><body>${receiptHtml}</body></html>`);
             win.document.close();
             win.onload = () => { win.print(); win.close(); };
@@ -2020,7 +2032,9 @@
                 businessName: localStorage.getItem('rcpt_business_name') || 'DrMobilePhone',
                 headerLines: localStorage.getItem('rcpt_header_lines') || 'Dublin, Ireland\n+353 089 989 9550',
                 footer: localStorage.getItem('rcpt_footer') || 'Thank you for your purchase!',
-                width: localStorage.getItem('pos_receipt_width') || '80'
+                width: localStorage.getItem('pos_receipt_width') || '80',
+                minHeight: localStorage.getItem('rcpt_min_height') || '0',
+                fontSize: localStorage.getItem('rcpt_font_size') || '12'
             };
         }
 
@@ -2030,9 +2044,10 @@
             document.getElementById('rcptHeaderLines').value = s.headerLines;
             document.getElementById('rcptFooter').value = s.footer;
             document.getElementById('rcptWidth').value = s.width;
+            document.getElementById('rcptMinHeight').value = s.minHeight;
+            document.getElementById('rcptFontSize').value = s.fontSize;
             rcptUpdatePreview();
-            // Add live preview listeners
-            ['rcptBusinessName', 'rcptHeaderLines', 'rcptFooter'].forEach(id => {
+            ['rcptBusinessName', 'rcptHeaderLines', 'rcptFooter', 'rcptFontSize'].forEach(id => {
                 document.getElementById(id).addEventListener('input', rcptUpdatePreview);
             });
         }
@@ -2043,6 +2058,8 @@
             localStorage.setItem('rcpt_footer', document.getElementById('rcptFooter').value);
             const w = document.getElementById('rcptWidth').value || '80';
             localStorage.setItem('pos_receipt_width', w);
+            localStorage.setItem('rcpt_min_height', document.getElementById('rcptMinHeight').value || '0');
+            localStorage.setItem('rcpt_font_size', document.getElementById('rcptFontSize').value || '12');
             document.documentElement.style.setProperty('--receipt-width', w + 'mm');
             if (document.getElementById('receiptWidthInput')) document.getElementById('receiptWidthInput').value = w;
             showAlert('alert', 'Receipt settings saved!', 'success');
@@ -2053,13 +2070,15 @@
             const name = document.getElementById('rcptBusinessName').value || 'DrMobilePhone';
             const lines = document.getElementById('rcptHeaderLines').value || '';
             const footer = document.getElementById('rcptFooter').value || '';
+            const fontSize = document.getElementById('rcptFontSize').value || '12';
+            document.getElementById('rcptPreview').style.fontSize = fontSize + 'px';
             document.getElementById('rcptPreview').innerHTML = `<div style="text-align:center;margin-bottom:6px;"><strong>${esc(name)}</strong></div>` +
-                (lines ? `<div style="text-align:center;font-size:11px;color:#666;">${esc(lines).replace(/\n/g, '<br>')}</div>` : '') +
-                `<div style="border-top:1px dashed #000;margin:6px 0;padding:4px 0;text-align:center;font-size:11px;">POS-XXXXXXXX<br>5 March 2026 14:30</div>` +
-                `<div style="font-size:11px;">Sample Item x2 .............. €19.98</div>` +
+                (lines ? `<div style="text-align:center;font-size:0.9em;color:#666;">${esc(lines).replace(/\n/g, '<br>')}</div>` : '') +
+                `<div style="border-top:1px dashed #000;margin:6px 0;padding:4px 0;text-align:center;font-size:0.9em;">POS-XXXXXXXX<br>5 March 2026 14:30</div>` +
+                `<div style="font-size:0.9em;">Sample Item x2 .............. €19.98</div>` +
                 `<div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;font-weight:bold;">TOTAL ........................ €19.98</div>` +
-                `<div style="font-size:11px;">Paid by Card</div>` +
-                (footer ? `<div style="text-align:center;margin-top:8px;font-size:10px;color:#888;">${esc(footer)}</div>` : '');
+                `<div style="font-size:0.9em;">Paid by Card</div>` +
+                (footer ? `<div style="text-align:center;margin-top:8px;font-size:0.85em;color:#888;">${esc(footer)}</div>` : '');
         }
 
         function rcptTestPrint() {
@@ -2142,23 +2161,26 @@
         // Update buildReceiptHtml to use saved receipt settings
         function buildReceiptHtml(txnNumber, dateStr, timeStr, items, method, cash, card, total, extraTag, width) {
             const s = rcptGetSettings();
-            const headerHtml = s.headerLines ? s.headerLines.split('\n').map(l => `<span style="font-size:11px;">${esc(l)}</span>`).join('<br>') : '';
+            const fs = s.fontSize + 'px';
+            const fsSmall = (parseInt(s.fontSize) - 1) + 'px';
+            const fsBig = (parseInt(s.fontSize) + 2) + 'px';
+            const headerHtml = s.headerLines ? s.headerLines.split('\n').map(l => `<span style="font-size:${fs};">${esc(l)}</span>`).join('<br>') : '';
             return `<div style="text-align:center;margin-bottom:8px;">
-                <strong style="font-size:16px;">${esc(s.businessName)}</strong><br>
+                <strong style="font-size:${fsBig};">${esc(s.businessName)}</strong><br>
                 ${headerHtml}
             </div>
-            <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin:6px 0;text-align:center;font-size:11px;">
+            <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin:6px 0;text-align:center;font-size:${fs};">
                 ${esc(txnNumber)}<br>${dateStr} ${timeStr}${extraTag ? '<br><em>' + extraTag + '</em>' : ''}
             </div>
-            <table style="width:100%;font-size:11px;border-collapse:collapse;">
+            <table style="width:100%;font-size:${fs};border-collapse:collapse;">
                 <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left;padding:2px 0;">Item</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr>
                 ${items.map(i => `<tr><td style="padding:2px 0;">${esc(i.product_name)}</td><td style="text-align:right;">${i.quantity}</td><td style="text-align:right;">€${Number(i.unit_price).toFixed(2)}</td><td style="text-align:right;">€${(Number(i.unit_price) * i.quantity).toFixed(2)}</td></tr>`).join('')}
             </table>
             <div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
-                <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:bold;"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
-                <div style="font-size:11px;margin-top:2px;">${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}</div>
+                <div style="display:flex;justify-content:space-between;font-size:${fsBig};font-weight:bold;"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
+                <div style="font-size:${fs};margin-top:2px;">${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}</div>
             </div>
-            ${s.footer ? `<div style="text-align:center;margin-top:10px;font-size:10px;color:#888;">${esc(s.footer)}</div>` : ''}`;
+            ${s.footer ? `<div style="text-align:center;margin-top:10px;font-size:${fsSmall};color:#888;">${esc(s.footer)}</div>` : ''}`;
         }
     </script>
 </body>
