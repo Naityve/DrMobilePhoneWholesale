@@ -1541,9 +1541,10 @@
             win.document.write(`<html><head><title>Receipt</title><style>
                 @page { margin: 0; size: ${w}mm auto; }
                 @media print { html, body { margin: 0; padding: 0; } }
-                body { font-family: 'Courier New', monospace; width: ${w}mm; margin: 0 auto; padding: 3mm; box-sizing: border-box; font-size: ${fs}px; ${minH > 0 ? 'min-height: ' + minH + 'mm;' : ''} }
-                table { width: 100%; border-collapse: collapse; font-size: inherit; }
-                th, td { font-size: inherit; }
+                body { font-family: 'Lucida Console', 'Consolas', 'Courier New', monospace; width: ${w}mm; margin: 0 auto; padding: 3mm; box-sizing: border-box; font-size: ${fs}px; font-weight: 700; color: #000; -webkit-print-color-adjust: exact; ${minH > 0 ? 'min-height: ' + minH + 'mm;' : ''} }
+                table { width: 100%; border-collapse: collapse; font-size: inherit; font-weight: 700; }
+                th, td { font-size: inherit; font-weight: 700; }
+                strong { font-weight: 900; }
             </style></head><body>${receiptHtml}</body></html>`);
             win.document.close();
             win.onload = () => { win.print(); win.close(); };
