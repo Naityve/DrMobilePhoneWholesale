@@ -95,6 +95,7 @@
             <button class="admin-main-tab" onclick="switchMainTab('pos', this)">POS</button>
             <button class="admin-main-tab" onclick="switchMainTab('finance', this)">Transactions</button>
             <button class="admin-main-tab" onclick="switchMainTab('stock', this)">Stock</button>
+            <button class="admin-main-tab" onclick="switchMainTab('receiptsettings', this)">Receipts</button>
         </div>
 
         <!-- USERS PANEL -->
@@ -306,6 +307,9 @@
                 .pos-items-table .qty-cell button { width: 26px; height: 26px; border: 1px solid var(--gray-200); border-radius: 6px; background: white; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; }
                 .pos-items-table .qty-cell button:hover { border-color: var(--orange); }
                 .pos-items-table .qty-cell span { min-width: 24px; text-align: center; font-weight: 600; }
+                .pos-items-table .qty-cell input { width: 48px; text-align: center; font-weight: 600; font-size: 0.85rem; border: 1px solid var(--gray-200); border-radius: 6px; padding: 0.15rem; font-family: 'DM Sans', sans-serif; outline: none; -moz-appearance: textfield; }
+                .pos-items-table .qty-cell input:focus { border-color: var(--orange); }
+                .pos-items-table .qty-cell input::-webkit-outer-spin-button, .pos-items-table .qty-cell input::-webkit-inner-spin-button { -webkit-appearance: none; }
                 .pos-remove { background: none; border: none; cursor: pointer; color: var(--gray-300); transition: color 0.15s; }
                 .pos-remove:hover { color: var(--red); }
                 .pos-empty { text-align: center; padding: 2rem; color: var(--gray-400); font-size: 0.9rem; }
@@ -384,6 +388,7 @@
                     <div class="pos-actions">
                         <button class="btn btn-primary" id="posCompleteBtn" onclick="posShowPayment()" disabled>Complete Sale</button>
                         <button class="btn btn-secondary" onclick="posClearAll()">Clear All</button>
+                        <button class="btn btn-secondary" onclick="posEndOfDay()" style="margin-top:0.5rem;width:100%;background:var(--gray-50);">📋 End of Day Report</button>
                     </div>
                     <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1rem;">
                         <h4 style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);margin-bottom:0.5rem;">Receipt Width</h4>
@@ -601,9 +606,42 @@
             </div>
         </div>
 
-    </div>
+        <!-- RECEIPT SETTINGS PANEL -->
+        <div id="panel-receiptsettings" class="tab-panel">
+            <div style="max-width:600px;">
+                <h3 style="font-family:'Instrument Serif',serif;font-size:1.3rem;font-weight:400;margin-bottom:0.5rem;">Receipt Settings</h3>
+                <p style="font-size:0.88rem;color:var(--gray-500);margin-bottom:1.5rem;">Customise what appears on printed receipts. Changes are saved to your browser.</p>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+                <div class="form-group" style="margin-bottom:1.25rem;">
+                    <label style="font-size:0.82rem;font-weight:600;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Business Name</label>
+                    <input type="text" id="rcptBusinessName" placeholder="DrMobilePhone" style="width:100%;padding:0.7rem 1rem;border:1.5px solid var(--gray-200);border-radius:10px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'">
+                </div>
+                <div class="form-group" style="margin-bottom:1.25rem;">
+                    <label style="font-size:0.82rem;font-weight:600;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Header Lines <span style="font-weight:400;color:var(--gray-400);">(one per line — address, phone, etc.)</span></label>
+                    <textarea id="rcptHeaderLines" rows="4" placeholder="Dublin, Ireland&#10;+353 089 989 9550" style="width:100%;padding:0.7rem 1rem;border:1.5px solid var(--gray-200);border-radius:10px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom:1.25rem;">
+                    <label style="font-size:0.82rem;font-weight:600;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Footer Message</label>
+                    <textarea id="rcptFooter" rows="2" placeholder="Thank you for your purchase!" style="width:100%;padding:0.7rem 1rem;border:1.5px solid var(--gray-200);border-radius:10px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom:1.25rem;">
+                    <label style="font-size:0.82rem;font-weight:600;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Receipt Width (mm)</label>
+                    <input type="number" id="rcptWidth" value="80" min="40" max="120" style="width:120px;padding:0.7rem 1rem;border:1.5px solid var(--gray-200);border-radius:10px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;text-align:center;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'">
+                </div>
+
+                <div style="display:flex;gap:0.75rem;margin-bottom:2rem;">
+                    <button class="btn btn-primary" onclick="rcptSaveSettings()">Save Settings</button>
+                    <button class="btn btn-secondary" onclick="rcptTestPrint()">🖨 Test Print</button>
+                </div>
+
+                <div style="border:1px solid var(--gray-200);border-radius:12px;padding:1.25rem;">
+                    <h4 style="font-size:0.82rem;font-weight:600;color:var(--gray-700);margin-bottom:0.75rem;">Preview</h4>
+                    <div id="rcptPreview" style="font-family:'Courier New',monospace;font-size:12px;background:var(--gray-50);padding:1rem;border-radius:8px;white-space:pre-line;"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
     <script src="js/supabase-config.js"></script>
     <script>
         let allUsers = [], allProducts = [], currentFilter = 'pending', selectedImageFile = null;
@@ -665,6 +703,9 @@
             }
             if (tab === 'stock') {
                 stkInit();
+            }
+            if (tab === 'receiptsettings') {
+                rcptLoadSettings();
             }
         }
 
@@ -1309,6 +1350,12 @@
             posRender();
         }
 
+        function posSetQty(idx, qty) {
+            if (qty <= 0) { posItems.splice(idx, 1); }
+            else { posItems[idx].quantity = qty; }
+            posRender();
+        }
+
         function posRemoveItem(idx) {
             posItems.splice(idx, 1);
             posRender();
@@ -1327,7 +1374,7 @@
                         <td class="name">${esc(item.product_name)}</td>
                         <td style="font-size:0.78rem;color:var(--gray-500);">${esc(item.barcode)}</td>
                         <td class="r">€${item.unit_price.toFixed(2)}</td>
-                        <td><div class="qty-cell"><button onclick="posChangeQty(${i},-1)">−</button><span>${item.quantity}</span><button onclick="posChangeQty(${i},1)">+</button></div></td>
+                        <td><div class="qty-cell"><button onclick="posChangeQty(${i},-1)">−</button><input type="number" value="${item.quantity}" min="1" onchange="posSetQty(${i}, parseInt(this.value)||1)" onkeydown="if(event.key==='Enter'){this.blur();document.getElementById('posBarcodeInput').focus();}"><button onclick="posChangeQty(${i},1)">+</button></div></td>
                         <td class="r" style="font-weight:600;">€${sub}</td>
                         <td><button class="pos-remove" onclick="posRemoveItem(${i})">✕</button></td>
                     </tr>`;
@@ -1474,26 +1521,6 @@
             const w = getReceiptWidth();
             const receiptHtml = buildReceiptHtml(txnNumber, dateStr, timeStr, posItems, method, cash, card, total, '', w);
             openPrintWindow(receiptHtml);
-        }
-
-        function buildReceiptHtml(txnNumber, dateStr, timeStr, items, method, cash, card, total, extraTag, width) {
-            return `<div style="text-align:center;margin-bottom:8px;">
-                <strong style="font-size:16px;">DrMobilePhone</strong><br>
-                <span style="font-size:11px;">Dublin, Ireland</span><br>
-                <span style="font-size:11px;">+353 089 989 9550</span>
-            </div>
-            <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin:6px 0;text-align:center;font-size:11px;">
-                ${esc(txnNumber)}<br>${dateStr} ${timeStr}${extraTag ? '<br><em>' + extraTag + '</em>' : ''}
-            </div>
-            <table style="width:100%;font-size:11px;border-collapse:collapse;">
-                <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left;padding:2px 0;">Item</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr>
-                ${items.map(i => `<tr><td style="padding:2px 0;">${esc(i.product_name)}</td><td style="text-align:right;">${i.quantity}</td><td style="text-align:right;">€${Number(i.unit_price).toFixed(2)}</td><td style="text-align:right;">€${(Number(i.unit_price) * i.quantity).toFixed(2)}</td></tr>`).join('')}
-            </table>
-            <div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
-                <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:bold;"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
-                <div style="font-size:11px;margin-top:2px;">${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}</div>
-            </div>
-            <div style="text-align:center;margin-top:10px;font-size:10px;color:#888;">Thank you for your purchase!</div>`;
         }
 
         function openPrintWindow(receiptHtml) {
@@ -1899,10 +1926,10 @@
                     <td style="font-weight:500;">${esc(p.name)}</td>
                     <td style="font-size:0.78rem;color:var(--gray-500);">${esc(p.barcode || '—')}</td>
                     <td style="font-size:0.78rem;color:var(--gray-500);">${esc(p.sku || '—')}</td>
-                    <td class="r">€${cost.toFixed(2)}</td>
-                    <td class="r">€${retail.toFixed(2)}</td>
+                    <td class="r"><input type="number" value="${cost.toFixed(2)}" step="0.01" min="0" style="width:70px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;" onchange="stkInlineUpdate('${p.id}','cost_price',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
+                    <td class="r"><input type="number" value="${retail.toFixed(2)}" step="0.01" min="0" style="width:70px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;" onchange="stkInlineUpdate('${p.id}','retail_price',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
                     <td class="r"><span class="stk-margin ${marginClass}">${margin.toFixed(1)}%</span></td>
-                    <td class="r" style="${p.stock_quantity === 0 ? 'color:var(--red);font-weight:600;' : ''}">${p.stock_quantity}</td>
+                    <td class="r"><input type="number" value="${p.stock_quantity}" min="0" style="width:60px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;${p.stock_quantity === 0 ? 'color:var(--red);font-weight:600;' : ''}" onchange="stkInlineUpdate('${p.id}','stock_quantity',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
                     <td><span class="stk-online-badge ${online ? 'yes' : 'no'}">${online ? 'Online' : 'In-store'}</span></td>
                     <td style="font-size:0.75rem;color:var(--gray-500);">${cats.map(c => esc(c)).join(', ') || '—'}</td>
                 </tr>`;
@@ -1959,6 +1986,178 @@
 
             await loadProducts();
             stkRender();
+        }
+
+        async function stkInlineUpdate(productId, field, value) {
+            const updateData = {};
+            if (field === 'stock_quantity') {
+                updateData[field] = parseInt(value) || 0;
+            } else {
+                updateData[field] = parseFloat(value) || 0;
+            }
+            const { error } = await db.from('products').update(updateData).eq('id', productId);
+            if (error) { showAlert('alert', 'Update failed: ' + error.message, 'error'); return; }
+            const p = allProducts.find(x => x.id === productId);
+            if (p) p[field] = updateData[field];
+            const totalProducts = allProducts.length;
+            const totalStock = allProducts.reduce((s, p) => s + (p.stock_quantity || 0), 0);
+            const totalValue = allProducts.reduce((s, p) => s + (Number(p.cost_price || 0) * (p.stock_quantity || 0)), 0);
+            const totalRetailValue = allProducts.reduce((s, p) => s + (Number(p.retail_price || p.price || 0) * (p.stock_quantity || 0)), 0);
+            const outOfStock = allProducts.filter(p => p.stock_quantity === 0).length;
+            document.getElementById('stockStats').innerHTML = `
+                <div class="stk-stat-card"><div class="num">${totalProducts}</div><div class="lbl">Products</div></div>
+                <div class="stk-stat-card"><div class="num">${totalStock}</div><div class="lbl">Total Units</div></div>
+                <div class="stk-stat-card"><div class="num">€${totalValue.toFixed(2)}</div><div class="lbl">Stock Cost Value</div></div>
+                <div class="stk-stat-card"><div class="num">€${totalRetailValue.toFixed(2)}</div><div class="lbl">Stock Retail Value</div></div>
+                <div class="stk-stat-card"><div class="num" style="color:${outOfStock > 0 ? 'var(--red)' : 'var(--green)'};">${outOfStock}</div><div class="lbl">Out of Stock</div></div>
+            `;
+        }
+
+        // ── RECEIPT SETTINGS ──
+        function rcptGetSettings() {
+            return {
+                businessName: localStorage.getItem('rcpt_business_name') || 'DrMobilePhone',
+                headerLines: localStorage.getItem('rcpt_header_lines') || 'Dublin, Ireland\n+353 089 989 9550',
+                footer: localStorage.getItem('rcpt_footer') || 'Thank you for your purchase!',
+                width: localStorage.getItem('pos_receipt_width') || '80'
+            };
+        }
+
+        function rcptLoadSettings() {
+            const s = rcptGetSettings();
+            document.getElementById('rcptBusinessName').value = s.businessName;
+            document.getElementById('rcptHeaderLines').value = s.headerLines;
+            document.getElementById('rcptFooter').value = s.footer;
+            document.getElementById('rcptWidth').value = s.width;
+            rcptUpdatePreview();
+            // Add live preview listeners
+            ['rcptBusinessName', 'rcptHeaderLines', 'rcptFooter'].forEach(id => {
+                document.getElementById(id).addEventListener('input', rcptUpdatePreview);
+            });
+        }
+
+        function rcptSaveSettings() {
+            localStorage.setItem('rcpt_business_name', document.getElementById('rcptBusinessName').value);
+            localStorage.setItem('rcpt_header_lines', document.getElementById('rcptHeaderLines').value);
+            localStorage.setItem('rcpt_footer', document.getElementById('rcptFooter').value);
+            const w = document.getElementById('rcptWidth').value || '80';
+            localStorage.setItem('pos_receipt_width', w);
+            document.documentElement.style.setProperty('--receipt-width', w + 'mm');
+            if (document.getElementById('receiptWidthInput')) document.getElementById('receiptWidthInput').value = w;
+            showAlert('alert', 'Receipt settings saved!', 'success');
+            rcptUpdatePreview();
+        }
+
+        function rcptUpdatePreview() {
+            const name = document.getElementById('rcptBusinessName').value || 'DrMobilePhone';
+            const lines = document.getElementById('rcptHeaderLines').value || '';
+            const footer = document.getElementById('rcptFooter').value || '';
+            document.getElementById('rcptPreview').innerHTML = `<div style="text-align:center;margin-bottom:6px;"><strong>${esc(name)}</strong></div>` +
+                (lines ? `<div style="text-align:center;font-size:11px;color:#666;">${esc(lines).replace(/\n/g, '<br>')}</div>` : '') +
+                `<div style="border-top:1px dashed #000;margin:6px 0;padding:4px 0;text-align:center;font-size:11px;">POS-XXXXXXXX<br>5 March 2026 14:30</div>` +
+                `<div style="font-size:11px;">Sample Item x2 .............. €19.98</div>` +
+                `<div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;font-weight:bold;">TOTAL ........................ €19.98</div>` +
+                `<div style="font-size:11px;">Paid by Card</div>` +
+                (footer ? `<div style="text-align:center;margin-top:8px;font-size:10px;color:#888;">${esc(footer)}</div>` : '');
+        }
+
+        function rcptTestPrint() {
+            rcptSaveSettings();
+            const s = rcptGetSettings();
+            const testItems = [{ product_name: 'Test Product A', quantity: 2, unit_price: 9.99 }, { product_name: 'Test Product B', quantity: 1, unit_price: 14.50 }];
+            const total = testItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+            const html = buildReceiptHtml('POS-TEST0001', '5 March 2026', '14:30', testItems, 'card', 0, total, total, 'TEST PRINT', s.width);
+            openPrintWindow(html);
+        }
+
+        // ── END OF DAY REPORT ──
+        async function posEndOfDay() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            const { data: txns } = await db.from('pos_transactions')
+                .select('*, pos_transaction_items(*)')
+                .gte('created_at', today.toISOString())
+                .lt('created_at', tomorrow.toISOString())
+                .order('created_at', { ascending: true });
+
+            if (!txns || txns.length === 0) {
+                showAlert('alert', 'No transactions today.', 'error');
+                return;
+            }
+
+            const totalRevenue = txns.reduce((s, t) => s + Number(t.total), 0);
+            const totalCash = txns.reduce((s, t) => s + Number(t.cash_amount || 0), 0);
+            const totalCard = txns.reduce((s, t) => s + Number(t.card_amount || 0), 0);
+            let totalCost = 0;
+            txns.forEach(t => {
+                (t.pos_transaction_items || []).forEach(i => {
+                    const prod = allProducts.find(p => p.id === i.product_id);
+                    totalCost += (prod ? Number(prod.cost_price || 0) : 0) * i.quantity;
+                });
+            });
+            const profit = totalRevenue - totalCost;
+            const dateStr = today.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            const s = rcptGetSettings();
+
+            let reportHtml = `<div style="text-align:center;margin-bottom:12px;"><strong style="font-size:18px;">${esc(s.businessName)}</strong><br><span style="font-size:12px;">End of Day Report</span><br><span style="font-size:11px;">${dateStr}</span></div>`;
+            reportHtml += '<hr style="border:none;border-top:1px dashed #000;margin:8px 0;">';
+
+            txns.forEach((t, idx) => {
+                const items = t.pos_transaction_items || [];
+                const time = new Date(t.created_at).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+                const payLabel = t.payment_method === 'both' ? `Cash €${Number(t.cash_amount).toFixed(2)} + Card €${Number(t.card_amount).toFixed(2)}` : cap(t.payment_method);
+                reportHtml += `<div style="margin-bottom:8px;">`;
+                reportHtml += `<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:bold;"><span>${t.transaction_number}</span><span>${time}</span></div>`;
+                items.forEach(i => {
+                    reportHtml += `<div style="display:flex;justify-content:space-between;font-size:11px;padding-left:8px;"><span>${i.quantity}× ${esc(i.product_name)}</span><span>€${(Number(i.unit_price) * i.quantity).toFixed(2)}</span></div>`;
+                });
+                reportHtml += `<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-top:2px;"><span>Total (${payLabel})</span><span>€${Number(t.total).toFixed(2)}</span></div>`;
+                reportHtml += '</div>';
+                if (idx < txns.length - 1) reportHtml += '<hr style="border:none;border-top:1px dotted #ccc;margin:6px 0;">';
+            });
+
+            reportHtml += '<hr style="border:none;border-top:2px solid #000;margin:10px 0;">';
+            reportHtml += `<div style="font-size:12px;">
+                <div style="display:flex;justify-content:space-between;"><span>Transactions:</span><span>${txns.length}</span></div>
+                <div style="display:flex;justify-content:space-between;"><span>Cash Total:</span><span>€${totalCash.toFixed(2)}</span></div>
+                <div style="display:flex;justify-content:space-between;"><span>Card Total:</span><span>€${totalCard.toFixed(2)}</span></div>
+                <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;"><span>Revenue:</span><span>€${totalRevenue.toFixed(2)}</span></div>
+                <div style="display:flex;justify-content:space-between;margin-top:4px;"><span>Est. Cost of Goods:</span><span>€${totalCost.toFixed(2)}</span></div>
+                <div style="display:flex;justify-content:space-between;font-weight:bold;color:${profit >= 0 ? '#22C55E' : '#EF4444'};"><span>Est. Profit:</span><span>€${profit.toFixed(2)}</span></div>
+            </div>`;
+
+            const win = window.open('', '_blank', 'width=500,height=700');
+            win.document.write(`<html><head><title>End of Day Report</title><style>
+                @page { margin: 10mm; }
+                body { font-family: 'Courier New', monospace; max-width: 400px; margin: 0 auto; padding: 10px; }
+            </style></head><body>${reportHtml}</body></html>`);
+            win.document.close();
+            win.onload = () => { win.print(); };
+        }
+
+        // Update buildReceiptHtml to use saved receipt settings
+        function buildReceiptHtml(txnNumber, dateStr, timeStr, items, method, cash, card, total, extraTag, width) {
+            const s = rcptGetSettings();
+            const headerHtml = s.headerLines ? s.headerLines.split('\n').map(l => `<span style="font-size:11px;">${esc(l)}</span>`).join('<br>') : '';
+            return `<div style="text-align:center;margin-bottom:8px;">
+                <strong style="font-size:16px;">${esc(s.businessName)}</strong><br>
+                ${headerHtml}
+            </div>
+            <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin:6px 0;text-align:center;font-size:11px;">
+                ${esc(txnNumber)}<br>${dateStr} ${timeStr}${extraTag ? '<br><em>' + extraTag + '</em>' : ''}
+            </div>
+            <table style="width:100%;font-size:11px;border-collapse:collapse;">
+                <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left;padding:2px 0;">Item</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr>
+                ${items.map(i => `<tr><td style="padding:2px 0;">${esc(i.product_name)}</td><td style="text-align:right;">${i.quantity}</td><td style="text-align:right;">€${Number(i.unit_price).toFixed(2)}</td><td style="text-align:right;">€${(Number(i.unit_price) * i.quantity).toFixed(2)}</td></tr>`).join('')}
+            </table>
+            <div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
+                <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:bold;"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
+                <div style="font-size:11px;margin-top:2px;">${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}</div>
+            </div>
+            ${s.footer ? `<div style="text-align:center;margin-top:10px;font-size:10px;color:#888;">${esc(s.footer)}</div>` : ''}`;
         }
     </script>
 </body>
