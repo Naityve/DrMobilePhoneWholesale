@@ -336,9 +336,27 @@
                 .pos-receipt { display: none; }
 
                 @media print {
-                    body * { visibility: hidden; }
-                    .pos-receipt, .pos-receipt * { visibility: visible; }
-                    .pos-receipt { display: block; position: absolute; left: 0; top: 0; width: 80mm; padding: 5mm; font-size: 12px; }
+                    @page {
+                        margin: 0;
+                        size: auto;
+                    }
+                    body * { visibility: hidden !important; }
+                    .pos-receipt, .pos-receipt * { visibility: visible !important; }
+                    .pos-receipt {
+                        display: block !important;
+                        position: fixed;
+                        left: 0;
+                        top: 0;
+                        width: var(--receipt-width, 80mm);
+                        padding: 3mm;
+                        font-size: 12px;
+                        background: white;
+                        z-index: 99999;
+                        page-break-after: avoid;
+                        page-break-inside: avoid;
+                    }
+                    /* Hide browser header/footer (URL, date, page number) */
+                    html { height: auto; }
                 }
 
                 @media (max-width: 768px) { .pos-layout { grid-template-columns: 1fr; } }
@@ -368,6 +386,14 @@
                         <button class="btn btn-secondary" onclick="posClearAll()">Clear All</button>
                     </div>
                     <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1rem;">
+                        <h4 style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);margin-bottom:0.5rem;">Receipt Width</h4>
+                        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem;">
+                            <input type="number" id="receiptWidthInput" value="80" min="40" max="120" style="width:70px;padding:0.4rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:6px;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;text-align:center;">
+                            <span style="font-size:0.82rem;color:var(--gray-500);">mm</span>
+                            <button class="btn btn-sm btn-secondary" onclick="saveReceiptWidth()" style="font-size:0.75rem;padding:0.3rem 0.6rem;">Save</button>
+                        </div>
+                    </div>
+                    <div style="border-top:1px solid var(--gray-100);padding-top:1rem;">
                         <h4 style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);margin-bottom:0.5rem;">Recent Transactions</h4>
                         <div id="posRecentTxns" style="font-size:0.82rem;color:var(--gray-500);">Loading...</div>
                     </div>
@@ -1172,6 +1198,23 @@
         let posItems = [];
         let posPayMethod = 'card';
 
+        function getReceiptWidth() {
+            return localStorage.getItem('pos_receipt_width') || '80';
+        }
+
+        function saveReceiptWidth() {
+            const w = document.getElementById('receiptWidthInput').value || '80';
+            localStorage.setItem('pos_receipt_width', w);
+            document.documentElement.style.setProperty('--receipt-width', w + 'mm');
+            showAlert('alert', 'Receipt width saved: ' + w + 'mm', 'success');
+        }
+
+        function applyReceiptWidth() {
+            const w = getReceiptWidth();
+            document.getElementById('receiptWidthInput').value = w;
+            document.documentElement.style.setProperty('--receipt-width', w + 'mm');
+        }
+
         // Barcode scanner sends characters rapidly then Enter
         document.addEventListener('DOMContentLoaded', () => {
             const input = document.getElementById('posBarcodeInput');
@@ -1180,6 +1223,7 @@
                     if (e.key === 'Enter') { e.preventDefault(); posLookup(); }
                 });
             }
+            applyReceiptWidth();
         });
 
         function posLookup() {
@@ -1427,40 +1471,42 @@
             const now = new Date();
             const dateStr = now.toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
             const timeStr = now.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+            const w = getReceiptWidth();
+            const receiptHtml = buildReceiptHtml(txnNumber, dateStr, timeStr, posItems, method, cash, card, total, '', w);
+            openPrintWindow(receiptHtml);
+        }
 
-            const receipt = document.getElementById('posReceipt');
-            receipt.innerHTML = `
-                <div style="text-align:center;margin-bottom:8px;">
-                    <strong style="font-size:16px;">DrMobilePhone</strong><br>
-                    <span style="font-size:11px;">Dublin, Ireland</span><br>
-                    <span style="font-size:11px;">+353 089 989 9550</span>
-                </div>
-                <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin:6px 0;text-align:center;font-size:11px;">
-                    ${txnNumber}<br>${dateStr} ${timeStr}
-                </div>
-                <table style="width:100%;font-size:11px;border-collapse:collapse;">
-                    <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left;padding:2px 0;">Item</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr>
-                    ${posItems.map(item => `<tr>
-                        <td style="padding:2px 0;">${esc(item.product_name)}</td>
-                        <td style="text-align:right;">${item.quantity}</td>
-                        <td style="text-align:right;">€${item.unit_price.toFixed(2)}</td>
-                        <td style="text-align:right;">€${(item.unit_price * item.quantity).toFixed(2)}</td>
-                    </tr>`).join('')}
-                </table>
-                <div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
-                    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:bold;">
-                        <span>TOTAL</span><span>€${total.toFixed(2)}</span>
-                    </div>
-                    <div style="font-size:11px;margin-top:2px;">
-                        ${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}
-                    </div>
-                </div>
-                <div style="text-align:center;margin-top:10px;font-size:10px;color:#888;">
-                    Thank you for your purchase!
-                </div>
-            `;
-            receipt.style.display = 'block';
-            setTimeout(() => { window.print(); receipt.style.display = 'none'; }, 200);
+        function buildReceiptHtml(txnNumber, dateStr, timeStr, items, method, cash, card, total, extraTag, width) {
+            return `<div style="text-align:center;margin-bottom:8px;">
+                <strong style="font-size:16px;">DrMobilePhone</strong><br>
+                <span style="font-size:11px;">Dublin, Ireland</span><br>
+                <span style="font-size:11px;">+353 089 989 9550</span>
+            </div>
+            <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin:6px 0;text-align:center;font-size:11px;">
+                ${esc(txnNumber)}<br>${dateStr} ${timeStr}${extraTag ? '<br><em>' + extraTag + '</em>' : ''}
+            </div>
+            <table style="width:100%;font-size:11px;border-collapse:collapse;">
+                <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left;padding:2px 0;">Item</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr>
+                ${items.map(i => `<tr><td style="padding:2px 0;">${esc(i.product_name)}</td><td style="text-align:right;">${i.quantity}</td><td style="text-align:right;">€${Number(i.unit_price).toFixed(2)}</td><td style="text-align:right;">€${(Number(i.unit_price) * i.quantity).toFixed(2)}</td></tr>`).join('')}
+            </table>
+            <div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
+                <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:bold;"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
+                <div style="font-size:11px;margin-top:2px;">${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}</div>
+            </div>
+            <div style="text-align:center;margin-top:10px;font-size:10px;color:#888;">Thank you for your purchase!</div>`;
+        }
+
+        function openPrintWindow(receiptHtml) {
+            const w = getReceiptWidth();
+            const win = window.open('', '_blank', 'width=400,height=600');
+            win.document.write(`<html><head><title>Receipt</title><style>
+                @page { margin: 0; size: ${w}mm auto; }
+                @media print { html, body { margin: 0; padding: 0; } }
+                body { font-family: 'Courier New', monospace; width: ${w}mm; margin: 0 auto; padding: 3mm; box-sizing: border-box; }
+                table { width: 100%; border-collapse: collapse; }
+            </style></head><body>${receiptHtml}</body></html>`);
+            win.document.close();
+            win.onload = () => { win.print(); win.close(); };
         }
 
         async function posLoadRecent() {
@@ -1697,35 +1743,12 @@
             const t = finPosTxns.find(x => x.id === txnId);
             if (!t) return;
             const items = t.pos_transaction_items || [];
-            const now = new Date(t.created_at);
-            const dateStr = now.toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
-            const timeStr = now.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
-            const method = t.payment_method;
-            const cash = Number(t.cash_amount);
-            const card = Number(t.card_amount);
-            const total = Number(t.total);
-
-            const receipt = document.getElementById('finReceipt');
-            receipt.innerHTML = `
-                <div style="text-align:center;margin-bottom:8px;">
-                    <strong style="font-size:16px;">DrMobilePhone</strong><br>
-                    <span style="font-size:11px;">Dublin, Ireland</span><br>
-                    <span style="font-size:11px;">+353 089 989 9550</span>
-                </div>
-                <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin:6px 0;text-align:center;font-size:11px;">
-                    ${esc(t.transaction_number)}<br>${dateStr} ${timeStr}<br><em>REPRINT</em>
-                </div>
-                <table style="width:100%;font-size:11px;border-collapse:collapse;">
-                    <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left;padding:2px 0;">Item</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr>
-                    ${items.map(i => `<tr><td style="padding:2px 0;">${esc(i.product_name)}</td><td style="text-align:right;">${i.quantity}</td><td style="text-align:right;">€${Number(i.unit_price).toFixed(2)}</td><td style="text-align:right;">€${(Number(i.unit_price) * i.quantity).toFixed(2)}</td></tr>`).join('')}
-                </table>
-                <div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
-                    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:bold;"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
-                    <div style="font-size:11px;margin-top:2px;">${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}</div>
-                </div>
-                <div style="text-align:center;margin-top:10px;font-size:10px;color:#888;">Thank you for your purchase!</div>`;
-            receipt.style.display = 'block';
-            setTimeout(() => { window.print(); receipt.style.display = 'none'; }, 200);
+            const d = new Date(t.created_at);
+            const dateStr = d.toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
+            const timeStr = d.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+            const w = getReceiptWidth();
+            const html = buildReceiptHtml(t.transaction_number, dateStr, timeStr, items, t.payment_method, Number(t.cash_amount), Number(t.card_amount), Number(t.total), 'REPRINT', w);
+            openPrintWindow(html);
         }
 
         // ── Edit POS transaction ──
