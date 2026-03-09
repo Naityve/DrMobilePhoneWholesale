@@ -171,7 +171,14 @@
                             <label for="prodBarcode">Barcode (EAN/UPC)</label>
                             <input type="text" id="prodBarcode" placeholder="e.g. 5011921254309">
                         </div>
-                        <div class="form-group"></div>
+                        <div class="form-group">
+                            <label for="prodVatCategory">VAT Category</label>
+                            <select id="prodVatCategory" style="width:100%;padding:0.55rem 0.7rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;">
+                                <option value="none">None (0%)</option>
+                                <option value="goods">Goods (23%)</option>
+                                <option value="service">Service (13.5%)</option>
+                            </select>
+                        </div>
                     </div>
                     <label style="font-size:0.82rem;font-weight:500;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Product Image</label>
                     <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('prodImage').click()">
@@ -384,7 +391,22 @@
                     <h3>Transaction</h3>
                     <div id="posSummaryContent">
                         <div class="pos-total-row"><span>Items</span><span id="posTotalItems">0</span></div>
+                        <div id="posVatSummary"></div>
                         <div class="pos-total-row grand"><span>Total</span><span id="posTotalAmount">€0.00</span></div>
+                    </div>
+                    <div style="margin:1rem 0;padding:0.75rem;border:1px solid var(--gray-200);border-radius:10px;background:var(--gray-50);">
+                        <h4 style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);margin-bottom:0.5rem;">VAT Settings</h4>
+                        <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;margin-bottom:0.4rem;">
+                            <input type="checkbox" id="posVatShowOnReceipt" onchange="posRender()" style="accent-color:var(--orange);"> Show VAT on receipt
+                        </label>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
+                            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.78rem;padding:0.25rem 0.5rem;border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;background:white;">
+                                <input type="checkbox" id="posVatService" checked onchange="posRender()" style="accent-color:var(--orange);"> Service 13.5%
+                            </label>
+                            <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.78rem;padding:0.25rem 0.5rem;border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;background:white;">
+                                <input type="checkbox" id="posVatGoods" onchange="posRender()" style="accent-color:var(--orange);"> Goods 23%
+                            </label>
+                        </div>
                     </div>
                     <div class="pos-actions">
                         <button class="btn btn-primary" id="posCompleteBtn" onclick="posShowPayment()" disabled>Complete Sale</button>
@@ -853,7 +875,8 @@
                     is_on_sale_retail: document.getElementById('prodOnSaleRetail').checked,
                     is_active: document.getElementById('prodActive').checked,
                     available_online: document.getElementById('prodAvailOnline').checked,
-                    cost_price: document.getElementById('prodCostPrice').value ? parseFloat(document.getElementById('prodCostPrice').value) : 0
+                    cost_price: document.getElementById('prodCostPrice').value ? parseFloat(document.getElementById('prodCostPrice').value) : 0,
+                    vat_category: document.getElementById('prodVatCategory').value
                 };
                 let error;
                 if (editId) {
@@ -891,6 +914,7 @@
             document.getElementById('prodActive').checked = p.is_active;
             document.getElementById('prodAvailOnline').checked = p.available_online !== false;
             document.getElementById('prodCostPrice').value = p.cost_price || '';
+            document.getElementById('prodVatCategory').value = p.vat_category || 'none';
             if (p.image_url) {
                 document.getElementById('imagePreview').innerHTML = `<img src="${p.image_url}" alt="Current">`;
                 document.getElementById('imageUploadArea').classList.add('has-image');
@@ -1352,7 +1376,8 @@
                     quantity: 1,
                     discount_type: 'none',
                     discount_value: 0,
-                    is_generic: false
+                    is_generic: false,
+                    vat_category: product.vat_category || 'none'
                 });
             }
             posRender();
@@ -1368,7 +1393,8 @@
                 quantity: 1,
                 discount_type: 'none',
                 discount_value: 0,
-                is_generic: true
+                is_generic: true,
+                vat_category: 'none'
             });
             posRender();
             // Focus the name input of the new item
@@ -1467,6 +1493,41 @@
             const totalAmount = posItems.reduce((s, i) => s + posGetEffectivePrice(i) * i.quantity, 0);
             document.getElementById('posTotalItems').textContent = totalItems;
             document.getElementById('posTotalAmount').textContent = '€' + totalAmount.toFixed(2);
+
+            // VAT calculation (inclusive - extract from price)
+            const vatRates = { none: 0, goods: 0.23, service: 0.135 };
+            const vatServiceActive = document.getElementById('posVatService')?.checked;
+            const vatGoodsActive = document.getElementById('posVatGoods')?.checked;
+            const showVat = document.getElementById('posVatShowOnReceipt')?.checked;
+
+            let vatBreakdown = {};
+            posItems.forEach(item => {
+                const cat = item.vat_category || 'none';
+                const rate = vatRates[cat] || 0;
+                const isActive = (cat === 'service' && vatServiceActive) || (cat === 'goods' && vatGoodsActive);
+                if (rate > 0 && isActive) {
+                    const lineTotal = posGetEffectivePrice(item) * item.quantity;
+                    const vatAmount = lineTotal - (lineTotal / (1 + rate));
+                    if (!vatBreakdown[cat]) vatBreakdown[cat] = { rate: rate, total: 0, net: 0 };
+                    vatBreakdown[cat].total += vatAmount;
+                    vatBreakdown[cat].net += lineTotal - vatAmount;
+                }
+            });
+
+            const vatSummaryEl = document.getElementById('posVatSummary');
+            if (showVat && Object.keys(vatBreakdown).length > 0) {
+                const totalVat = Object.values(vatBreakdown).reduce((s, v) => s + v.total, 0);
+                let vatHtml = '';
+                for (const [cat, data] of Object.entries(vatBreakdown)) {
+                    const label = cat === 'service' ? 'Service 13.5%' : 'Goods 23%';
+                    vatHtml += `<div class="pos-total-row" style="font-size:0.82rem;color:var(--gray-500);"><span>VAT (${label})</span><span>€${data.total.toFixed(2)}</span></div>`;
+                }
+                vatHtml += `<div class="pos-total-row" style="font-size:0.85rem;"><span>Total VAT</span><span>€${totalVat.toFixed(2)}</span></div>`;
+                vatHtml += `<div class="pos-total-row" style="font-size:0.82rem;color:var(--gray-500);"><span>Ex. VAT</span><span>€${(totalAmount - totalVat).toFixed(2)}</span></div>`;
+                vatSummaryEl.innerHTML = vatHtml;
+            } else {
+                vatSummaryEl.innerHTML = '';
+            }
         }
 
         function posClearAll() {
@@ -1569,7 +1630,11 @@
                     product_name: item.product_name,
                     barcode: item.barcode,
                     quantity: item.quantity,
-                    unit_price: item.unit_price
+                    unit_price: item.unit_price,
+                    original_price: item.original_price || item.unit_price,
+                    discount_type: item.discount_type || 'none',
+                    discount_value: item.discount_value || 0,
+                    vat_category: item.vat_category || 'none'
                 }));
 
                 const { error: itemsError } = await db.from('pos_transaction_items').insert(txnItems);
@@ -2241,6 +2306,52 @@
             const fsSmall = (parseInt(s.fontSize) - 1) + 'px';
             const fsBig = (parseInt(s.fontSize) + 2) + 'px';
             const headerHtml = s.headerLines ? s.headerLines.split('\n').map(l => `<span style="font-size:${fs};">${esc(l)}</span>`).join('<br>') : '';
+
+            // Build item rows with discount info
+            const itemRows = items.map(i => {
+                const lineTotal = (Number(i.unit_price) * i.quantity).toFixed(2);
+                let discountLine = '';
+                if (i.discount_type && i.discount_type !== 'none' && i.discount_value > 0) {
+                    const discLabel = i.discount_type === 'percent' ? i.discount_value + '% off' : '€' + Number(i.discount_value).toFixed(2) + ' off';
+                    discountLine = `<tr><td style="padding:0 0 2px 8px;font-size:${fsSmall};color:#666;" colspan="4">↳ ${discLabel} (was €${Number(i.original_price || i.unit_price).toFixed(2)})</td></tr>`;
+                }
+                return `<tr><td style="padding:2px 0;">${esc(i.product_name)}</td><td style="text-align:right;">${i.quantity}</td><td style="text-align:right;">€${Number(i.unit_price).toFixed(2)}</td><td style="text-align:right;">€${lineTotal}</td></tr>${discountLine}`;
+            }).join('');
+
+            // VAT calculation (if show VAT is on)
+            const showVat = document.getElementById('posVatShowOnReceipt')?.checked;
+            const vatServiceActive = document.getElementById('posVatService')?.checked;
+            const vatGoodsActive = document.getElementById('posVatGoods')?.checked;
+            const vatRates = { none: 0, goods: 0.23, service: 0.135 };
+            let vatHtml = '';
+
+            if (showVat) {
+                let vatBreakdown = {};
+                items.forEach(i => {
+                    const cat = i.vat_category || 'none';
+                    const rate = vatRates[cat] || 0;
+                    const isActive = (cat === 'service' && vatServiceActive) || (cat === 'goods' && vatGoodsActive);
+                    if (rate > 0 && isActive) {
+                        const lineTotal = Number(i.unit_price) * i.quantity;
+                        const vatAmount = lineTotal - (lineTotal / (1 + rate));
+                        if (!vatBreakdown[cat]) vatBreakdown[cat] = { rate, total: 0 };
+                        vatBreakdown[cat].total += vatAmount;
+                    }
+                });
+
+                if (Object.keys(vatBreakdown).length > 0) {
+                    const totalVat = Object.values(vatBreakdown).reduce((s, v) => s + v.total, 0);
+                    vatHtml = `<div style="margin-top:4px;font-size:${fsSmall};">`;
+                    for (const [cat, data] of Object.entries(vatBreakdown)) {
+                        const label = cat === 'service' ? 'VAT @ 13.5%' : 'VAT @ 23%';
+                        vatHtml += `<div style="display:flex;justify-content:space-between;"><span>${label}</span><span>€${data.total.toFixed(2)}</span></div>`;
+                    }
+                    vatHtml += `<div style="display:flex;justify-content:space-between;"><span>Total VAT</span><span>€${totalVat.toFixed(2)}</span></div>`;
+                    vatHtml += `<div style="display:flex;justify-content:space-between;"><span>Ex. VAT</span><span>€${(total - totalVat).toFixed(2)}</span></div>`;
+                    vatHtml += '</div>';
+                }
+            }
+
             return `<div style="text-align:center;margin-bottom:8px;">
                 <strong style="font-size:${fsBig};">${esc(s.businessName)}</strong><br>
                 ${headerHtml}
@@ -2250,11 +2361,12 @@
             </div>
             <table style="width:100%;font-size:${fs};border-collapse:collapse;">
                 <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left;padding:2px 0;">Item</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr>
-                ${items.map(i => `<tr><td style="padding:2px 0;">${esc(i.product_name)}</td><td style="text-align:right;">${i.quantity}</td><td style="text-align:right;">€${Number(i.unit_price).toFixed(2)}</td><td style="text-align:right;">€${(Number(i.unit_price) * i.quantity).toFixed(2)}</td></tr>`).join('')}
+                ${itemRows}
             </table>
             <div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
                 <div style="display:flex;justify-content:space-between;font-size:${fsBig};font-weight:bold;"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
                 <div style="font-size:${fs};margin-top:2px;">${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}</div>
+                ${vatHtml}
             </div>
             ${s.footer ? `<div style="text-align:center;margin-top:10px;font-size:${fsSmall};color:#888;">${esc(s.footer)}</div>` : ''}`;
         }
