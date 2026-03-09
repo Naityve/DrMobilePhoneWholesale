@@ -372,11 +372,12 @@
                     <div class="pos-scan-input">
                         <input type="text" id="posBarcodeInput" placeholder="Scan barcode or type product name..." autofocus>
                         <button class="btn btn-primary btn-sm" onclick="posLookup()">Add</button>
+                        <button class="btn btn-secondary btn-sm" onclick="posAddGenericItem()" style="white-space:nowrap;">+ Generic</button>
                     </div>
                     <div id="posSearchResults" style="display:none;margin-bottom:1rem;border:1px solid var(--gray-200);border-radius:10px;max-height:200px;overflow-y:auto;"></div>
                     <table class="pos-items-table">
-                        <thead><tr><th>#</th><th>Product</th><th>Barcode</th><th class="r">Price</th><th>Qty</th><th class="r">Subtotal</th><th></th></tr></thead>
-                        <tbody id="posItemsBody"><tr><td colspan="7"><div class="pos-empty">Scan a barcode to start a transaction</div></td></tr></tbody>
+                        <thead><tr><th>#</th><th>Product</th><th>Barcode</th><th class="r">Price</th><th>Discount</th><th>Qty</th><th class="r">Subtotal</th><th></th></tr></thead>
+                        <tbody id="posItemsBody"><tr><td colspan="8"><div class="pos-empty">Scan a barcode to start a transaction</div></td></tr></tbody>
                     </table>
                 </div>
                 <div class="pos-summary">
@@ -1338,7 +1339,7 @@
         }
 
         function posAddItem(product) {
-            const existing = posItems.find(i => i.product_id === product.id);
+            const existing = posItems.find(i => i.product_id === product.id && !i.is_generic);
             if (existing) {
                 existing.quantity++;
             } else {
@@ -1347,10 +1348,34 @@
                     product_name: product.name,
                     barcode: product.barcode || '',
                     unit_price: getRetailPriceForPos(product),
-                    quantity: 1
+                    original_price: getRetailPriceForPos(product),
+                    quantity: 1,
+                    discount_type: 'none',
+                    discount_value: 0,
+                    is_generic: false
                 });
             }
             posRender();
+        }
+
+        function posAddGenericItem() {
+            posItems.push({
+                product_id: 'generic-' + Date.now(),
+                product_name: 'Custom Item',
+                barcode: '',
+                unit_price: 0,
+                original_price: 0,
+                quantity: 1,
+                discount_type: 'none',
+                discount_value: 0,
+                is_generic: true
+            });
+            posRender();
+            // Focus the name input of the new item
+            setTimeout(() => {
+                const inputs = document.querySelectorAll('.pos-generic-name');
+                if (inputs.length) inputs[inputs.length - 1].focus();
+            }, 50);
         }
 
         function posChangeQty(idx, delta) {
@@ -1365,24 +1390,72 @@
             posRender();
         }
 
+        function posSetPrice(idx, price) {
+            posItems[idx].unit_price = Math.max(0, price);
+            posItems[idx].original_price = posItems[idx].unit_price;
+            posItems[idx].discount_type = 'none';
+            posItems[idx].discount_value = 0;
+            posRender();
+        }
+
+        function posSetGenericName(idx, name) {
+            posItems[idx].product_name = name || 'Custom Item';
+        }
+
+        function posSetDiscount(idx) {
+            const item = posItems[idx];
+            const typeEl = document.getElementById('pos-disc-type-' + idx);
+            const valEl = document.getElementById('pos-disc-val-' + idx);
+            const type = typeEl.value;
+            const val = parseFloat(valEl.value) || 0;
+            item.discount_type = type;
+            item.discount_value = val;
+            // Recalculate unit_price from original
+            if (type === 'percent') {
+                item.unit_price = Math.max(0, item.original_price * (1 - val / 100));
+            } else if (type === 'fixed') {
+                item.unit_price = Math.max(0, item.original_price - val);
+            } else {
+                item.unit_price = item.original_price;
+            }
+            posRender();
+        }
+
         function posRemoveItem(idx) {
             posItems.splice(idx, 1);
             posRender();
         }
 
+        function posGetEffectivePrice(item) {
+            return item.unit_price;
+        }
+
         function posRender() {
             const tbody = document.getElementById('posItemsBody');
             if (posItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7"><div class="pos-empty">Scan a barcode to start a transaction</div></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8"><div class="pos-empty">Scan a barcode to start a transaction</div></td></tr>';
                 document.getElementById('posCompleteBtn').disabled = true;
             } else {
                 tbody.innerHTML = posItems.map((item, i) => {
-                    const sub = (item.unit_price * item.quantity).toFixed(2);
+                    const effectivePrice = posGetEffectivePrice(item);
+                    const sub = (effectivePrice * item.quantity).toFixed(2);
+                    const hasDiscount = item.discount_type !== 'none' && item.discount_value > 0;
+                    const nameCell = item.is_generic
+                        ? `<input type="text" class="pos-generic-name" value="${esc(item.product_name)}" onchange="posSetGenericName(${i}, this.value)" style="width:140px;padding:0.2rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.85rem;font-family:'DM Sans',sans-serif;font-weight:500;outline:none;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'">`
+                        : `${esc(item.product_name)}`;
                     return `<tr>
                         <td>${i + 1}</td>
-                        <td class="name">${esc(item.product_name)}</td>
+                        <td class="name">${nameCell}</td>
                         <td style="font-size:0.78rem;color:var(--gray-500);">${esc(item.barcode)}</td>
-                        <td class="r">€${item.unit_price.toFixed(2)}</td>
+                        <td class="r"><input type="number" value="${effectivePrice.toFixed(2)}" step="0.01" min="0" style="width:72px;text-align:right;padding:0.2rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;" onchange="posSetPrice(${i}, parseFloat(this.value)||0)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'">${hasDiscount ? `<div style="font-size:0.68rem;color:var(--orange);text-decoration:line-through;">€${item.original_price.toFixed(2)}</div>` : ''}</td>
+                        <td><div style="display:flex;gap:0.2rem;align-items:center;">
+                            <select id="pos-disc-type-${i}" onchange="posSetDiscount(${i})" style="padding:0.2rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.75rem;font-family:'DM Sans',sans-serif;outline:none;">
+                                <option value="none" ${item.discount_type === 'none' ? 'selected' : ''}>—</option>
+                                <option value="percent" ${item.discount_type === 'percent' ? 'selected' : ''}>%</option>
+                                <option value="fixed" ${item.discount_type === 'fixed' ? 'selected' : ''}>€</option>
+                            </select>
+                            <input type="number" id="pos-disc-val-${i}" value="${item.discount_value || ''}" placeholder="0" min="0" step="0.01" oninput="posSetDiscount(${i})" style="width:50px;padding:0.2rem 0.3rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.78rem;font-family:'DM Sans',sans-serif;outline:none;${item.discount_type === 'none' ? 'opacity:0.3;' : ''}">
+                        </div></td>
                         <td><div class="qty-cell"><button onclick="posChangeQty(${i},-1)">−</button><input type="number" value="${item.quantity}" min="1" onchange="posSetQty(${i}, parseInt(this.value)||1)" onkeydown="if(event.key==='Enter'){this.blur();document.getElementById('posBarcodeInput').focus();}"><button onclick="posChangeQty(${i},1)">+</button></div></td>
                         <td class="r" style="font-weight:600;">€${sub}</td>
                         <td><button class="pos-remove" onclick="posRemoveItem(${i})">✕</button></td>
@@ -1391,7 +1464,7 @@
                 document.getElementById('posCompleteBtn').disabled = false;
             }
             const totalItems = posItems.reduce((s, i) => s + i.quantity, 0);
-            const totalAmount = posItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+            const totalAmount = posItems.reduce((s, i) => s + posGetEffectivePrice(i) * i.quantity, 0);
             document.getElementById('posTotalItems').textContent = totalItems;
             document.getElementById('posTotalAmount').textContent = '€' + totalAmount.toFixed(2);
         }
@@ -1492,7 +1565,7 @@
                 // Create transaction items
                 const txnItems = posItems.map(item => ({
                     transaction_id: txn.id,
-                    product_id: item.product_id,
+                    product_id: item.is_generic ? null : item.product_id,
                     product_name: item.product_name,
                     barcode: item.barcode,
                     quantity: item.quantity,
@@ -1502,9 +1575,11 @@
                 const { error: itemsError } = await db.from('pos_transaction_items').insert(txnItems);
                 if (itemsError) throw new Error(itemsError.message);
 
-                // Deduct stock for each item
+                // Deduct stock for each item (skip generic items)
                 for (const item of posItems) {
-                    await db.rpc('deduct_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+                    if (!item.is_generic) {
+                        await db.rpc('deduct_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+                    }
                 }
 
                 // Print receipt
