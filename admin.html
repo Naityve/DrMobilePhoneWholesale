@@ -96,6 +96,7 @@
             <button class="admin-main-tab" onclick="switchMainTab('pos', this)">POS</button>
             <button class="admin-main-tab" onclick="switchMainTab('finance', this)">Transactions</button>
             <button class="admin-main-tab" onclick="switchMainTab('stock', this)">Stock</button>
+            <button class="admin-main-tab" onclick="switchMainTab('tickets', this)">Tickets</button>
             <button class="admin-main-tab" onclick="switchMainTab('receiptsettings', this)">Receipts</button>
         </div>
 
@@ -142,6 +143,24 @@
                 <button class="dash-quick" onclick="dashQuick('month', this)">This Month</button>
                 <button class="dash-quick" onclick="dashQuick('year', this)">This Year</button>
             </div>
+
+            <!-- Tickets & Reminders Widgets -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;" id="dashWidgets">
+                <div style="border:1px solid var(--gray-200);border-radius:14px;padding:1.25rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+                        <h4 style="font-size:0.95rem;font-weight:600;">Active Repair Tickets</h4>
+                        <button class="btn btn-sm btn-secondary" onclick="switchMainTab('tickets', document.querySelectorAll('.admin-main-tab')[8])" style="font-size:0.72rem;">View All</button>
+                    </div>
+                    <div id="dashActiveTickets" style="font-size:0.85rem;color:var(--gray-500);">Loading...</div>
+                </div>
+                <div style="border:1px solid var(--gray-200);border-radius:14px;padding:1.25rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+                        <h4 style="font-size:0.95rem;font-weight:600;">Reminders & Notifications</h4>
+                    </div>
+                    <div id="dashReminders" style="font-size:0.85rem;color:var(--gray-500);">Loading...</div>
+                </div>
+            </div>
+            <div style="margin-bottom:2rem;" id="dashWidgetsMobile"></div>
 
             <div class="dash-kpis" id="dashKpis"></div>
 
@@ -722,6 +741,88 @@
             </div>
         </div>
 
+        <!-- TICKETS PANEL -->
+        <div id="panel-tickets" class="tab-panel">
+            <style>
+                .tkt-layout { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+                .tkt-controls { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.25rem; }
+                .tkt-filter { padding: 0.5rem 1rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 0.82rem; background: white; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+                .tkt-filter:hover { border-color: var(--orange); }
+                .tkt-filter.active { background: var(--black); color: white; border-color: var(--black); }
+                .tkt-card { border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.25rem; margin-bottom: 0.75rem; transition: box-shadow 0.2s; cursor: pointer; }
+                .tkt-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+                .tkt-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
+                .tkt-card-header .tkt-num { font-weight: 700; font-size: 0.9rem; }
+                .tkt-card-header .tkt-date { font-size: 0.78rem; color: var(--gray-500); }
+                .tkt-card-body { font-size: 0.88rem; }
+                .tkt-card-body .device { font-weight: 600; }
+                .tkt-card-body .customer { color: var(--gray-500); font-size: 0.82rem; }
+                .tkt-card-body .issue { color: var(--gray-700); margin-top: 0.3rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+                .tkt-priority { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.7rem; font-weight: 600; }
+                .tkt-priority.low { background: var(--gray-100); color: var(--gray-500); }
+                .tkt-priority.normal { background: #DBEAFE; color: #1D4ED8; }
+                .tkt-priority.high { background: var(--orange-dim); color: var(--orange); }
+                .tkt-priority.urgent { background: #FEE2E2; color: #DC2626; }
+                .tkt-status { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.7rem; font-weight: 600; }
+                .tkt-status.open { background: #DBEAFE; color: #1D4ED8; }
+                .tkt-status.in_progress { background: var(--orange-dim); color: var(--orange); }
+                .tkt-status.waiting_parts { background: #FEF3C7; color: #92400E; }
+                .tkt-status.ready { background: var(--green-dim); color: #15803D; }
+                .tkt-status.completed { background: var(--gray-100); color: var(--gray-500); }
+                .tkt-status.cancelled { background: #FEE2E2; color: #DC2626; }
+                .tkt-detail { border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.5rem; }
+                .tkt-detail h3 { font-family: 'Instrument Serif', serif; font-size: 1.3rem; font-weight: 400; margin-bottom: 1rem; }
+                .tkt-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+                .tkt-detail-grid .field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-500); font-weight: 600; display: block; margin-bottom: 0.2rem; }
+                .tkt-detail-grid .field p { font-size: 0.88rem; }
+                .tkt-notes { border-top: 1px solid var(--gray-100); padding-top: 1rem; margin-top: 1rem; }
+                .tkt-note-item { padding: 0.6rem 0; border-bottom: 1px solid var(--gray-50); }
+                .tkt-note-item .note-time { font-size: 0.72rem; color: var(--gray-400); }
+                .tkt-note-item .note-text { font-size: 0.88rem; margin-top: 0.15rem; }
+                .tkt-reminder-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 0.5rem; font-size: 0.85rem; }
+                .tkt-reminder-item.due { border-color: var(--orange); background: var(--orange-dim); }
+                .tkt-form-card { border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.25rem; margin-bottom: 1.5rem; }
+                @media (max-width: 768px) { .tkt-detail-grid { grid-template-columns: 1fr; } }
+            </style>
+
+            <div class="tkt-controls">
+                <button class="btn btn-primary btn-sm" onclick="tktShowCreateForm()">+ New Ticket</button>
+                <button class="tkt-filter active" onclick="tktFilter('active', this)">Active</button>
+                <button class="tkt-filter" onclick="tktFilter('all', this)">All</button>
+                <button class="tkt-filter" onclick="tktFilter('completed', this)">Completed</button>
+                <input type="text" id="tktSearch" placeholder="Search tickets..." style="padding:0.5rem 0.8rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;min-width:200px;" oninput="tktRender()">
+            </div>
+
+            <div id="tktContent">Loading...</div>
+
+            <!-- Create/Edit Ticket Form (hidden by default) -->
+            <div id="tktFormOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
+                <div style="background:white;border-radius:16px;padding:2rem;width:100%;max-width:550px;max-height:90vh;overflow-y:auto;">
+                    <h3 style="font-family:'Instrument Serif',serif;font-size:1.3rem;font-weight:400;margin-bottom:1rem;" id="tktFormTitle">New Repair Ticket</h3>
+                    <input type="hidden" id="tktEditId" value="">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+                        <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Customer Name *</label><input type="text" id="tktCustName" placeholder="Customer name" style="width:100%;padding:0.55rem 0.7rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.88rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                        <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Phone</label><input type="text" id="tktCustPhone" placeholder="Phone number" style="width:100%;padding:0.55rem 0.7rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.88rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+                        <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Device Type *</label><input type="text" id="tktDeviceType" placeholder="e.g. iPhone, Laptop" style="width:100%;padding:0.55rem 0.7rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.88rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                        <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Model</label><input type="text" id="tktDeviceModel" placeholder="e.g. iPhone 15 Pro" style="width:100%;padding:0.55rem 0.7rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.88rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                    </div>
+                    <div class="fg" style="margin-bottom:0.75rem;"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Issue Description *</label><textarea id="tktIssue" rows="3" placeholder="Describe the problem..." style="width:100%;padding:0.55rem 0.7rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.88rem;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;"></textarea></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+                        <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Priority</label><select id="tktPriority" style="width:100%;padding:0.55rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;"><option value="low">Low</option><option value="normal" selected>Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+                        <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Status</label><select id="tktStatus" style="width:100%;padding:0.55rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;"><option value="open">Open</option><option value="in_progress">In Progress</option><option value="waiting_parts">Waiting Parts</option><option value="ready">Ready</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></div>
+                        <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Est. Cost (€)</label><input type="number" id="tktEstCost" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:0.55rem 0.7rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.88rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                    </div>
+                    <div id="tktFormAlert" class="alert" style="margin-bottom:0.75rem;"></div>
+                    <div style="display:flex;gap:0.75rem;">
+                        <button class="btn btn-primary btn-sm" id="tktFormSubmitBtn" onclick="tktSaveTicket()">Create Ticket</button>
+                        <button class="btn btn-secondary btn-sm" onclick="tktHideForm()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- RECEIPT SETTINGS PANEL -->
         <div id="panel-receiptsettings" class="tab-panel">
             <div style="max-width:600px;">
@@ -815,6 +916,8 @@
             await loadBanners();
             renderCategoryCheckboxes();
             dashInit();
+            await tktLoad();
+            await dashLoadWidgets();
         })();
 
         function switchMainTab(tab, el) {
@@ -832,7 +935,13 @@
                 stkInit();
             }
             if (tab === 'pos') {
-                loadProducts(); // Refresh to get latest VAT categories
+                loadProducts();
+            }
+            if (tab === 'tickets') {
+                tktLoad();
+            }
+            if (tab === 'dashboard') {
+                dashLoadWidgets();
             }
             if (tab === 'receiptsettings') {
                 rcptLoadSettings();
@@ -2934,6 +3043,273 @@
             document.getElementById('restockResult').style.display = 'none';
             document.getElementById('restockBarcode').value = '';
             document.getElementById('restockBarcode').focus();
+        }
+
+        // ── TICKETS SYSTEM ──
+        let allTickets = [], tktCurrentFilter = 'active', tktViewingId = null;
+
+        async function tktLoad() {
+            const { data } = await db.from('repair_tickets').select('*').order('created_at', { ascending: false });
+            allTickets = data || [];
+            tktRender();
+        }
+
+        function tktFilter(filter, el) {
+            tktCurrentFilter = filter;
+            document.querySelectorAll('.tkt-filter').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            tktViewingId = null;
+            tktRender();
+        }
+
+        function tktRender() {
+            const search = (document.getElementById('tktSearch')?.value || '').toLowerCase();
+            let filtered = allTickets;
+            if (tktCurrentFilter === 'active') filtered = filtered.filter(t => !['completed', 'cancelled'].includes(t.status));
+            else if (tktCurrentFilter === 'completed') filtered = filtered.filter(t => ['completed', 'cancelled'].includes(t.status));
+            if (search) filtered = filtered.filter(t => t.ticket_number.toLowerCase().includes(search) || t.customer_name.toLowerCase().includes(search) || t.device_type.toLowerCase().includes(search) || (t.device_model && t.device_model.toLowerCase().includes(search)));
+
+            const content = document.getElementById('tktContent');
+            if (tktViewingId) { tktRenderDetail(); return; }
+            if (filtered.length === 0) { content.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--gray-400);">No tickets found.</div>'; return; }
+
+            content.innerHTML = filtered.map(t => {
+                const statusLabels = { open: 'Open', in_progress: 'In Progress', waiting_parts: 'Waiting Parts', ready: 'Ready', completed: 'Completed', cancelled: 'Cancelled' };
+                return `<div class="tkt-card" onclick="tktView('${t.id}')">
+                    <div class="tkt-card-header">
+                        <span class="tkt-num">${esc(t.ticket_number)}</span>
+                        <span class="tkt-status ${t.status}">${statusLabels[t.status]}</span>
+                        <span class="tkt-priority ${t.priority}">${cap(t.priority)}</span>
+                        <span class="tkt-date">${fmtDate(t.created_at)}</span>
+                    </div>
+                    <div class="tkt-card-body">
+                        <span class="device">${esc(t.device_type)}${t.device_model ? ' — ' + esc(t.device_model) : ''}</span>
+                        <span class="customer"> · ${esc(t.customer_name)}</span>
+                        <div class="issue">${esc(t.issue_description)}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function tktView(ticketId) {
+            tktViewingId = ticketId;
+            const t = allTickets.find(x => x.id === ticketId);
+            if (!t) return;
+
+            const { data: notes } = await db.from('ticket_notes').select('*').eq('ticket_id', ticketId).order('created_at', { ascending: false });
+            const { data: reminders } = await db.from('ticket_reminders').select('*').eq('ticket_id', ticketId).order('remind_at', { ascending: true });
+
+            const statusLabels = { open: 'Open', in_progress: 'In Progress', waiting_parts: 'Waiting Parts', ready: 'Ready', completed: 'Completed', cancelled: 'Cancelled' };
+            const content = document.getElementById('tktContent');
+            content.innerHTML = `
+                <div style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.88rem;color:var(--gray-500);cursor:pointer;margin-bottom:1rem;" onclick="tktViewingId=null;tktRender();">← Back to Tickets</div>
+                <div class="tkt-detail">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+                        <h3>${esc(t.ticket_number)}</h3>
+                        <div style="display:flex;gap:0.5rem;">
+                            <button class="btn btn-sm btn-secondary" onclick="tktShowCreateForm('${t.id}')">Edit</button>
+                            <select onchange="tktUpdateStatus('${t.id}', this.value)" style="padding:0.4rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.82rem;font-family:'DM Sans',sans-serif;">
+                                ${Object.entries(statusLabels).map(([k,v]) => `<option value="${k}" ${t.status === k ? 'selected' : ''}>${v}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="tkt-detail-grid" style="margin-top:1rem;">
+                        <div class="field"><label>Customer</label><p><strong>${esc(t.customer_name)}</strong><br>${esc(t.customer_phone || '—')}</p></div>
+                        <div class="field"><label>Device</label><p><strong>${esc(t.device_type)}</strong><br>${esc(t.device_model || '—')}</p></div>
+                        <div class="field"><label>Status / Priority</label><p><span class="tkt-status ${t.status}">${statusLabels[t.status]}</span> <span class="tkt-priority ${t.priority}">${cap(t.priority)}</span></p></div>
+                        <div class="field"><label>Cost</label><p>Est: €${Number(t.estimated_cost || 0).toFixed(2)} · Final: €${Number(t.final_cost || 0).toFixed(2)}</p></div>
+                    </div>
+                    <div class="field" style="margin-bottom:1rem;"><label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);font-weight:600;display:block;margin-bottom:0.2rem;">Issue</label><p style="font-size:0.88rem;">${esc(t.issue_description)}</p></div>
+
+                    <!-- Reminders -->
+                    <div style="border-top:1px solid var(--gray-100);padding-top:1rem;margin-bottom:1rem;">
+                        <h4 style="font-size:0.88rem;font-weight:600;margin-bottom:0.5rem;">Reminders</h4>
+                        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+                            <input type="text" id="tktReminderMsg" placeholder="Reminder message..." style="flex:1;padding:0.45rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;">
+                            <input type="datetime-local" id="tktReminderDate" style="padding:0.45rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;">
+                            <button class="btn btn-sm btn-primary" onclick="tktAddReminder('${t.id}')">Set</button>
+                        </div>
+                        ${(reminders || []).map(r => {
+                            const isDue = new Date(r.remind_at) <= new Date() && !r.is_dismissed;
+                            return `<div class="tkt-reminder-item ${isDue ? 'due' : ''}">
+                                <div><strong>${esc(r.message)}</strong><br><span style="font-size:0.75rem;color:var(--gray-500);">${new Date(r.remind_at).toLocaleString('en-IE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>
+                                <div style="display:flex;gap:0.3rem;">
+                                    ${isDue ? `<button class="btn btn-sm btn-secondary" onclick="tktDismissReminder('${r.id}','${t.id}')">Dismiss</button>` : ''}
+                                    <button class="pos-remove" onclick="tktDeleteReminder('${r.id}','${t.id}')">✕</button>
+                                </div>
+                            </div>`;
+                        }).join('') || '<div style="color:var(--gray-400);font-size:0.82rem;">No reminders set.</div>'}
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="tkt-notes">
+                        <h4 style="font-size:0.88rem;font-weight:600;margin-bottom:0.5rem;">Notes</h4>
+                        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+                            <input type="text" id="tktNoteInput" placeholder="Add a note..." style="flex:1;padding:0.45rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;" onkeydown="if(event.key==='Enter')tktAddNote('${t.id}')">
+                            <button class="btn btn-sm btn-primary" onclick="tktAddNote('${t.id}')">Add</button>
+                        </div>
+                        ${(notes || []).map(n => `<div class="tkt-note-item"><span class="note-time">${new Date(n.created_at).toLocaleString('en-IE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span><div class="note-text">${esc(n.note)}</div></div>`).join('') || '<div style="color:var(--gray-400);font-size:0.82rem;">No notes yet.</div>'}
+                    </div>
+                </div>`;
+        }
+
+        async function tktUpdateStatus(ticketId, status) {
+            await db.from('repair_tickets').update({ status }).eq('id', ticketId);
+            const t = allTickets.find(x => x.id === ticketId);
+            if (t) t.status = status;
+            tktView(ticketId);
+        }
+
+        async function tktAddNote(ticketId) {
+            const input = document.getElementById('tktNoteInput');
+            const note = input.value.trim();
+            if (!note) return;
+            const user = await getCurrentUser();
+            await db.from('ticket_notes').insert({ ticket_id: ticketId, note, created_by: user.id });
+            input.value = '';
+            tktView(ticketId);
+        }
+
+        async function tktAddReminder(ticketId) {
+            const msg = document.getElementById('tktReminderMsg').value.trim();
+            const dateVal = document.getElementById('tktReminderDate').value;
+            if (!msg || !dateVal) { showAlert('alert', 'Enter a message and date/time for the reminder.', 'error'); return; }
+            const user = await getCurrentUser();
+            await db.from('ticket_reminders').insert({ ticket_id: ticketId, message: msg, remind_at: new Date(dateVal).toISOString(), created_by: user.id });
+            tktView(ticketId);
+        }
+
+        async function tktDismissReminder(reminderId, ticketId) {
+            await db.from('ticket_reminders').update({ is_dismissed: true }).eq('id', reminderId);
+            tktView(ticketId);
+        }
+
+        async function tktDeleteReminder(reminderId, ticketId) {
+            await db.from('ticket_reminders').delete().eq('id', reminderId);
+            tktView(ticketId);
+        }
+
+        function tktShowCreateForm(editId) {
+            const form = document.getElementById('tktFormOverlay');
+            form.style.display = 'flex';
+            if (editId) {
+                const t = allTickets.find(x => x.id === editId);
+                if (!t) return;
+                document.getElementById('tktEditId').value = t.id;
+                document.getElementById('tktCustName').value = t.customer_name;
+                document.getElementById('tktCustPhone').value = t.customer_phone || '';
+                document.getElementById('tktDeviceType').value = t.device_type;
+                document.getElementById('tktDeviceModel').value = t.device_model || '';
+                document.getElementById('tktIssue').value = t.issue_description;
+                document.getElementById('tktPriority').value = t.priority;
+                document.getElementById('tktStatus').value = t.status;
+                document.getElementById('tktEstCost').value = t.estimated_cost || '';
+                document.getElementById('tktFormTitle').textContent = 'Edit Ticket';
+                document.getElementById('tktFormSubmitBtn').textContent = 'Save Changes';
+            } else {
+                document.getElementById('tktEditId').value = '';
+                document.getElementById('tktCustName').value = '';
+                document.getElementById('tktCustPhone').value = '';
+                document.getElementById('tktDeviceType').value = '';
+                document.getElementById('tktDeviceModel').value = '';
+                document.getElementById('tktIssue').value = '';
+                document.getElementById('tktPriority').value = 'normal';
+                document.getElementById('tktStatus').value = 'open';
+                document.getElementById('tktEstCost').value = '';
+                document.getElementById('tktFormTitle').textContent = 'New Repair Ticket';
+                document.getElementById('tktFormSubmitBtn').textContent = 'Create Ticket';
+            }
+        }
+
+        function tktHideForm() {
+            document.getElementById('tktFormOverlay').style.display = 'none';
+        }
+
+        async function tktSaveTicket() {
+            const name = document.getElementById('tktCustName').value.trim();
+            const deviceType = document.getElementById('tktDeviceType').value.trim();
+            const issue = document.getElementById('tktIssue').value.trim();
+            if (!name || !deviceType || !issue) { showAlert('tktFormAlert', 'Fill in customer name, device type, and issue.', 'error'); return; }
+
+            const editId = document.getElementById('tktEditId').value;
+            const ticketData = {
+                customer_name: name,
+                customer_phone: document.getElementById('tktCustPhone').value.trim(),
+                device_type: deviceType,
+                device_model: document.getElementById('tktDeviceModel').value.trim(),
+                issue_description: issue,
+                priority: document.getElementById('tktPriority').value,
+                status: document.getElementById('tktStatus').value,
+                estimated_cost: parseFloat(document.getElementById('tktEstCost').value) || 0
+            };
+
+            if (editId) {
+                const { error } = await db.from('repair_tickets').update(ticketData).eq('id', editId);
+                if (error) { showAlert('tktFormAlert', 'Error: ' + error.message, 'error'); return; }
+            } else {
+                const { data: num } = await db.rpc('next_ticket_number');
+                ticketData.ticket_number = num || ('RPR-' + Date.now());
+                const user = await getCurrentUser();
+                ticketData.created_by = user.id;
+                const { error } = await db.from('repair_tickets').insert(ticketData);
+                if (error) { showAlert('tktFormAlert', 'Error: ' + error.message, 'error'); return; }
+            }
+
+            tktHideForm();
+            await tktLoad();
+            if (editId) tktView(editId);
+            showAlert('alert', editId ? 'Ticket updated.' : 'Ticket created!', 'success');
+        }
+
+        // ── Dashboard Widgets: Active Tickets & Reminders ──
+        async function dashLoadWidgets() {
+            // Active tickets
+            const { data: activeTickets } = await db.from('repair_tickets').select('id, ticket_number, customer_name, device_type, device_model, status, priority, created_at').not('status', 'in', '("completed","cancelled")').order('created_at', { ascending: false }).limit(5);
+
+            const ticketsDiv = document.getElementById('dashActiveTickets');
+            if (!activeTickets || activeTickets.length === 0) {
+                ticketsDiv.innerHTML = '<div style="color:var(--gray-400);">No active tickets.</div>';
+            } else {
+                const statusLabels = { open: 'Open', in_progress: 'In Progress', waiting_parts: 'Waiting Parts', ready: 'Ready' };
+                ticketsDiv.innerHTML = activeTickets.map(t => `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--gray-100);cursor:pointer;" onclick="switchMainTab('tickets', document.querySelectorAll('.admin-main-tab')[8]); setTimeout(()=>tktView('${t.id}'),100);">
+                    <div>
+                        <strong style="font-size:0.85rem;">${esc(t.ticket_number)}</strong>
+                        <span style="font-size:0.78rem;color:var(--gray-500);"> · ${esc(t.customer_name)} · ${esc(t.device_type)}</span>
+                    </div>
+                    <span class="tkt-status ${t.status}" style="font-size:0.68rem;">${statusLabels[t.status] || cap(t.status)}</span>
+                </div>`).join('');
+            }
+
+            // Due reminders
+            const { data: reminders } = await db.from('ticket_reminders').select('*, repair_tickets(ticket_number, customer_name)').eq('is_dismissed', false).lte('remind_at', new Date().toISOString()).order('remind_at', { ascending: true });
+
+            // Upcoming reminders (next 24h)
+            const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+            const { data: upcoming } = await db.from('ticket_reminders').select('*, repair_tickets(ticket_number, customer_name)').eq('is_dismissed', false).gt('remind_at', new Date().toISOString()).lte('remind_at', tomorrow.toISOString()).order('remind_at', { ascending: true });
+
+            const remindersDiv = document.getElementById('dashReminders');
+            const allReminders = [...(reminders || []).map(r => ({ ...r, isDue: true })), ...(upcoming || []).map(r => ({ ...r, isDue: false }))];
+
+            if (allReminders.length === 0) {
+                remindersDiv.innerHTML = '<div style="color:var(--gray-400);">No pending reminders.</div>';
+            } else {
+                remindersDiv.innerHTML = allReminders.map(r => {
+                    const ticket = r.repair_tickets || {};
+                    const timeStr = new Date(r.remind_at).toLocaleString('en-IE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0.6rem;border:1px solid ${r.isDue ? 'var(--orange)' : 'var(--gray-200)'};border-radius:8px;margin-bottom:0.4rem;${r.isDue ? 'background:var(--orange-dim);' : ''}">
+                        <div>
+                            <strong style="font-size:0.85rem;">${r.isDue ? '🔔 ' : '⏰ '}${esc(r.message)}</strong>
+                            <div style="font-size:0.72rem;color:var(--gray-500);">${esc(ticket.ticket_number || '')} · ${esc(ticket.customer_name || '')} · ${timeStr}</div>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="dashDismissReminder('${r.id}')" style="font-size:0.7rem;">Dismiss</button>
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        async function dashDismissReminder(reminderId) {
+            await db.from('ticket_reminders').update({ is_dismissed: true }).eq('id', reminderId);
+            await dashLoadWidgets();
         }
     </script>
 </body>
