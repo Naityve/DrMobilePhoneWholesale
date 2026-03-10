@@ -482,7 +482,7 @@
                     <div style="margin:1rem 0;padding:0.75rem;border:1px solid var(--gray-200);border-radius:10px;background:var(--gray-50);">
                         <h4 style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);margin-bottom:0.5rem;">VAT Settings</h4>
                         <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;margin-bottom:0.4rem;">
-                            <input type="checkbox" id="posVatShowOnReceipt" onchange="posRender()" style="accent-color:var(--orange);"> Show VAT on receipt
+                            <input type="checkbox" id="posVatShowOnReceipt" checked onchange="posRender()" style="accent-color:var(--orange);"> Show VAT on receipt
                         </label>
                         <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
                             <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.78rem;padding:0.25rem 0.5rem;border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;background:white;">
@@ -715,9 +715,9 @@
             <div class="stk-table-wrap">
                 <table class="stk-table">
                     <thead><tr>
-                        <th></th><th>Product</th><th>Barcode</th><th>SKU</th><th class="r">Cost</th><th class="r">Retail</th><th class="r">Margin</th><th class="r">Stock</th><th>VAT</th><th>Online</th><th>Categories</th>
+                        <th></th><th>Product</th><th>Barcode</th><th>SKU</th><th class="r">Cost</th><th class="r">Retail</th><th class="r">Margin</th><th class="r">Stock</th><th>Track</th><th>VAT</th><th>Online</th><th>Categories</th>
                     </tr></thead>
-                    <tbody id="stkTableBody"><tr><td colspan="11" class="empty-state">Loading...</td></tr></tbody>
+                    <tbody id="stkTableBody"><tr><td colspan="12" class="empty-state">Loading...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -2170,7 +2170,7 @@
             const totalStock = allProducts.reduce((s, p) => s + (p.stock_quantity || 0), 0);
             const totalValue = allProducts.reduce((s, p) => s + (Number(p.cost_price || 0) * (p.stock_quantity || 0)), 0);
             const totalRetailValue = allProducts.reduce((s, p) => s + (Number(p.retail_price || p.price || 0) * (p.stock_quantity || 0)), 0);
-            const outOfStock = allProducts.filter(p => p.stock_quantity === 0).length;
+            const outOfStock = allProducts.filter(p => p.stock_quantity === 0 && p.track_stock !== false).length;
             document.getElementById('stockStats').innerHTML = `
                 <div class="stk-stat-card"><div class="num">${totalProducts}</div><div class="lbl">Products</div></div>
                 <div class="stk-stat-card"><div class="num">${totalStock}</div><div class="lbl">Total Units</div></div>
@@ -2181,7 +2181,7 @@
 
             const tbody = document.getElementById('stkTableBody');
             if (prods.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No products found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="12" class="empty-state">No products found.</td></tr>';
                 return;
             }
             tbody.innerHTML = prods.map(p => {
@@ -2200,7 +2200,8 @@
                     <td class="r"><input type="number" value="${cost.toFixed(2)}" step="0.01" min="0" style="width:70px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;" onchange="stkInlineUpdate('${p.id}','cost_price',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
                     <td class="r"><input type="number" value="${retail.toFixed(2)}" step="0.01" min="0" style="width:70px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;" onchange="stkInlineUpdate('${p.id}','retail_price',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
                     <td class="r"><span class="stk-margin ${marginClass}">${margin.toFixed(1)}%</span></td>
-                    <td class="r"><input type="number" value="${p.stock_quantity}" min="0" style="width:60px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;${p.stock_quantity === 0 ? 'color:var(--red);font-weight:600;' : ''}" onchange="stkInlineUpdate('${p.id}','stock_quantity',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
+                    <td class="r"><input type="number" value="${p.stock_quantity}" min="0" style="width:60px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;${p.stock_quantity === 0 && p.track_stock !== false ? 'color:var(--red);font-weight:600;' : ''}" onchange="stkInlineUpdate('${p.id}','stock_quantity',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
+                    <td style="text-align:center;"><input type="checkbox" ${p.track_stock !== false ? 'checked' : ''} onchange="stkInlineUpdate('${p.id}','track_stock',this.checked)" style="accent-color:var(--orange);cursor:pointer;"></td>
                     <td><select onchange="stkInlineUpdate('${p.id}','vat_category',this.value)" style="padding:0.25rem 0.3rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.75rem;font-family:'DM Sans',sans-serif;outline:none;">
                         <option value="none" ${(p.vat_category || 'none') === 'none' ? 'selected' : ''}>None</option>
                         <option value="service" ${p.vat_category === 'service' ? 'selected' : ''}>13.5%</option>
@@ -2271,6 +2272,8 @@
                 updateData[field] = parseInt(value) || 0;
             } else if (field === 'vat_category') {
                 updateData[field] = value;
+            } else if (field === 'track_stock') {
+                updateData[field] = value === true || value === 'true';
             } else {
                 updateData[field] = parseFloat(value) || 0;
             }
@@ -2282,7 +2285,7 @@
             const totalStock = allProducts.reduce((s, p) => s + (p.stock_quantity || 0), 0);
             const totalValue = allProducts.reduce((s, p) => s + (Number(p.cost_price || 0) * (p.stock_quantity || 0)), 0);
             const totalRetailValue = allProducts.reduce((s, p) => s + (Number(p.retail_price || p.price || 0) * (p.stock_quantity || 0)), 0);
-            const outOfStock = allProducts.filter(p => p.stock_quantity === 0).length;
+            const outOfStock = allProducts.filter(p => p.stock_quantity === 0 && p.track_stock !== false).length;
             document.getElementById('stockStats').innerHTML = `
                 <div class="stk-stat-card"><div class="num">${totalProducts}</div><div class="lbl">Products</div></div>
                 <div class="stk-stat-card"><div class="num">${totalStock}</div><div class="lbl">Total Units</div></div>

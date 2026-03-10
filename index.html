@@ -400,8 +400,9 @@
                 const price = getRetailPrice(p);
                 const origPrice = getRetailOriginalPrice(p);
                 const onSale = isRetailSale(p);
-                const noStock = p.stock_quantity === 0;
-                const lowStock = p.stock_quantity > 0 && p.stock_quantity <= 10;
+                const noStock = p.stock_quantity === 0 && p.track_stock !== false;
+                const lowStock = p.stock_quantity > 0 && p.stock_quantity <= 10 && p.track_stock !== false;
+                const showStock = p.track_stock !== false;
                 const cats = getProductCategories(p);
                 return `<div class="p-card">
                     ${hasImg ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : `<div class="no-img">📦</div>`}
@@ -412,7 +413,7 @@
                         <div class="price">${onSale
                             ? `<span style="color:var(--orange);">€${price.toFixed(2)}</span> <span style="text-decoration:line-through;color:var(--gray-500);font-weight:400;font-size:0.85rem;">€${origPrice.toFixed(2)}</span>`
                             : `€${price.toFixed(2)}`}</div>
-                        <div class="stock-info ${noStock ? 'low' : lowStock ? 'low' : ''}">${noStock ? 'Out of stock' : p.stock_quantity + ' in stock'}</div>
+                        <div class="stock-info ${noStock ? 'low' : lowStock ? 'low' : ''}">${!showStock ? 'Available' : noStock ? 'Out of stock' : p.stock_quantity + ' in stock'}</div>
                         <div class="add-row">
                             <div class="qty-input-wrap">
                                 <button class="qty-input-btn" onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'))">−</button>
