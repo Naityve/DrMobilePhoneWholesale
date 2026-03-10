@@ -1381,25 +1381,34 @@
             applyReceiptWidth();
         });
 
-        function posLookup() {
+        async function posLookup() {
             const input = document.getElementById('posBarcodeInput');
             const query = input.value.trim();
             if (!query) return;
 
-            // Try exact barcode match first
-            let product = allProducts.find(p => p.barcode && p.barcode === query);
+            // Try exact barcode match from DB first (ensures fresh data including vat_category)
+            let product = null;
+            const { data: barcodeMatch } = await db.from('products').select('*').eq('barcode', query).limit(1);
+            if (barcodeMatch && barcodeMatch.length === 1) {
+                product = barcodeMatch[0];
+            }
 
-            // Try SKU match
-            if (!product) product = allProducts.find(p => p.sku && p.sku.toLowerCase() === query.toLowerCase());
+            // Try SKU match from DB
+            if (!product) {
+                const { data: skuMatch } = await db.from('products').select('*').ilike('sku', query).limit(1);
+                if (skuMatch && skuMatch.length === 1) product = skuMatch[0];
+            }
 
-            // Try name search
+            // Try name search from local cache (for speed on partial matches)
             if (!product) {
                 const matches = allProducts.filter(p =>
                     p.name.toLowerCase().includes(query.toLowerCase()) ||
                     (p.barcode && p.barcode.includes(query))
                 );
                 if (matches.length === 1) {
-                    product = matches[0];
+                    // Re-fetch this single product from DB for fresh data
+                    const { data: fresh } = await db.from('products').select('*').eq('id', matches[0].id).single();
+                    product = fresh || matches[0];
                 } else if (matches.length > 1) {
                     posShowSearchResults(matches);
                     return;
@@ -1429,8 +1438,8 @@
             }).join('');
         }
 
-        function posSelectFromSearch(productId) {
-            const product = allProducts.find(p => p.id === productId);
+        async function posSelectFromSearch(productId) {
+            const { data: product } = await db.from('products').select('*').eq('id', productId).single();
             if (product) posAddItem(product);
             document.getElementById('posBarcodeInput').value = '';
             document.getElementById('posBarcodeInput').focus();
