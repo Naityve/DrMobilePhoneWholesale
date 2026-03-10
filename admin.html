@@ -2400,7 +2400,7 @@
                     reportHtml += `<div style="display:flex;justify-content:space-between;font-size:11px;padding-left:8px;"><span>${i.quantity}× ${esc(i.product_name)}${vatLabel}</span><span>€${(Number(i.unit_price) * i.quantity).toFixed(2)}</span></div>`;
                     if (i.discount_type && i.discount_type !== 'none' && i.discount_value > 0) {
                         const discLabel = i.discount_type === 'percent' ? i.discount_value + '% off' : '€' + Number(i.discount_value).toFixed(2) + ' off';
-                        reportHtml += `<div style="font-size:10px;padding-left:16px;color:#666;">↳ ${discLabel} (was €${Number(i.original_price || i.unit_price).toFixed(2)})</div>`;
+                        reportHtml += `<div style="font-size:10px;padding-left:16px;font-weight:700;">↳ ${discLabel} (was €${Number(i.original_price || i.unit_price).toFixed(2)})</div>`;
                     }
                 });
                 reportHtml += `<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-top:2px;"><span>Total (${payLabel})</span><span>€${Number(t.total).toFixed(2)}</span></div>`;
@@ -2446,9 +2446,7 @@
         function buildReceiptHtml(txnNumber, dateStr, timeStr, items, method, cash, card, total, extraTag, width) {
             const s = rcptGetSettings();
             const fs = s.fontSize + 'px';
-            const fsSmall = (parseInt(s.fontSize) - 1) + 'px';
-            const fsBig = (parseInt(s.fontSize) + 2) + 'px';
-            const headerHtml = s.headerLines ? s.headerLines.split('\n').map(l => `<span style="font-size:${fs};">${esc(l)}</span>`).join('<br>') : '';
+            const headerHtml = s.headerLines ? s.headerLines.split('\n').map(l => `<span>${esc(l)}</span>`).join('<br>') : '';
 
             // Build item rows with discount info
             const itemRows = items.map(i => {
@@ -2456,7 +2454,7 @@
                 let discountLine = '';
                 if (i.discount_type && i.discount_type !== 'none' && i.discount_value > 0) {
                     const discLabel = i.discount_type === 'percent' ? i.discount_value + '% off' : '€' + Number(i.discount_value).toFixed(2) + ' off';
-                    discountLine = `<tr><td style="padding:0 0 2px 8px;font-size:${fsSmall};font-weight:700;color:#000;" colspan="4">↳ ${discLabel} (was €${Number(i.original_price || i.unit_price).toFixed(2)})</td></tr>`;
+                    discountLine = `<tr><td style="padding:0 0 2px 8px;" colspan="4">↳ ${discLabel} (was €${Number(i.original_price || i.unit_price).toFixed(2)})</td></tr>`;
                 }
                 return `<tr><td style="padding:2px 0;">${esc(i.product_name)}</td><td style="text-align:right;">${i.quantity}</td><td style="text-align:right;">€${Number(i.unit_price).toFixed(2)}</td><td style="text-align:right;">€${lineTotal}</td></tr>${discountLine}`;
             }).join('');
@@ -2484,7 +2482,7 @@
 
                 if (Object.keys(vatBreakdown).length > 0) {
                     const totalVat = Object.values(vatBreakdown).reduce((s, v) => s + v.total, 0);
-                    vatHtml = `<div style="margin-top:4px;font-size:${fsSmall};">`;
+                    vatHtml = `<div style="margin-top:4px;">`;
                     for (const [cat, data] of Object.entries(vatBreakdown)) {
                         const label = cat === 'service' ? 'VAT @ 13.5%' : 'VAT @ 23%';
                         vatHtml += `<div style="display:flex;justify-content:space-between;"><span>${label}</span><span>€${data.total.toFixed(2)}</span></div>`;
@@ -2496,22 +2494,22 @@
             }
 
             return `<div style="text-align:center;margin-bottom:8px;">
-                <strong style="font-size:${fsBig};">${esc(s.businessName)}</strong><br>
+                <strong>${esc(s.businessName)}</strong><br>
                 ${headerHtml}
             </div>
-            <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin:6px 0;text-align:center;font-size:${fs};">
+            <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin:6px 0;text-align:center;">
                 ${esc(txnNumber)}<br>${dateStr} ${timeStr}${extraTag ? '<br><em>' + extraTag + '</em>' : ''}
             </div>
-            <table style="width:100%;font-size:${fs};border-collapse:collapse;">
+            <table style="width:100%;border-collapse:collapse;">
                 <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left;padding:2px 0;">Item</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr>
                 ${itemRows}
             </table>
             <div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
-                <div style="display:flex;justify-content:space-between;font-size:${fsBig};font-weight:bold;"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
-                <div style="font-size:${fs};margin-top:2px;">${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}</div>
+                <div style="display:flex;justify-content:space-between;font-weight:bold;"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
+                <div style="margin-top:2px;">${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}</div>
                 ${vatHtml}
             </div>
-            ${s.footer ? `<div style="text-align:center;margin-top:10px;font-size:${fsSmall};color:#888;">${esc(s.footer)}</div>` : ''}`;
+            ${s.footer ? `<div style="text-align:center;margin-top:10px;">${esc(s.footer)}</div>` : ''}`;
         }
 
         // ── DASHBOARD ──
