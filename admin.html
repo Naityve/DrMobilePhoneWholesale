@@ -3107,6 +3107,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
                         <h3>${esc(t.ticket_number)}</h3>
                         <div style="display:flex;gap:0.5rem;">
+                            <button class="btn btn-sm btn-secondary" onclick="tktPrint('${t.id}')">🖨 Print</button>
                             <button class="btn btn-sm btn-secondary" onclick="tktShowCreateForm('${t.id}')">Edit</button>
                             <select onchange="tktUpdateStatus('${t.id}', this.value)" style="padding:0.4rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.82rem;font-family:'DM Sans',sans-serif;">
                                 ${Object.entries(statusLabels).map(([k,v]) => `<option value="${k}" ${t.status === k ? 'selected' : ''}>${v}</option>`).join('')}
@@ -3259,6 +3260,55 @@
             await tktLoad();
             if (editId) tktView(editId);
             showAlert('alert', editId ? 'Ticket updated.' : 'Ticket created!', 'success');
+        }
+
+        function tktPrint(ticketId) {
+            const t = allTickets.find(x => x.id === ticketId);
+            if (!t) return;
+            const s = rcptGetSettings();
+            const w = s.width;
+            const fs = s.fontSize;
+            const statusLabels = { open: 'Open', in_progress: 'In Progress', waiting_parts: 'Waiting Parts', ready: 'Ready', completed: 'Completed', cancelled: 'Cancelled' };
+            const dateStr = new Date(t.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
+            const timeStr = new Date(t.created_at).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+
+            const html = `<div style="text-align:center;margin-bottom:8px;">
+                <strong>${esc(s.businessName)}</strong><br>
+                ${s.headerLines ? s.headerLines.split('\\n').map(l => '<span>' + esc(l) + '</span>').join('<br>') : ''}
+            </div>
+            <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin:6px 0;text-align:center;">
+                <strong>REPAIR TICKET</strong><br>
+                ${esc(t.ticket_number)}<br>
+                ${dateStr} ${timeStr}
+            </div>
+            <div style="margin-bottom:6px;">
+                <div><strong>Customer:</strong> ${esc(t.customer_name)}</div>
+                ${t.customer_phone ? '<div><strong>Phone:</strong> ' + esc(t.customer_phone) + '</div>' : ''}
+                ${t.customer_email ? '<div><strong>Email:</strong> ' + esc(t.customer_email) + '</div>' : ''}
+            </div>
+            <div style="border-top:1px dashed #000;padding-top:4px;margin-bottom:6px;">
+                <div><strong>Device:</strong> ${esc(t.device_type)}${t.device_model ? ' — ' + esc(t.device_model) : ''}</div>
+                <div><strong>Status:</strong> ${statusLabels[t.status] || cap(t.status)}</div>
+                <div><strong>Priority:</strong> ${cap(t.priority)}</div>
+                ${t.estimated_cost ? '<div><strong>Est. Cost:</strong> €' + Number(t.estimated_cost).toFixed(2) + '</div>' : ''}
+            </div>
+            <div style="border-top:1px dashed #000;padding-top:4px;margin-bottom:6px;">
+                <strong>Issue:</strong><br>
+                ${esc(t.issue_description)}
+            </div>
+            <div style="border-top:1px dashed #000;padding-top:6px;margin-top:6px;text-align:center;">
+                <div style="margin-bottom:20px;">Please retain this ticket for collection.</div>
+                <div>${esc(t.ticket_number)}</div>
+            </div>`;
+
+            const win = window.open('', '_blank', 'width=400,height=600');
+            win.document.write(`<html><head><title>Repair Ticket</title><style>
+                @page { margin: 0; size: ${w}mm auto; }
+                @media print { html, body { margin: 0; padding: 0; } }
+                body { font-family: 'Lucida Console', 'Consolas', 'Courier New', monospace; width: ${w}mm; margin: 0 auto; padding: 3mm; box-sizing: border-box; font-size: ${fs}px; font-weight: 700; color: #000; }
+            </style></head><body>${html}</body></html>`);
+            win.document.close();
+            win.onload = () => { win.print(); win.close(); };
         }
 
         // ── Dashboard Widgets: Active Tickets & Reminders ──
