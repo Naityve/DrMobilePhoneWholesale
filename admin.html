@@ -813,6 +813,9 @@
             if (tab === 'stock') {
                 stkInit();
             }
+            if (tab === 'pos') {
+                loadProducts(); // Refresh to get latest VAT categories
+            }
             if (tab === 'receiptsettings') {
                 rcptLoadSettings();
             }
@@ -1454,7 +1457,7 @@
                     discount_type: 'none',
                     discount_value: 0,
                     is_generic: false,
-                    vat_category: product.vat_category || 'none'
+                    vat_category: (product.vat_category && product.vat_category !== 'null') ? product.vat_category : 'none'
                 });
             }
             posRender();
@@ -2340,10 +2343,26 @@
             const totalCash = txns.reduce((s, t) => s + Number(t.cash_amount || 0), 0);
             const totalCard = txns.reduce((s, t) => s + Number(t.card_amount || 0), 0);
             let totalCost = 0;
+            const vatRates = { none: 0, goods: 0.23, service: 0.135 };
+            const vatServiceActive = document.getElementById('posVatService')?.checked;
+            const vatGoodsActive = document.getElementById('posVatGoods')?.checked;
+            let dayVatBreakdown = {};
+
             txns.forEach(t => {
                 (t.pos_transaction_items || []).forEach(i => {
                     const prod = allProducts.find(p => p.id === i.product_id);
                     totalCost += (prod ? Number(prod.cost_price || 0) : 0) * i.quantity;
+                    // VAT calc
+                    const cat = i.vat_category || 'none';
+                    const rate = vatRates[cat] || 0;
+                    const isActive = (cat === 'service' && vatServiceActive) || (cat === 'goods' && vatGoodsActive);
+                    if (rate > 0 && isActive) {
+                        const lineTotal = Number(i.unit_price) * i.quantity;
+                        const vatAmount = lineTotal - (lineTotal / (1 + rate));
+                        if (!dayVatBreakdown[cat]) dayVatBreakdown[cat] = { rate, total: 0, net: 0 };
+                        dayVatBreakdown[cat].total += vatAmount;
+                        dayVatBreakdown[cat].net += lineTotal - vatAmount;
+                    }
                 });
             });
             const profit = totalRevenue - totalCost;
@@ -2360,7 +2379,13 @@
                 reportHtml += `<div style="margin-bottom:8px;">`;
                 reportHtml += `<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:bold;"><span>${t.transaction_number}</span><span>${time}</span></div>`;
                 items.forEach(i => {
-                    reportHtml += `<div style="display:flex;justify-content:space-between;font-size:11px;padding-left:8px;"><span>${i.quantity}× ${esc(i.product_name)}</span><span>€${(Number(i.unit_price) * i.quantity).toFixed(2)}</span></div>`;
+                    const vatCat = i.vat_category || 'none';
+                    const vatLabel = vatCat === 'service' ? ' [S 13.5%]' : vatCat === 'goods' ? ' [G 23%]' : '';
+                    reportHtml += `<div style="display:flex;justify-content:space-between;font-size:11px;padding-left:8px;"><span>${i.quantity}× ${esc(i.product_name)}${vatLabel}</span><span>€${(Number(i.unit_price) * i.quantity).toFixed(2)}</span></div>`;
+                    if (i.discount_type && i.discount_type !== 'none' && i.discount_value > 0) {
+                        const discLabel = i.discount_type === 'percent' ? i.discount_value + '% off' : '€' + Number(i.discount_value).toFixed(2) + ' off';
+                        reportHtml += `<div style="font-size:10px;padding-left:16px;color:#666;">↳ ${discLabel} (was €${Number(i.original_price || i.unit_price).toFixed(2)})</div>`;
+                    }
                 });
                 reportHtml += `<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-top:2px;"><span>Total (${payLabel})</span><span>€${Number(t.total).toFixed(2)}</span></div>`;
                 reportHtml += '</div>';
@@ -2376,6 +2401,21 @@
                 <div style="display:flex;justify-content:space-between;margin-top:4px;"><span>Est. Cost of Goods:</span><span>€${totalCost.toFixed(2)}</span></div>
                 <div style="display:flex;justify-content:space-between;font-weight:bold;color:${profit >= 0 ? '#22C55E' : '#EF4444'};"><span>Est. Profit:</span><span>€${profit.toFixed(2)}</span></div>
             </div>`;
+
+            // VAT Summary
+            if (Object.keys(dayVatBreakdown).length > 0) {
+                const totalDayVat = Object.values(dayVatBreakdown).reduce((s, v) => s + v.total, 0);
+                reportHtml += '<hr style="border:none;border-top:1px dashed #000;margin:8px 0;">';
+                reportHtml += `<div style="font-size:12px;font-weight:bold;margin-bottom:4px;">VAT Summary</div>`;
+                reportHtml += `<div style="font-size:11px;">`;
+                for (const [cat, data] of Object.entries(dayVatBreakdown)) {
+                    const label = cat === 'service' ? 'Service @ 13.5%' : 'Goods @ 23%';
+                    reportHtml += `<div style="display:flex;justify-content:space-between;"><span>${label} (Net: €${data.net.toFixed(2)})</span><span>€${data.total.toFixed(2)}</span></div>`;
+                }
+                reportHtml += `<div style="display:flex;justify-content:space-between;font-weight:bold;margin-top:2px;"><span>Total VAT</span><span>€${totalDayVat.toFixed(2)}</span></div>`;
+                reportHtml += `<div style="display:flex;justify-content:space-between;"><span>Total Ex. VAT</span><span>€${(totalRevenue - totalDayVat).toFixed(2)}</span></div>`;
+                reportHtml += `</div>`;
+            }
 
             const win = window.open('', '_blank', 'width=500,height=700');
             win.document.write(`<html><head><title>End of Day Report</title><style>
@@ -2400,7 +2440,7 @@
                 let discountLine = '';
                 if (i.discount_type && i.discount_type !== 'none' && i.discount_value > 0) {
                     const discLabel = i.discount_type === 'percent' ? i.discount_value + '% off' : '€' + Number(i.discount_value).toFixed(2) + ' off';
-                    discountLine = `<tr><td style="padding:0 0 2px 8px;font-size:${fsSmall};color:#666;" colspan="4">↳ ${discLabel} (was €${Number(i.original_price || i.unit_price).toFixed(2)})</td></tr>`;
+                    discountLine = `<tr><td style="padding:0 0 2px 8px;font-size:${fsSmall};font-weight:700;color:#000;" colspan="4">↳ ${discLabel} (was €${Number(i.original_price || i.unit_price).toFixed(2)})</td></tr>`;
                 }
                 return `<tr><td style="padding:2px 0;">${esc(i.product_name)}</td><td style="text-align:right;">${i.quantity}</td><td style="text-align:right;">€${Number(i.unit_price).toFixed(2)}</td><td style="text-align:right;">€${lineTotal}</td></tr>${discountLine}`;
             }).join('');
