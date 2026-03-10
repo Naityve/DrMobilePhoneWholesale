@@ -697,9 +697,9 @@
             <div class="stk-table-wrap">
                 <table class="stk-table">
                     <thead><tr>
-                        <th></th><th>Product</th><th>Barcode</th><th>SKU</th><th class="r">Cost</th><th class="r">Retail</th><th class="r">Margin</th><th class="r">Stock</th><th>Online</th><th>Categories</th>
+                        <th></th><th>Product</th><th>Barcode</th><th>SKU</th><th class="r">Cost</th><th class="r">Retail</th><th class="r">Margin</th><th class="r">Stock</th><th>VAT</th><th>Online</th><th>Categories</th>
                     </tr></thead>
-                    <tbody id="stkTableBody"><tr><td colspan="10" class="empty-state">Loading...</td></tr></tbody>
+                    <tbody id="stkTableBody"><tr><td colspan="11" class="empty-state">Loading...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -2163,7 +2163,7 @@
 
             const tbody = document.getElementById('stkTableBody');
             if (prods.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No products found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No products found.</td></tr>';
                 return;
             }
             tbody.innerHTML = prods.map(p => {
@@ -2183,6 +2183,11 @@
                     <td class="r"><input type="number" value="${retail.toFixed(2)}" step="0.01" min="0" style="width:70px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;" onchange="stkInlineUpdate('${p.id}','retail_price',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
                     <td class="r"><span class="stk-margin ${marginClass}">${margin.toFixed(1)}%</span></td>
                     <td class="r"><input type="number" value="${p.stock_quantity}" min="0" style="width:60px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;${p.stock_quantity === 0 ? 'color:var(--red);font-weight:600;' : ''}" onchange="stkInlineUpdate('${p.id}','stock_quantity',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
+                    <td><select onchange="stkInlineUpdate('${p.id}','vat_category',this.value)" style="padding:0.25rem 0.3rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.75rem;font-family:'DM Sans',sans-serif;outline:none;">
+                        <option value="none" ${(p.vat_category || 'none') === 'none' ? 'selected' : ''}>None</option>
+                        <option value="service" ${p.vat_category === 'service' ? 'selected' : ''}>13.5%</option>
+                        <option value="goods" ${p.vat_category === 'goods' ? 'selected' : ''}>23%</option>
+                    </select></td>
                     <td><span class="stk-online-badge ${online ? 'yes' : 'no'}">${online ? 'Online' : 'In-store'}</span></td>
                     <td style="font-size:0.75rem;color:var(--gray-500);">${cats.map(c => esc(c)).join(', ') || '—'}</td>
                 </tr>`;
@@ -2245,6 +2250,8 @@
             const updateData = {};
             if (field === 'stock_quantity') {
                 updateData[field] = parseInt(value) || 0;
+            } else if (field === 'vat_category') {
+                updateData[field] = value;
             } else {
                 updateData[field] = parseFloat(value) || 0;
             }
