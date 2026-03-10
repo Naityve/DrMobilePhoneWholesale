@@ -383,8 +383,8 @@
                     </div>
                     <div id="posSearchResults" style="display:none;margin-bottom:1rem;border:1px solid var(--gray-200);border-radius:10px;max-height:200px;overflow-y:auto;"></div>
                     <table class="pos-items-table">
-                        <thead><tr><th>#</th><th>Product</th><th>Barcode</th><th class="r">Price</th><th>Discount</th><th>Qty</th><th class="r">Subtotal</th><th></th></tr></thead>
-                        <tbody id="posItemsBody"><tr><td colspan="8"><div class="pos-empty">Scan a barcode to start a transaction</div></td></tr></tbody>
+                        <thead><tr><th>#</th><th>Product</th><th>Barcode</th><th class="r">Price</th><th>Discount</th><th>VAT</th><th>Qty</th><th class="r">Subtotal</th><th></th></tr></thead>
+                        <tbody id="posItemsBody"><tr><td colspan="9"><div class="pos-empty">Scan a barcode to start a transaction</div></td></tr></tbody>
                     </table>
                 </div>
                 <div class="pos-summary">
@@ -1428,6 +1428,11 @@
             posItems[idx].product_name = name || 'Custom Item';
         }
 
+        function posSetVat(idx, category) {
+            posItems[idx].vat_category = category;
+            posRender();
+        }
+
         function posSetDiscount(idx) {
             const item = posItems[idx];
             const typeEl = document.getElementById('pos-disc-type-' + idx);
@@ -1459,7 +1464,7 @@
         function posRender() {
             const tbody = document.getElementById('posItemsBody');
             if (posItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8"><div class="pos-empty">Scan a barcode to start a transaction</div></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9"><div class="pos-empty">Scan a barcode to start a transaction</div></td></tr>';
                 document.getElementById('posCompleteBtn').disabled = true;
             } else {
                 tbody.innerHTML = posItems.map((item, i) => {
@@ -1482,6 +1487,11 @@
                             </select>
                             <input type="number" id="pos-disc-val-${i}" value="${item.discount_value || ''}" placeholder="0" min="0" step="0.01" oninput="posSetDiscount(${i})" style="width:50px;padding:0.2rem 0.3rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.78rem;font-family:'DM Sans',sans-serif;outline:none;${item.discount_type === 'none' ? 'opacity:0.3;' : ''}">
                         </div></td>
+                        <td><select onchange="posSetVat(${i}, this.value)" style="padding:0.2rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.72rem;font-family:'DM Sans',sans-serif;outline:none;width:62px;">
+                            <option value="none" ${item.vat_category === 'none' ? 'selected' : ''}>None</option>
+                            <option value="service" ${item.vat_category === 'service' ? 'selected' : ''}>13.5%</option>
+                            <option value="goods" ${item.vat_category === 'goods' ? 'selected' : ''}>23%</option>
+                        </select></td>
                         <td><div class="qty-cell"><button onclick="posChangeQty(${i},-1)">−</button><input type="number" value="${item.quantity}" min="1" onchange="posSetQty(${i}, parseInt(this.value)||1)" onkeydown="if(event.key==='Enter'){this.blur();document.getElementById('posBarcodeInput').focus();}"><button onclick="posChangeQty(${i},1)">+</button></div></td>
                         <td class="r" style="font-weight:600;">€${sub}</td>
                         <td><button class="pos-remove" onclick="posRemoveItem(${i})">✕</button></td>
