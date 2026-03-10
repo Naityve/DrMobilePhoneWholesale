@@ -152,6 +152,16 @@
                 <div class="dash-chart-card"><h4>Payment Methods</h4><canvas id="chartPayments"></canvas></div>
             </div>
 
+            <div class="dash-expense-section" style="margin-bottom:1.5rem;">
+                <h4>Restock Product</h4>
+                <p style="font-size:0.82rem;color:var(--gray-500);margin-bottom:1rem;">Scan a barcode to restock an existing product, or add a new one if not found.</p>
+                <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+                    <input type="text" id="restockBarcode" placeholder="Scan barcode or type product name..." style="flex:1;padding:0.6rem 0.8rem;border:2px solid var(--orange);border-radius:8px;font-size:1rem;font-family:'DM Sans',sans-serif;outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();restockLookup();}">
+                    <button class="btn btn-primary btn-sm" onclick="restockLookup()">Find</button>
+                </div>
+                <div id="restockResult" style="display:none;border:1px solid var(--gray-200);border-radius:12px;padding:1.25rem;"></div>
+            </div>
+
             <div class="dash-expense-section">
                 <h4>Log Expense</h4>
                 <div class="dash-expense-form">
@@ -2722,6 +2732,196 @@
             if (!confirm('Delete this expense?')) return;
             await db.from('expenses').delete().eq('id', id);
             await dashLoad();
+        }
+
+        // ── RESTOCK ──
+        async function restockLookup() {
+            const query = document.getElementById('restockBarcode').value.trim();
+            if (!query) return;
+            const resultDiv = document.getElementById('restockResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div style="color:var(--gray-400);text-align:center;">Searching...</div>';
+
+            // Search DB for barcode, SKU, or name
+            let product = null;
+            const { data: barcodeMatch } = await db.from('products').select('*').eq('barcode', query).limit(1);
+            if (barcodeMatch && barcodeMatch.length === 1) product = barcodeMatch[0];
+
+            if (!product) {
+                const { data: skuMatch } = await db.from('products').select('*').ilike('sku', query).limit(1);
+                if (skuMatch && skuMatch.length === 1) product = skuMatch[0];
+            }
+
+            if (!product) {
+                const { data: nameMatch } = await db.from('products').select('*').ilike('name', '%' + query + '%').limit(5);
+                if (nameMatch && nameMatch.length === 1) product = nameMatch[0];
+                else if (nameMatch && nameMatch.length > 1) {
+                    resultDiv.innerHTML = `<div style="margin-bottom:0.75rem;font-weight:600;">Multiple products found — select one:</div>` +
+                        nameMatch.map(p => `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;border-bottom:1px solid var(--gray-100);cursor:pointer;" onmouseover="this.style.background='var(--gray-50)'" onmouseout="this.style.background=''" onclick="restockShowProduct('${p.id}')">
+                            <div><strong>${esc(p.name)}</strong><br><span style="font-size:0.78rem;color:var(--gray-500);">${p.barcode || 'No barcode'} · Stock: ${p.stock_quantity}</span></div>
+                            <span style="font-weight:600;">€${Number(p.cost_price || 0).toFixed(2)}</span>
+                        </div>`).join('');
+                    return;
+                }
+            }
+
+            if (product) {
+                restockRenderProduct(product);
+            } else {
+                restockRenderNewProduct(query);
+            }
+        }
+
+        async function restockShowProduct(productId) {
+            const { data: product } = await db.from('products').select('*').eq('id', productId).single();
+            if (product) restockRenderProduct(product);
+        }
+
+        function restockRenderProduct(p) {
+            const resultDiv = document.getElementById('restockResult');
+            resultDiv.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <div>
+                        <div style="font-weight:700;font-size:1rem;">${esc(p.name)}</div>
+                        <div style="font-size:0.82rem;color:var(--gray-500);">Barcode: ${esc(p.barcode || '—')} · SKU: ${esc(p.sku || '—')}</div>
+                        <div style="font-size:0.82rem;color:var(--gray-500);">Current stock: <strong>${p.stock_quantity}</strong> · Cost: €${Number(p.cost_price || 0).toFixed(2)}</div>
+                    </div>
+                    <span style="background:var(--green-dim);color:#15803D;padding:0.3rem 0.8rem;border-radius:8px;font-size:0.78rem;font-weight:600;">Found</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+                    <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Restock Qty *</label><input type="number" id="restockQty" placeholder="0" min="1" style="width:100%;padding:0.5rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                    <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Cost per Unit (€)</label><input type="number" id="restockCostPerUnit" value="${Number(p.cost_price || 0).toFixed(2)}" step="0.01" min="0" style="width:100%;padding:0.5rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                    <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Supplier</label><input type="text" id="restockSupplier" placeholder="Optional" style="width:100%;padding:0.5rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                </div>
+                <div id="restockAlert" class="alert" style="margin-bottom:0.75rem;"></div>
+                <div style="display:flex;gap:0.5rem;">
+                    <button class="btn btn-primary btn-sm" onclick="restockSubmit('${p.id}')">Restock & Log Expense</button>
+                    <button class="btn btn-secondary btn-sm" onclick="restockCancel()">Cancel</button>
+                </div>`;
+        }
+
+        function restockRenderNewProduct(query) {
+            const isBarcode = /^\d{8,14}$/.test(query);
+            const resultDiv = document.getElementById('restockResult');
+            resultDiv.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <div style="font-weight:600;font-size:0.95rem;">Product not found</div>
+                    <span style="background:var(--orange-dim);color:var(--orange);padding:0.3rem 0.8rem;border-radius:8px;font-size:0.78rem;font-weight:600;">New Product</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+                    <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Product Name *</label><input type="text" id="restockNewName" placeholder="Product name" style="width:100%;padding:0.5rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                    <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Barcode</label><input type="text" id="restockNewBarcode" value="${isBarcode ? esc(query) : ''}" style="width:100%;padding:0.5rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+                    <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Cost Price (€) *</label><input type="number" id="restockNewCost" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:0.5rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                    <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Retail Price (€)</label><input type="number" id="restockNewRetail" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:0.5rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                    <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Quantity *</label><input type="number" id="restockNewQty" min="1" placeholder="0" style="width:100%;padding:0.5rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                    <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Supplier</label><input type="text" id="restockNewSupplier" placeholder="Optional" style="width:100%;padding:0.5rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+                    <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Category</label><select id="restockNewCat" style="width:100%;padding:0.5rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;">${ALL_CATEGORIES.map(c => '<option value="' + esc(c) + '">' + esc(c) + '</option>').join('')}</select></div>
+                    <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">VAT</label><select id="restockNewVat" style="width:100%;padding:0.5rem 0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;"><option value="none">None (0%)</option><option value="service">Service (13.5%)</option><option value="goods">Goods (23%)</option></select></div>
+                </div>
+                <div id="restockAlert" class="alert" style="margin-bottom:0.75rem;"></div>
+                <div style="display:flex;gap:0.5rem;">
+                    <button class="btn btn-primary btn-sm" onclick="restockSubmitNew()">Add Product & Log Expense</button>
+                    <button class="btn btn-secondary btn-sm" onclick="restockCancel()">Cancel</button>
+                </div>`;
+        }
+
+        async function restockSubmit(productId) {
+            const qty = parseInt(document.getElementById('restockQty').value);
+            const costPerUnit = parseFloat(document.getElementById('restockCostPerUnit').value) || 0;
+            const supplier = document.getElementById('restockSupplier').value.trim();
+
+            if (!qty || qty <= 0) { showAlert('restockAlert', 'Enter a restock quantity.', 'error'); return; }
+
+            const totalCost = costPerUnit * qty;
+
+            // Update stock quantity
+            const { data: product } = await db.from('products').select('stock_quantity, name').eq('id', productId).single();
+            if (!product) { showAlert('restockAlert', 'Product not found.', 'error'); return; }
+
+            const newStock = (product.stock_quantity || 0) + qty;
+            const { error: stockErr } = await db.from('products').update({ stock_quantity: newStock, cost_price: costPerUnit }).eq('id', productId);
+            if (stockErr) { showAlert('restockAlert', 'Failed to update stock: ' + stockErr.message, 'error'); return; }
+
+            // Log expense
+            if (totalCost > 0) {
+                const user = await getCurrentUser();
+                await db.from('expenses').insert({
+                    category: 'restock',
+                    description: 'Restock: ' + product.name + ' ×' + qty,
+                    amount: totalCost,
+                    date: document.getElementById('expDate')?.value || new Date().toISOString().split('T')[0],
+                    supplier: supplier,
+                    created_by: user.id
+                });
+            }
+
+            // Update local allProducts
+            const p = allProducts.find(x => x.id === productId);
+            if (p) { p.stock_quantity = newStock; p.cost_price = costPerUnit; }
+
+            showAlert('alert', `Restocked ${product.name}: +${qty} units (now ${newStock}). Expense €${totalCost.toFixed(2)} logged.`, 'success');
+            restockCancel();
+            await dashLoad();
+        }
+
+        async function restockSubmitNew() {
+            const name = document.getElementById('restockNewName').value.trim();
+            const barcode = document.getElementById('restockNewBarcode').value.trim();
+            const cost = parseFloat(document.getElementById('restockNewCost').value) || 0;
+            const retail = parseFloat(document.getElementById('restockNewRetail').value) || 0;
+            const qty = parseInt(document.getElementById('restockNewQty').value) || 0;
+            const supplier = document.getElementById('restockNewSupplier').value.trim();
+            const cat = document.getElementById('restockNewCat').value;
+            const vat = document.getElementById('restockNewVat').value;
+
+            if (!name) { showAlert('restockAlert', 'Product name is required.', 'error'); return; }
+            if (!qty || qty <= 0) { showAlert('restockAlert', 'Enter a quantity.', 'error'); return; }
+
+            // Create the product
+            const { data: newProduct, error: prodErr } = await db.from('products').insert({
+                name: name,
+                barcode: barcode,
+                cost_price: cost,
+                retail_price: retail,
+                price: retail,
+                stock_quantity: qty,
+                categories: [cat],
+                category: cat,
+                vat_category: vat,
+                is_active: true,
+                available_online: false
+            }).select().single();
+
+            if (prodErr) { showAlert('restockAlert', 'Failed to create product: ' + prodErr.message, 'error'); return; }
+
+            // Log expense
+            const totalCost = cost * qty;
+            if (totalCost > 0) {
+                const user = await getCurrentUser();
+                await db.from('expenses').insert({
+                    category: 'restock',
+                    description: 'New stock: ' + name + ' ×' + qty,
+                    amount: totalCost,
+                    date: document.getElementById('expDate')?.value || new Date().toISOString().split('T')[0],
+                    supplier: supplier,
+                    created_by: user.id
+                });
+            }
+
+            showAlert('alert', `New product "${name}" added with ${qty} units. Expense €${totalCost.toFixed(2)} logged.`, 'success');
+            restockCancel();
+            await loadProducts();
+            await dashLoad();
+        }
+
+        function restockCancel() {
+            document.getElementById('restockResult').style.display = 'none';
+            document.getElementById('restockBarcode').value = '';
+            document.getElementById('restockBarcode').focus();
         }
     </script>
 </body>
