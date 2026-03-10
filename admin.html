@@ -690,6 +690,14 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label>VAT</label>
+                        <select id="stkVat">
+                            <option value="none">None (0%)</option>
+                            <option value="service">Service (13.5%)</option>
+                            <option value="goods">Goods (23%)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>Photo (internal)</label>
                         <div class="stk-photo-area" onclick="document.getElementById('stkPhoto').click()">
                             <span id="stkPhotoPreview">📷 Tap to take photo</span>
@@ -2236,7 +2244,8 @@
                 category: document.getElementById('stkCategory').value,
                 internal_image_url: internalImageUrl,
                 is_active: true,
-                available_online: false
+                available_online: false,
+                vat_category: document.getElementById('stkVat').value
             };
 
             const { error } = await db.from('products').insert(productData);
