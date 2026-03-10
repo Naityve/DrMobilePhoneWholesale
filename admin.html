@@ -87,8 +87,9 @@
         <p class="subtitle">Manage users and products.</p>
         <div id="alert" class="alert"></div>
 
-        <div class="admin-main-tabs">
-            <button class="admin-main-tab active" onclick="switchMainTab('users', this)">Users</button>
+        <div class="admin-main-tabs" style="overflow-x:auto;flex-wrap:nowrap;">
+            <button class="admin-main-tab active" onclick="switchMainTab('dashboard', this)">Dashboard</button>
+            <button class="admin-main-tab" onclick="switchMainTab('users', this)">Users</button>
             <button class="admin-main-tab" onclick="switchMainTab('products', this)">Products</button>
             <button class="admin-main-tab" onclick="switchMainTab('orders', this)">Orders</button>
             <button class="admin-main-tab" onclick="switchMainTab('banners', this)">Banners</button>
@@ -98,8 +99,82 @@
             <button class="admin-main-tab" onclick="switchMainTab('receiptsettings', this)">Receipts</button>
         </div>
 
+        <!-- DASHBOARD PANEL -->
+        <div id="panel-dashboard" class="tab-panel active">
+            <style>
+                .dash-controls { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+                .dash-controls input { padding: 0.55rem 0.8rem; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 0.88rem; font-family: 'DM Sans', sans-serif; outline: none; }
+                .dash-controls input:focus { border-color: var(--orange); }
+                .dash-quick { padding: 0.5rem 1rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 0.82rem; background: white; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+                .dash-quick:hover { border-color: var(--orange); }
+                .dash-quick.active { background: var(--black); color: white; border-color: var(--black); }
+                .dash-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+                .dash-kpi { padding: 1.25rem; border: 1px solid var(--gray-200); border-radius: 14px; }
+                .dash-kpi .num { font-size: 1.8rem; font-weight: 700; line-height: 1.2; }
+                .dash-kpi .lbl { font-size: 0.78rem; color: var(--gray-500); margin-top: 0.2rem; }
+                .dash-kpi.green .num { color: var(--green); }
+                .dash-kpi.red .num { color: var(--red); }
+                .dash-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+                .dash-chart-card { border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.25rem; }
+                .dash-chart-card h4 { font-size: 0.88rem; font-weight: 600; margin-bottom: 0.75rem; }
+                .dash-chart-card canvas { width: 100% !important; max-height: 280px; }
+                .dash-expense-section { border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.25rem; }
+                .dash-expense-section h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem; }
+                .dash-expense-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.6rem; align-items: end; margin-bottom: 1rem; }
+                .dash-expense-form .fg label { font-size: 0.75rem; font-weight: 500; color: var(--gray-700); display: block; margin-bottom: 0.2rem; }
+                .dash-expense-form .fg input, .dash-expense-form .fg select { width: 100%; padding: 0.5rem 0.6rem; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; outline: none; }
+                .dash-expense-form .fg input:focus, .dash-expense-form .fg select:focus { border-color: var(--orange); }
+                .dash-expense-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+                .dash-expense-table th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-500); font-weight: 600; padding: 0.5rem; border-bottom: 2px solid var(--gray-200); }
+                .dash-expense-table th.r { text-align: right; }
+                .dash-expense-table td { padding: 0.5rem; font-size: 0.85rem; border-bottom: 1px solid var(--gray-100); }
+                .dash-expense-table td.r { text-align: right; }
+                @media (max-width: 768px) { .dash-charts { grid-template-columns: 1fr; } .dash-kpis { grid-template-columns: 1fr 1fr; } }
+            </style>
+
+            <div class="dash-controls">
+                <input type="date" id="dashStart">
+                <span style="color:var(--gray-400);">to</span>
+                <input type="date" id="dashEnd">
+                <button class="btn btn-primary btn-sm" onclick="dashLoad()">Load</button>
+                <button class="dash-quick active" onclick="dashQuick('7d', this)">7 Days</button>
+                <button class="dash-quick" onclick="dashQuick('30d', this)">30 Days</button>
+                <button class="dash-quick" onclick="dashQuick('month', this)">This Month</button>
+                <button class="dash-quick" onclick="dashQuick('year', this)">This Year</button>
+            </div>
+
+            <div class="dash-kpis" id="dashKpis"></div>
+
+            <div class="dash-charts">
+                <div class="dash-chart-card"><h4>Daily Revenue</h4><canvas id="chartRevenue"></canvas></div>
+                <div class="dash-chart-card"><h4>Revenue Breakdown</h4><canvas id="chartBreakdown"></canvas></div>
+                <div class="dash-chart-card"><h4>Profit vs Expenses</h4><canvas id="chartProfit"></canvas></div>
+                <div class="dash-chart-card"><h4>Payment Methods</h4><canvas id="chartPayments"></canvas></div>
+            </div>
+
+            <div class="dash-expense-section">
+                <h4>Log Expense</h4>
+                <div class="dash-expense-form">
+                    <div class="fg"><label>Category *</label><select id="expCat"><option value="restock">Restock</option><option value="rent">Rent</option><option value="utilities">Utilities</option><option value="wages">Wages</option><option value="shipping">Shipping</option><option value="equipment">Equipment</option><option value="marketing">Marketing</option><option value="other">Other</option></select></div>
+                    <div class="fg"><label>Description *</label><input type="text" id="expDesc" placeholder="e.g. Warhammer restock"></div>
+                    <div class="fg"><label>Amount (€) *</label><input type="number" id="expAmount" step="0.01" min="0" placeholder="0.00"></div>
+                    <div class="fg"><label>Date</label><input type="date" id="expDate"></div>
+                    <div class="fg"><label>Supplier</label><input type="text" id="expSupplier" placeholder="Optional"></div>
+                    <div class="fg"><label>Reference</label><input type="text" id="expRef" placeholder="Invoice #"></div>
+                    <div class="fg" style="display:flex;align-items:flex-end;"><button class="btn btn-primary btn-sm" onclick="dashAddExpense()" style="width:100%;">Add Expense</button></div>
+                </div>
+                <h4 style="margin-top:1rem;">Recent Expenses</h4>
+                <div style="overflow-x:auto;">
+                    <table class="dash-expense-table">
+                        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Supplier</th><th class="r">Amount</th><th></th></tr></thead>
+                        <tbody id="expTableBody"><tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:1rem;">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- USERS PANEL -->
-        <div id="panel-users" class="tab-panel active">
+        <div id="panel-users" class="tab-panel">
             <div class="admin-tabs">
                 <button class="admin-tab active" onclick="filterUsers('pending', this)">Pending <span class="count" id="pendingCount">0</span></button>
                 <button class="admin-tab" onclick="filterUsers('approved', this)">Approved</button>
@@ -674,6 +749,7 @@
 
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="js/supabase-config.js"></script>
     <script>
         let allUsers = [], allProducts = [], currentFilter = 'pending', selectedImageFile = null;
@@ -720,6 +796,7 @@
             await loadOrders();
             await loadBanners();
             renderCategoryCheckboxes();
+            dashInit();
         })();
 
         function switchMainTab(tab, el) {
@@ -2328,7 +2405,7 @@
                 return `<tr><td style="padding:2px 0;">${esc(i.product_name)}</td><td style="text-align:right;">${i.quantity}</td><td style="text-align:right;">€${Number(i.unit_price).toFixed(2)}</td><td style="text-align:right;">€${lineTotal}</td></tr>${discountLine}`;
             }).join('');
 
-            // VAT calculation (if show VAT is on)
+            // VAT calculation
             const showVat = document.getElementById('posVatShowOnReceipt')?.checked;
             const vatServiceActive = document.getElementById('posVatService')?.checked;
             const vatGoodsActive = document.getElementById('posVatGoods')?.checked;
@@ -2379,6 +2456,218 @@
                 ${vatHtml}
             </div>
             ${s.footer ? `<div style="text-align:center;margin-top:10px;font-size:${fsSmall};color:#888;">${esc(s.footer)}</div>` : ''}`;
+        }
+
+        // ── DASHBOARD ──
+        let dashCharts = {};
+        let dashExpenses = [];
+
+        function dashInit() {
+            const today = new Date();
+            const sevenAgo = new Date(today);
+            sevenAgo.setDate(sevenAgo.getDate() - 6);
+            document.getElementById('dashStart').value = sevenAgo.toISOString().split('T')[0];
+            document.getElementById('dashEnd').value = today.toISOString().split('T')[0];
+            document.getElementById('expDate').value = today.toISOString().split('T')[0];
+            dashLoad();
+        }
+
+        function dashQuick(preset, el) {
+            document.querySelectorAll('.dash-quick').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            const today = new Date();
+            let start;
+            if (preset === '7d') { start = new Date(today); start.setDate(start.getDate() - 6); }
+            else if (preset === '30d') { start = new Date(today); start.setDate(start.getDate() - 29); }
+            else if (preset === 'month') { start = new Date(today.getFullYear(), today.getMonth(), 1); }
+            else if (preset === 'year') { start = new Date(today.getFullYear(), 0, 1); }
+            document.getElementById('dashStart').value = start.toISOString().split('T')[0];
+            document.getElementById('dashEnd').value = today.toISOString().split('T')[0];
+            dashLoad();
+        }
+
+        async function dashLoad() {
+            const startStr = document.getElementById('dashStart').value;
+            const endStr = document.getElementById('dashEnd').value;
+            if (!startStr || !endStr) return;
+            const startISO = new Date(startStr + 'T00:00:00').toISOString();
+            const endISO = new Date(endStr + 'T23:59:59.999').toISOString();
+
+            const [posRes, ordersRes, expRes] = await Promise.all([
+                db.from('pos_transactions').select('*, pos_transaction_items(*)').gte('created_at', startISO).lte('created_at', endISO).order('created_at'),
+                db.from('orders').select('*, order_items(*)').gte('created_at', startISO).lte('created_at', endISO).neq('status', 'cancelled').order('created_at'),
+                db.from('expenses').select('*').gte('date', startStr).lte('date', endStr).order('date', { ascending: false })
+            ]);
+
+            const posTxns = posRes.data || [];
+            const onlineOrders = ordersRes.data || [];
+            dashExpenses = expRes.data || [];
+
+            // KPIs
+            const posRevenue = posTxns.reduce((s, t) => s + Number(t.total), 0);
+            const onlineRevenue = onlineOrders.reduce((s, o) => s + Number(o.total), 0);
+            const totalRevenue = posRevenue + onlineRevenue;
+            const totalExpenses = dashExpenses.reduce((s, e) => s + Number(e.amount), 0);
+            const posCash = posTxns.reduce((s, t) => s + Number(t.cash_amount || 0), 0);
+            const posCard = posTxns.reduce((s, t) => s + Number(t.card_amount || 0), 0);
+
+            let costOfGoods = 0;
+            posTxns.forEach(t => (t.pos_transaction_items || []).forEach(i => {
+                const p = allProducts.find(x => x.id === i.product_id);
+                costOfGoods += (p ? Number(p.cost_price || 0) : 0) * i.quantity;
+            }));
+            onlineOrders.forEach(o => (o.order_items || []).forEach(i => {
+                const p = allProducts.find(x => x.id === i.product_id);
+                costOfGoods += (p ? Number(p.cost_price || 0) : 0) * i.quantity;
+            }));
+
+            const grossProfit = totalRevenue - costOfGoods;
+            const netProfit = grossProfit - totalExpenses;
+            const margin = totalRevenue > 0 ? (grossProfit / totalRevenue * 100) : 0;
+
+            document.getElementById('dashKpis').innerHTML = `
+                <div class="dash-kpi"><div class="num">€${totalRevenue.toFixed(2)}</div><div class="lbl">Total Revenue</div></div>
+                <div class="dash-kpi"><div class="num">€${posRevenue.toFixed(2)}</div><div class="lbl">POS Revenue</div></div>
+                <div class="dash-kpi"><div class="num">€${onlineRevenue.toFixed(2)}</div><div class="lbl">Online Revenue</div></div>
+                <div class="dash-kpi"><div class="num">€${costOfGoods.toFixed(2)}</div><div class="lbl">Cost of Goods</div></div>
+                <div class="dash-kpi green"><div class="num">€${grossProfit.toFixed(2)}</div><div class="lbl">Gross Profit</div></div>
+                <div class="dash-kpi"><div class="num">€${totalExpenses.toFixed(2)}</div><div class="lbl">Expenses</div></div>
+                <div class="dash-kpi ${netProfit >= 0 ? 'green' : 'red'}"><div class="num">€${netProfit.toFixed(2)}</div><div class="lbl">Net Profit</div></div>
+                <div class="dash-kpi"><div class="num">${margin.toFixed(1)}%</div><div class="lbl">Gross Margin</div></div>
+                <div class="dash-kpi"><div class="num">${posTxns.length}</div><div class="lbl">POS Transactions</div></div>
+                <div class="dash-kpi"><div class="num">${onlineOrders.length}</div><div class="lbl">Online Orders</div></div>
+                <div class="dash-kpi"><div class="num">€${posCash.toFixed(2)}</div><div class="lbl">Cash Received</div></div>
+                <div class="dash-kpi"><div class="num">€${posCard.toFixed(2)}</div><div class="lbl">Card Received (POS)</div></div>
+            `;
+
+            // Build daily data
+            const dayMap = {};
+            const start = new Date(startStr);
+            const end = new Date(endStr);
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const key = d.toISOString().split('T')[0];
+                dayMap[key] = { posRev: 0, onlineRev: 0, cost: 0, expenses: 0 };
+            }
+            posTxns.forEach(t => {
+                const key = new Date(t.created_at).toISOString().split('T')[0];
+                if (dayMap[key]) dayMap[key].posRev += Number(t.total);
+                (t.pos_transaction_items || []).forEach(i => {
+                    const p = allProducts.find(x => x.id === i.product_id);
+                    if (dayMap[key]) dayMap[key].cost += (p ? Number(p.cost_price || 0) : 0) * i.quantity;
+                });
+            });
+            onlineOrders.forEach(o => {
+                const key = new Date(o.created_at).toISOString().split('T')[0];
+                if (dayMap[key]) dayMap[key].onlineRev += Number(o.total);
+                (o.order_items || []).forEach(i => {
+                    const p = allProducts.find(x => x.id === i.product_id);
+                    if (dayMap[key]) dayMap[key].cost += (p ? Number(p.cost_price || 0) : 0) * i.quantity;
+                });
+            });
+            dashExpenses.forEach(e => {
+                const key = e.date;
+                if (dayMap[key]) dayMap[key].expenses += Number(e.amount);
+            });
+
+            const labels = Object.keys(dayMap).map(d => { const dt = new Date(d + 'T12:00:00'); return dt.toLocaleDateString('en-IE', { day: 'numeric', month: 'short' }); });
+            const posRevData = Object.values(dayMap).map(d => d.posRev);
+            const onlineRevData = Object.values(dayMap).map(d => d.onlineRev);
+            const costData = Object.values(dayMap).map(d => d.cost);
+            const expData = Object.values(dayMap).map(d => d.expenses);
+            const profitData = Object.values(dayMap).map(d => d.posRev + d.onlineRev - d.cost - d.expenses);
+
+            // Charts
+            dashDestroyCharts();
+
+            dashCharts.revenue = new Chart(document.getElementById('chartRevenue'), {
+                type: 'bar', data: {
+                    labels, datasets: [
+                        { label: 'POS', data: posRevData, backgroundColor: '#E8611A', borderRadius: 4 },
+                        { label: 'Online', data: onlineRevData, backgroundColor: '#22C55E', borderRadius: 4 }
+                    ]
+                }, options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            dashCharts.breakdown = new Chart(document.getElementById('chartBreakdown'), {
+                type: 'doughnut', data: {
+                    labels: ['POS Revenue', 'Online Revenue'],
+                    datasets: [{ data: [posRevenue, onlineRevenue], backgroundColor: ['#E8611A', '#22C55E'], borderWidth: 0 }]
+                }, options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            dashCharts.profit = new Chart(document.getElementById('chartProfit'), {
+                type: 'line', data: {
+                    labels, datasets: [
+                        { label: 'Profit', data: profitData, borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.1)', fill: true, tension: 0.3 },
+                        { label: 'Expenses', data: expData, borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3 }
+                    ]
+                }, options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Payment methods pie
+            const cashOnly = posTxns.filter(t => t.payment_method === 'cash').reduce((s, t) => s + Number(t.total), 0);
+            const cardOnly = posTxns.filter(t => t.payment_method === 'card').reduce((s, t) => s + Number(t.total), 0);
+            const bothTotal = posTxns.filter(t => t.payment_method === 'both').reduce((s, t) => s + Number(t.total), 0);
+            dashCharts.payments = new Chart(document.getElementById('chartPayments'), {
+                type: 'doughnut', data: {
+                    labels: ['Cash', 'Card', 'Split', 'Online'],
+                    datasets: [{ data: [cashOnly, cardOnly, bothTotal, onlineRevenue], backgroundColor: ['#22C55E', '#3B82F6', '#F59E0B', '#E8611A'], borderWidth: 0 }]
+                }, options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            dashRenderExpenses();
+        }
+
+        function dashDestroyCharts() {
+            Object.values(dashCharts).forEach(c => { if (c) c.destroy(); });
+            dashCharts = {};
+        }
+
+        function dashRenderExpenses() {
+            const tbody = document.getElementById('expTableBody');
+            if (dashExpenses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:1rem;">No expenses in this period.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = dashExpenses.map(e => `<tr>
+                <td>${e.date}</td>
+                <td>${cap(e.category)}</td>
+                <td>${esc(e.description)}</td>
+                <td style="color:var(--gray-500);">${esc(e.supplier || '—')}</td>
+                <td class="r" style="font-weight:600;">€${Number(e.amount).toFixed(2)}</td>
+                <td><button class="pos-remove" onclick="dashDeleteExpense('${e.id}')">✕</button></td>
+            </tr>`).join('');
+        }
+
+        async function dashAddExpense() {
+            const cat = document.getElementById('expCat').value;
+            const desc = document.getElementById('expDesc').value.trim();
+            const amount = parseFloat(document.getElementById('expAmount').value);
+            const date = document.getElementById('expDate').value;
+
+            if (!desc || !amount || !date) { showAlert('alert', 'Fill in category, description, amount, and date.', 'error'); return; }
+
+            const user = await getCurrentUser();
+            const { error } = await db.from('expenses').insert({
+                category: cat, description: desc, amount: amount, date: date,
+                supplier: document.getElementById('expSupplier').value.trim(),
+                reference: document.getElementById('expRef').value.trim(),
+                created_by: user.id
+            });
+
+            if (error) { showAlert('alert', 'Error: ' + error.message, 'error'); return; }
+            showAlert('alert', 'Expense added!', 'success');
+            document.getElementById('expDesc').value = '';
+            document.getElementById('expAmount').value = '';
+            document.getElementById('expSupplier').value = '';
+            document.getElementById('expRef').value = '';
+            await dashLoad();
+        }
+
+        async function dashDeleteExpense(id) {
+            if (!confirm('Delete this expense?')) return;
+            await db.from('expenses').delete().eq('id', id);
+            await dashLoad();
         }
     </script>
 </body>
