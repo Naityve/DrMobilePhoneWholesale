@@ -604,7 +604,7 @@
 
                 .fin-edit-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
                 .fin-edit-modal.show { display: flex; }
-                .fin-edit-box { background: white; border-radius: 16px; padding: 2rem; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+                .fin-edit-box { background: white; border-radius: 16px; padding: 2rem; width: 100%; max-width: 850px; max-height: 90vh; overflow-y: auto; }
                 .fin-edit-box h3 { font-family: 'Instrument Serif', serif; font-size: 1.3rem; font-weight: 400; margin-bottom: 1rem; }
 
                 @media (max-width: 768px) { .fin-layout { grid-template-columns: 1fr; } .fin-sidebar { position: static; } }
@@ -2166,7 +2166,66 @@
             const total = Number(t.total);
 
             document.getElementById('finEditTitle').textContent = 'Edit ' + t.transaction_number;
+
+            let itemsHtml = `<div style="margin-bottom:1rem;">
+                <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:0.5rem;">Transaction Items</label>
+                <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+                    <thead><tr>
+                        <th style="text-align:left;padding:0.4rem;border-bottom:2px solid var(--gray-200);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray-500);">Product</th>
+                        <th style="text-align:right;padding:0.4rem;border-bottom:2px solid var(--gray-200);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray-500);">Qty</th>
+                        <th style="text-align:right;padding:0.4rem;border-bottom:2px solid var(--gray-200);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray-500);">Unit Price</th>
+                        <th style="text-align:right;padding:0.4rem;border-bottom:2px solid var(--gray-200);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray-500);">Cost</th>
+                        <th style="text-align:left;padding:0.4rem;border-bottom:2px solid var(--gray-200);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray-500);">Discount</th>
+                        <th style="text-align:left;padding:0.4rem;border-bottom:2px solid var(--gray-200);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray-500);">VAT</th>
+                        <th style="text-align:right;padding:0.4rem;border-bottom:2px solid var(--gray-200);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray-500);">Line Total</th>
+                    </tr></thead>
+                    <tbody>`;
+
+            items.forEach((item, idx) => {
+                const prod = allProducts.find(p => p.id === item.product_id);
+                const costPrice = prod ? Number(prod.cost_price || 0) : 0;
+                const lineTotal = (Number(item.unit_price) * item.quantity).toFixed(2);
+                const discType = item.discount_type || 'none';
+                const discVal = item.discount_value || 0;
+                const vatCat = item.vat_category || 'none';
+                const inputStyle = 'width:65px;padding:0.25rem 0.35rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:"DM Sans",sans-serif;outline:none;text-align:right;';
+                const selectStyle = 'padding:0.25rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.78rem;font-family:"DM Sans",sans-serif;outline:none;';
+
+                itemsHtml += `<tr style="border-bottom:1px solid var(--gray-100);">
+                    <td style="padding:0.4rem;"><strong>${esc(item.product_name)}</strong><br><span style="font-size:0.72rem;color:var(--gray-500);">${esc(item.barcode || '')}</span></td>
+                    <td style="padding:0.4rem;text-align:right;"><input type="number" id="finItemQty_${idx}" value="${item.quantity}" min="1" style="${inputStyle}" onchange="finRecalcTotal('${txnId}')"></td>
+                    <td style="padding:0.4rem;text-align:right;"><input type="number" id="finItemPrice_${idx}" value="${Number(item.unit_price).toFixed(2)}" step="0.01" min="0" style="${inputStyle}" onchange="finRecalcTotal('${txnId}')"></td>
+                    <td style="padding:0.4rem;text-align:right;"><input type="number" id="finItemCost_${idx}" value="${costPrice.toFixed(2)}" step="0.01" min="0" style="${inputStyle}" data-product-id="${item.product_id || ''}"></td>
+                    <td style="padding:0.4rem;">
+                        <div style="display:flex;gap:0.2rem;align-items:center;">
+                            <select id="finItemDiscType_${idx}" style="${selectStyle}">
+                                <option value="none" ${discType === 'none' ? 'selected' : ''}>—</option>
+                                <option value="percent" ${discType === 'percent' ? 'selected' : ''}>%</option>
+                                <option value="fixed" ${discType === 'fixed' ? 'selected' : ''}>€</option>
+                            </select>
+                            <input type="number" id="finItemDiscVal_${idx}" value="${discVal || ''}" step="0.01" min="0" style="width:45px;padding:0.25rem 0.3rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.78rem;font-family:'DM Sans',sans-serif;outline:none;">
+                        </div>
+                    </td>
+                    <td style="padding:0.4rem;">
+                        <select id="finItemVat_${idx}" style="${selectStyle}">
+                            <option value="none" ${vatCat === 'none' ? 'selected' : ''}>None</option>
+                            <option value="service" ${vatCat === 'service' ? 'selected' : ''}>13.5%</option>
+                            <option value="goods" ${vatCat === 'goods' ? 'selected' : ''}>23%</option>
+                        </select>
+                    </td>
+                    <td style="padding:0.4rem;text-align:right;font-weight:600;" id="finItemLineTotal_${idx}">€${lineTotal}</td>
+                </tr>`;
+            });
+
+            itemsHtml += `</tbody></table></div>
+                <div style="display:flex;justify-content:flex-end;margin-top:0.5rem;">
+                    <div style="font-size:0.95rem;font-weight:700;" id="finEditTotalDisplay">Total: €${total.toFixed(2)}</div>
+                </div>
+            </div>`;
+
             document.getElementById('finEditContent').innerHTML = `
+                ${itemsHtml}
                 <div style="margin-bottom:1rem;">
                     <label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:0.3rem;">Payment Method</label>
                     <select id="finEditPayMethod" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;">
@@ -2175,7 +2234,7 @@
                         <option value="both" ${t.payment_method === 'both' ? 'selected' : ''}>Both</option>
                     </select>
                 </div>
-                <div id="finEditSplit" style="${t.payment_method === 'both' ? '' : 'display:none;'}margin-bottom:1rem;display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                <div id="finEditSplit" style="${t.payment_method === 'both' ? 'display:grid;' : 'display:none;'}grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
                     <div><label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:0.3rem;">Cash Amount (€)</label><input type="number" id="finEditCash" value="${Number(t.cash_amount).toFixed(2)}" step="0.01" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;"></div>
                     <div><label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:0.3rem;">Card Amount (€)</label><input type="number" id="finEditCard" value="${Number(t.card_amount).toFixed(2)}" step="0.01" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;"></div>
                 </div>
@@ -2183,7 +2242,6 @@
                     <label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:0.3rem;">Notes</label>
                     <textarea id="finEditNotes" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;min-height:60px;">${esc(t.notes || '')}</textarea>
                 </div>
-                <div style="font-size:0.85rem;color:var(--gray-500);margin-bottom:1rem;">Total: <strong>€${total.toFixed(2)}</strong> · ${items.length} line items</div>
                 <div id="finEditAlert" class="alert" style="margin-bottom:1rem;"></div>
                 <div style="display:flex;gap:0.75rem;">
                     <button class="btn btn-primary btn-sm" onclick="finSaveEdit('${t.id}')">Save Changes</button>
@@ -2191,12 +2249,29 @@
                 </div>
             `;
 
-            // Toggle split fields
             document.getElementById('finEditPayMethod').addEventListener('change', function() {
                 document.getElementById('finEditSplit').style.display = this.value === 'both' ? 'grid' : 'none';
             });
 
+            // Store item count for save function
+            document.getElementById('finEditModal').dataset.itemCount = items.length;
             document.getElementById('finEditModal').classList.add('show');
+        }
+
+        function finRecalcTotal(txnId) {
+            const t = finPosTxns.find(x => x.id === txnId);
+            const items = t.pos_transaction_items || [];
+            let newTotal = 0;
+            items.forEach((item, idx) => {
+                const qty = parseInt(document.getElementById('finItemQty_' + idx)?.value) || 0;
+                const price = parseFloat(document.getElementById('finItemPrice_' + idx)?.value) || 0;
+                const lineTotal = qty * price;
+                newTotal += lineTotal;
+                const el = document.getElementById('finItemLineTotal_' + idx);
+                if (el) el.textContent = '€' + lineTotal.toFixed(2);
+            });
+            const el = document.getElementById('finEditTotalDisplay');
+            if (el) el.textContent = 'Total: €' + newTotal.toFixed(2);
         }
 
         function finHideEdit() {
@@ -2207,35 +2282,81 @@
             const method = document.getElementById('finEditPayMethod').value;
             const notes = document.getElementById('finEditNotes').value.trim();
             const t = finPosTxns.find(x => x.id === txnId);
-            const total = Number(t.total);
+            const items = t.pos_transaction_items || [];
+            const itemCount = parseInt(document.getElementById('finEditModal').dataset.itemCount) || items.length;
+
+            // Recalculate total from edited items
+            let newTotal = 0;
+            for (let idx = 0; idx < itemCount; idx++) {
+                const qty = parseInt(document.getElementById('finItemQty_' + idx)?.value) || 0;
+                const price = parseFloat(document.getElementById('finItemPrice_' + idx)?.value) || 0;
+                newTotal += qty * price;
+            }
 
             let cashAmount = 0, cardAmount = 0;
-            if (method === 'card') { cardAmount = total; }
-            else if (method === 'cash') { cashAmount = total; }
+            if (method === 'card') { cardAmount = newTotal; }
+            else if (method === 'cash') { cashAmount = newTotal; }
             else {
                 cashAmount = parseFloat(document.getElementById('finEditCash').value) || 0;
                 cardAmount = parseFloat(document.getElementById('finEditCard').value) || 0;
-                if (Math.round((cashAmount + cardAmount) * 100) !== Math.round(total * 100)) {
-                    showAlert('finEditAlert', `Cash + Card must equal €${total.toFixed(2)}`, 'error');
+                if (Math.round((cashAmount + cardAmount) * 100) !== Math.round(newTotal * 100)) {
+                    showAlert('finEditAlert', `Cash + Card must equal €${newTotal.toFixed(2)} (currently €${(cashAmount + cardAmount).toFixed(2)})`, 'error');
                     return;
                 }
             }
 
-            // Generate new transaction number (UUID-based)
-            const { data: newNum } = await db.rpc('next_pos_txn_number');
+            try {
+                // Generate new transaction number
+                const { data: newNum } = await db.rpc('next_pos_txn_number');
 
-            const { error } = await db.from('pos_transactions').update({
-                transaction_number: newNum || t.transaction_number,
-                payment_method: method,
-                cash_amount: cashAmount,
-                card_amount: cardAmount,
-                notes: notes
-            }).eq('id', txnId);
+                // Update transaction header
+                const { error: txnErr } = await db.from('pos_transactions').update({
+                    transaction_number: newNum || t.transaction_number,
+                    payment_method: method,
+                    cash_amount: cashAmount,
+                    card_amount: cardAmount,
+                    subtotal: newTotal,
+                    total: newTotal,
+                    notes: notes
+                }).eq('id', txnId);
+                if (txnErr) throw new Error(txnErr.message);
 
-            if (error) { showAlert('finEditAlert', 'Error: ' + error.message, 'error'); return; }
-            finHideEdit();
-            showAlert('alert', 'Transaction updated. New ID: ' + newNum, 'success');
-            await finFetchData();
+                // Update each item
+                for (let idx = 0; idx < itemCount; idx++) {
+                    const item = items[idx];
+                    if (!item) continue;
+
+                    const newQty = parseInt(document.getElementById('finItemQty_' + idx)?.value) || item.quantity;
+                    const newPrice = parseFloat(document.getElementById('finItemPrice_' + idx)?.value) || Number(item.unit_price);
+                    const newDiscType = document.getElementById('finItemDiscType_' + idx)?.value || 'none';
+                    const newDiscVal = parseFloat(document.getElementById('finItemDiscVal_' + idx)?.value) || 0;
+                    const newVat = document.getElementById('finItemVat_' + idx)?.value || 'none';
+
+                    const { error: itemErr } = await db.from('pos_transaction_items').update({
+                        quantity: newQty,
+                        unit_price: newPrice,
+                        discount_type: newDiscType,
+                        discount_value: newDiscVal,
+                        vat_category: newVat
+                    }).eq('id', item.id);
+                    if (itemErr) console.error('Item update error:', itemErr);
+
+                    // Update cost_price on the product if changed
+                    const costInput = document.getElementById('finItemCost_' + idx);
+                    if (costInput && costInput.dataset.productId) {
+                        const newCost = parseFloat(costInput.value) || 0;
+                        await db.from('products').update({ cost_price: newCost }).eq('id', costInput.dataset.productId);
+                        const prod = allProducts.find(p => p.id === costInput.dataset.productId);
+                        if (prod) prod.cost_price = newCost;
+                    }
+                }
+
+                finHideEdit();
+                showAlert('alert', 'Transaction updated. New ID: ' + (newNum || t.transaction_number), 'success');
+                await finFetchData();
+            } catch (err) {
+                showAlert('finEditAlert', 'Error: ' + err.message, 'error');
+            }
         }
 
         async function finDeletePos(txnId, txnNumber) {
