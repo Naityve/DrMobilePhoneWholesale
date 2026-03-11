@@ -1850,18 +1850,22 @@
                 if (txnError) throw new Error(txnError.message);
 
                 // Create transaction items
-                const txnItems = posItems.map(item => ({
-                    transaction_id: txn.id,
-                    product_id: item.is_generic ? null : item.product_id,
-                    product_name: item.product_name,
-                    barcode: item.barcode,
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    original_price: item.original_price || item.unit_price,
-                    discount_type: item.discount_type || 'none',
-                    discount_value: item.discount_value || 0,
-                    vat_category: item.vat_category || 'none'
-                }));
+                const txnItems = posItems.map(item => {
+                    const prod = item.is_generic ? null : allProducts.find(p => p.id === item.product_id);
+                    return {
+                        transaction_id: txn.id,
+                        product_id: item.is_generic ? null : item.product_id,
+                        product_name: item.product_name,
+                        barcode: item.barcode,
+                        quantity: item.quantity,
+                        unit_price: item.unit_price,
+                        original_price: item.original_price || item.unit_price,
+                        discount_type: item.discount_type || 'none',
+                        discount_value: item.discount_value || 0,
+                        vat_category: item.vat_category || 'none',
+                        cost_price: prod ? Number(prod.cost_price || 0) : 0
+                    };
+                });
 
                 const { error: itemsError } = await db.from('pos_transaction_items').insert(txnItems);
                 if (itemsError) throw new Error(itemsError.message);
@@ -2021,17 +2025,16 @@
             document.getElementById('finOnlineRevenue').textContent = '€' + onlineRevenue.toFixed(2);
             document.getElementById('finTotalRevenue').textContent = '€' + (posRevenue + onlineRevenue).toFixed(2);
 
-            // Profit calculation using cost_price
+            // Profit calculation using cost_price stored on each transaction item
             let totalCost = 0;
-            // POS cost
+            // POS cost - use cost_price from transaction item (falls back to product lookup for old data)
             finPosTxns.forEach(t => {
                 (t.pos_transaction_items || []).forEach(i => {
-                    const prod = allProducts.find(p => p.id === i.product_id);
-                    const cost = prod ? Number(prod.cost_price || 0) : 0;
+                    const cost = i.cost_price != null ? Number(i.cost_price) : (() => { const prod = allProducts.find(p => p.id === i.product_id); return prod ? Number(prod.cost_price || 0) : 0; })();
                     totalCost += cost * i.quantity;
                 });
             });
-            // Online cost
+            // Online cost (still uses product lookup since online orders don't have cost_price on items)
             finOnlineOrders.filter(o => o.status !== 'cancelled').forEach(o => {
                 (o.order_items || []).forEach(i => {
                     const prod = allProducts.find(p => p.id === i.product_id);
@@ -2183,8 +2186,7 @@
                     <tbody>`;
 
             items.forEach((item, idx) => {
-                const prod = allProducts.find(p => p.id === item.product_id);
-                const costPrice = prod ? Number(prod.cost_price || 0) : 0;
+                const costPrice = Number(item.cost_price || 0);
                 const lineTotal = (Number(item.unit_price) * item.quantity).toFixed(2);
                 const discType = item.discount_type || 'none';
                 const discVal = item.discount_value || 0;
@@ -2335,22 +2337,23 @@
                     const newDiscType = document.getElementById('finItemDiscType_' + idx)?.value || 'none';
                     const newDiscVal = parseFloat(document.getElementById('finItemDiscVal_' + idx)?.value) || 0;
                     const newVat = document.getElementById('finItemVat_' + idx)?.value || 'none';
+                    const newCost = parseFloat(document.getElementById('finItemCost_' + idx)?.value) || 0;
 
                     const { error: itemErr } = await db.from('pos_transaction_items').update({
                         quantity: newQty,
                         unit_price: newPrice,
                         discount_type: newDiscType,
                         discount_value: newDiscVal,
-                        vat_category: newVat
+                        vat_category: newVat,
+                        cost_price: newCost
                     }).eq('id', item.id);
                     if (itemErr) itemErrors.push('Item ' + (idx+1) + ': ' + itemErr.message);
 
-                    // Update cost_price on the product if changed
+                    // Also update cost_price on the product if it exists (not generic)
                     const costInput = document.getElementById('finItemCost_' + idx);
                     if (costInput && costInput.dataset.productId && costInput.dataset.productId !== '') {
-                        const newCost = parseFloat(costInput.value) || 0;
                         const { error: costErr } = await db.from('products').update({ cost_price: newCost }).eq('id', costInput.dataset.productId);
-                        if (costErr) console.error('Cost update error:', costErr);
+                        if (costErr) console.error('Product cost update error:', costErr);
                         const prod = allProducts.find(p => p.id === costInput.dataset.productId);
                         if (prod) prod.cost_price = newCost;
                     }
@@ -2627,8 +2630,8 @@
 
             txns.forEach(t => {
                 (t.pos_transaction_items || []).forEach(i => {
-                    const prod = allProducts.find(p => p.id === i.product_id);
-                    totalCost += (prod ? Number(prod.cost_price || 0) : 0) * i.quantity;
+                    const cost = i.cost_price != null ? Number(i.cost_price) : (() => { const prod = allProducts.find(p => p.id === i.product_id); return prod ? Number(prod.cost_price || 0) : 0; })();
+                    totalCost += cost * i.quantity;
                     // VAT calc
                     const cat = i.vat_category || 'none';
                     const rate = vatRates[cat] || 0;
@@ -2828,8 +2831,8 @@
 
             let costOfGoods = 0;
             posTxns.forEach(t => (t.pos_transaction_items || []).forEach(i => {
-                const p = allProducts.find(x => x.id === i.product_id);
-                costOfGoods += (p ? Number(p.cost_price || 0) : 0) * i.quantity;
+                const cost = i.cost_price != null ? Number(i.cost_price) : (() => { const p = allProducts.find(x => x.id === i.product_id); return p ? Number(p.cost_price || 0) : 0; })();
+                costOfGoods += cost * i.quantity;
             }));
             onlineOrders.forEach(o => (o.order_items || []).forEach(i => {
                 const p = allProducts.find(x => x.id === i.product_id);
@@ -2867,8 +2870,8 @@
                 const key = new Date(t.created_at).toISOString().split('T')[0];
                 if (dayMap[key]) dayMap[key].posRev += Number(t.total);
                 (t.pos_transaction_items || []).forEach(i => {
-                    const p = allProducts.find(x => x.id === i.product_id);
-                    if (dayMap[key]) dayMap[key].cost += (p ? Number(p.cost_price || 0) : 0) * i.quantity;
+                    const cost = i.cost_price != null ? Number(i.cost_price) : (() => { const p = allProducts.find(x => x.id === i.product_id); return p ? Number(p.cost_price || 0) : 0; })();
+                    if (dayMap[key]) dayMap[key].cost += cost * i.quantity;
                 });
             });
             onlineOrders.forEach(o => {
