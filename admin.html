@@ -2306,8 +2306,11 @@
             }
 
             try {
+                showAlert('finEditAlert', 'Saving...', 'success');
+
                 // Generate new transaction number
-                const { data: newNum } = await db.rpc('next_pos_txn_number');
+                const { data: newNum, error: rpcErr } = await db.rpc('next_pos_txn_number');
+                if (rpcErr) throw new Error('Failed to generate transaction number: ' + rpcErr.message);
 
                 // Update transaction header
                 const { error: txnErr } = await db.from('pos_transactions').update({
@@ -2319,9 +2322,10 @@
                     total: newTotal,
                     notes: notes
                 }).eq('id', txnId);
-                if (txnErr) throw new Error(txnErr.message);
+                if (txnErr) throw new Error('Transaction header update failed: ' + txnErr.message);
 
                 // Update each item
+                let itemErrors = [];
                 for (let idx = 0; idx < itemCount; idx++) {
                     const item = items[idx];
                     if (!item) continue;
@@ -2339,20 +2343,25 @@
                         discount_value: newDiscVal,
                         vat_category: newVat
                     }).eq('id', item.id);
-                    if (itemErr) console.error('Item update error:', itemErr);
+                    if (itemErr) itemErrors.push('Item ' + (idx+1) + ': ' + itemErr.message);
 
                     // Update cost_price on the product if changed
                     const costInput = document.getElementById('finItemCost_' + idx);
-                    if (costInput && costInput.dataset.productId) {
+                    if (costInput && costInput.dataset.productId && costInput.dataset.productId !== '') {
                         const newCost = parseFloat(costInput.value) || 0;
-                        await db.from('products').update({ cost_price: newCost }).eq('id', costInput.dataset.productId);
+                        const { error: costErr } = await db.from('products').update({ cost_price: newCost }).eq('id', costInput.dataset.productId);
+                        if (costErr) console.error('Cost update error:', costErr);
                         const prod = allProducts.find(p => p.id === costInput.dataset.productId);
                         if (prod) prod.cost_price = newCost;
                     }
                 }
 
+                // Refresh products to pick up cost changes for profit calculations
+                await loadProducts();
+
                 finHideEdit();
-                showAlert('alert', 'Transaction updated. New ID: ' + (newNum || t.transaction_number), 'success');
+                const errMsg = itemErrors.length > 0 ? ' (Warnings: ' + itemErrors.join('; ') + ')' : '';
+                showAlert('alert', 'Transaction updated. New ID: ' + (newNum || t.transaction_number) + errMsg, 'success');
                 await finFetchData();
             } catch (err) {
                 showAlert('finEditAlert', 'Error: ' + err.message, 'error');
