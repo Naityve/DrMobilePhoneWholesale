@@ -41,10 +41,36 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Clear any remaining cart data
-        localStorage.removeItem('consumer_cart');
-        localStorage.removeItem('consumer_cart_backup');
+        const SUPABASE_URL = 'https://btzbifpqtzgpyvlyipxk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0emJpZnBxdHpncHl2bHlpcHhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTM0ODMsImV4cCI6MjA4NzUyOTQ4M30.oIdVuiKlstdYUi6bSjev61wGNr4hbL5rIWtwIwT_R-s';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        (async () => {
+            // Get order ID from URL or localStorage
+            const params = new URLSearchParams(window.location.search);
+            const orderId = params.get('order_id') || localStorage.getItem('consumer_order_id');
+            const sessionId = localStorage.getItem('consumer_stripe_session') || '';
+
+            // Confirm payment in database
+            if (orderId) {
+                try {
+                    await db.rpc('confirm_guest_payment', {
+                        p_order_id: orderId,
+                        p_session_id: sessionId
+                    });
+                } catch (e) {
+                    console.error('Payment confirmation error:', e);
+                }
+            }
+
+            // Clean up
+            localStorage.removeItem('consumer_cart');
+            localStorage.removeItem('consumer_cart_backup');
+            localStorage.removeItem('consumer_order_id');
+            localStorage.removeItem('consumer_stripe_session');
+        })();
 
         function toggleMobileMenu() { document.querySelector('.nav-links')?.classList.toggle('open'); }
         document.addEventListener('click', e => { if (e.target.closest('.nav-links a')) document.querySelector('.nav-links')?.classList.remove('open'); });

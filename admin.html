@@ -1169,7 +1169,7 @@
 
             if (error) { showAlert('alert', 'Failed to load orders: ' + error.message, 'error'); return; }
 
-            const userIds = [...new Set((data || []).map(o => o.user_id))];
+            const userIds = [...new Set((data || []).map(o => o.user_id).filter(id => id != null))];
             let profileMap = {};
             if (userIds.length > 0) {
                 const { data: profiles } = await db.from('profiles').select('id, business_name, contact_name, email, phone').in('id', userIds);
@@ -1183,7 +1183,12 @@
                 (invoices || []).forEach(inv => allInvoices[inv.order_id] = inv);
             }
 
-            allOrders = (data || []).map(o => ({ ...o, profiles: profileMap[o.user_id] || {}, invoice: allInvoices[o.id] || null }));
+            allOrders = (data || []).map(o => {
+                if (o.is_guest) {
+                    return { ...o, profiles: { business_name: o.guest_name + ' (Guest)', contact_name: o.guest_name, email: o.guest_email, phone: o.guest_phone }, invoice: allInvoices[o.id] || null };
+                }
+                return { ...o, profiles: profileMap[o.user_id] || {}, invoice: allInvoices[o.id] || null };
+            });
             renderOrders();
         }
 
@@ -1272,6 +1277,7 @@
                         <div>
                             <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--gray-500);display:block;margin-bottom:0.3rem;">Customer</label>
                             <p style="font-size:0.88rem;line-height:1.5;"><strong>${esc(profile.business_name || '—')}</strong><br>${esc(profile.contact_name || '')}<br>${esc(profile.email || '')}<br>${esc(profile.phone || '')}</p>
+                            ${order.is_guest ? `<label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--gray-500);display:block;margin:0.8rem 0 0.3rem;">Shipping Address</label><p style="font-size:0.88rem;line-height:1.5;">${esc(order.shipping_address_1 || '')}${order.shipping_address_2 ? '<br>' + esc(order.shipping_address_2) : ''}<br>${esc(order.shipping_city || '')}${order.shipping_county ? ', ' + esc(order.shipping_county) : ''}${order.shipping_eircode ? '<br>' + esc(order.shipping_eircode) : ''}</p>` : ''}
                         </div>
                         <div>
                             <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--gray-500);display:block;margin-bottom:0.3rem;">Order Details</label>
@@ -1997,13 +2003,16 @@
                 .order('created_at', { ascending: false });
 
             // Fetch customer profiles for online orders
-            const userIds = [...new Set((orders || []).map(o => o.user_id))];
+            const userIds = [...new Set((orders || []).map(o => o.user_id).filter(id => id != null))];
             let profileMap = {};
             if (userIds.length > 0) {
                 const { data: profiles } = await db.from('profiles').select('id, business_name, email').in('id', userIds);
                 (profiles || []).forEach(p => profileMap[p.id] = p);
             }
-            finOnlineOrders = (orders || []).map(o => ({ ...o, profile: profileMap[o.user_id] || {} }));
+            finOnlineOrders = (orders || []).map(o => {
+                if (o.is_guest) return { ...o, profile: { business_name: o.guest_name + ' (Guest)', email: o.guest_email } };
+                return { ...o, profile: profileMap[o.user_id] || {} };
+            });
 
             finRenderSummary();
             finRenderContent();

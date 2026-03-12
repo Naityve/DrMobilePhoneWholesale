@@ -139,8 +139,12 @@
         async function handlePay() {
             const name = document.getElementById('coName').value.trim();
             const email = document.getElementById('coEmail').value.trim();
+            const phone = document.getElementById('coPhone').value.trim();
             const addr1 = document.getElementById('coAddr1').value.trim();
+            const addr2 = document.getElementById('coAddr2').value.trim();
             const city = document.getElementById('coCity').value.trim();
+            const county = document.getElementById('coCounty').value.trim();
+            const eircode = document.getElementById('coEircode').value.trim();
 
             if (!name || !email || !addr1 || !city) {
                 showAlert('alert', 'Please fill in all required fields.', 'error');
@@ -149,11 +153,38 @@
 
             const btn = document.getElementById('payBtn');
             btn.disabled = true;
-            showProcessing('Redirecting to payment...');
+            showProcessing('Saving order...');
 
             try {
                 const cart = getCart().filter(c => productMap[c.product_id]);
-                const items = cart.map(i => {
+                const total = cart.reduce((s, i) => s + getRetailPrice(productMap[i.product_id]) * i.quantity, 0);
+
+                // Build items for DB
+                const dbItems = cart.map(i => {
+                    const p = productMap[i.product_id];
+                    return { product_id: p.id, product_name: p.name, quantity: i.quantity, unit_price: getRetailPrice(p) };
+                });
+
+                // Save order to database
+                const { data: orderResult, error: orderErr } = await db.rpc('create_guest_order', {
+                    p_guest_name: name,
+                    p_guest_email: email,
+                    p_guest_phone: phone,
+                    p_shipping_address_1: addr1,
+                    p_shipping_address_2: addr2,
+                    p_shipping_city: city,
+                    p_shipping_county: county,
+                    p_shipping_eircode: eircode,
+                    p_total: total,
+                    p_items: dbItems
+                });
+
+                if (orderErr) throw new Error('Failed to save order: ' + orderErr.message);
+                const orderId = orderResult.order_id;
+
+                // Build Stripe items
+                showProcessing('Redirecting to payment...');
+                const stripeItems = cart.map(i => {
                     const p = productMap[i.product_id];
                     return { name: p.name, price: getRetailPrice(p), quantity: i.quantity };
                 });
@@ -163,10 +194,10 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        items: items,
-                        order_id: 'consumer-' + Date.now(),
+                        items: stripeItems,
+                        order_id: orderId,
                         customer_email: email,
-                        success_url: baseUrl + '/consumer-success.html',
+                        success_url: baseUrl + '/consumer-success.html?order_id=' + orderId,
                         cancel_url: baseUrl + '/consumer-checkout.html'
                     })
                 });
@@ -174,7 +205,11 @@
                 const data = await response.json();
                 if (data.error) throw new Error(data.error);
 
-                // Clear cart on redirect
+                // Store order ID and session ID for the success page
+                localStorage.setItem('consumer_order_id', orderId);
+                localStorage.setItem('consumer_stripe_session', data.session_id);
+
+                // Backup cart then clear
                 localStorage.setItem('consumer_cart_backup', localStorage.getItem('consumer_cart'));
                 localStorage.removeItem('consumer_cart');
 
