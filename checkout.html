@@ -103,6 +103,7 @@
         let cartItems = [];
         let profile = null;
         let selectedPayment = 'card'; // default
+        let shipSettings = {};
 
         (async () => {
             const result = await requireAuth(['approved']);
@@ -115,8 +116,22 @@
                 window.location.href = '/cart.html';
                 return;
             }
+
+            const { data: shipRow } = await db.from('shop_settings').select('value').eq('key', 'shipping').single();
+            if (shipRow) shipSettings = shipRow.value;
+
             renderCheckout();
         })();
+
+        function calcShipping(subtotal) {
+            let rate = shipSettings.standard_rate || 0;
+            let label = 'Shipping';
+            if (shipSettings.free_threshold > 0 && subtotal >= shipSettings.free_threshold) {
+                rate = 0;
+                label = 'Free Shipping';
+            }
+            return { rate, label };
+        }
 
         function renderNavForCheckout(profile) {
             const navLinks = document.querySelector('.nav-links');
@@ -135,7 +150,9 @@
         }
 
         function renderCheckout() {
-            const total = calculateCartTotal(cartItems);
+            const subtotal = calculateCartTotal(cartItems);
+            const { rate: shipping, label: shippingLabel } = calcShipping(subtotal);
+            const total = subtotal + shipping;
             const isCreditApproved = profile.credit_approved === true;
 
             let html = '';
@@ -208,6 +225,10 @@
                     <div class="summary-item-price">€${lineTotal.toFixed(2)}</div>
                 </div>`;
             });
+            html += `<div style="padding:0.5rem 0;border-top:1px solid var(--gray-100);margin-top:0.25rem;">
+                <div style="display:flex;justify-content:space-between;font-size:0.88rem;margin-bottom:0.3rem;"><span>Subtotal</span><span>€${subtotal.toFixed(2)}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:0.88rem;margin-bottom:0.3rem;"><span>${shippingLabel}</span><span>${shipping === 0 ? 'FREE' : '€' + shipping.toFixed(2)}</span></div>
+            </div>`;
             html += `<div class="summary-total">
                 <span class="label">Total</span>
                 <span class="value">€${total.toFixed(2)}</span>
@@ -221,7 +242,9 @@
             selectedPayment = method;
             document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
             document.getElementById('opt-' + method).classList.add('selected');
-            const total = calculateCartTotal(cartItems);
+            const subtotal = calculateCartTotal(cartItems);
+            const { rate: shipping } = calcShipping(subtotal);
+            const total = subtotal + shipping;
             const btn = document.getElementById('checkoutBtn');
             btn.textContent = method === 'invoice'
                 ? 'Place Order on Account'
@@ -235,7 +258,9 @@
 
             try {
                 const user = await getCurrentUser();
-                const total = calculateCartTotal(cartItems);
+                const subtotal = calculateCartTotal(cartItems);
+                const { rate: shipping, label: shippingLabel } = calcShipping(subtotal);
+                const total = subtotal + shipping;
                 const notes = document.getElementById('orderNotes')?.value?.trim() || '';
 
                 // 1. Create order in database
@@ -245,7 +270,7 @@
                         user_id: user.id,
                         status: selectedPayment === 'invoice' ? 'invoiced' : 'pending',
                         payment_method: selectedPayment,
-                        subtotal: total,
+                        subtotal: subtotal,
                         total: total,
                         notes: notes
                     })
@@ -280,7 +305,7 @@
 
                 // 4. Route based on payment method
                 if (selectedPayment === 'card') {
-                    await handleCardPayment(order, user);
+                    await handleCardPayment(order, user, shipping, shippingLabel);
                 } else {
                     await handleInvoiceOrder(order, user, total);
                 }
@@ -292,7 +317,7 @@
             }
         }
 
-        async function handleCardPayment(order, user) {
+        async function handleCardPayment(order, user, shipping, shippingLabel) {
             showProcessing('Redirecting to Stripe...');
 
             const items = cartItems.map(item => {
@@ -300,6 +325,9 @@
                 const price = (p.is_on_sale && p.sale_price) ? Number(p.sale_price) : Number(p.price);
                 return { name: p.name, price: price, quantity: item.quantity };
             });
+            if (shipping > 0) {
+                items.push({ name: shippingLabel, price: shipping, quantity: 1 });
+            }
 
             const baseUrl = window.location.origin;
 
