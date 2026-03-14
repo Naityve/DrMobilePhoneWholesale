@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg>
+            </div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links">
+            <button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <a href="/">Shop</a>
+            <a href="/consumer-login.html" class="nav-cta">Sign In</a>
+        </div>
+        <button class="hamburger" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+    </nav>
+
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <h1>Sign in to your account</h1>
+            <p class="subtitle">Sign in to complete your order.</p>
+
+            <div id="alert" class="alert"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="you@example.com" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="submitBtn">Sign In</button>
+            </form>
+
+            <div class="divider"></div>
+
+            <p class="footer-text">
+                Don't have an account? <a href="" id="registerLink">Create one — it's free</a>
+            </p>
+            <p class="footer-text" style="margin-top:0.5rem;font-size:0.8rem;">
+                Business customer? <a href="/login.html">Wholesale sign in</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://btzbifpqtzgpyvlyipxk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0emJpZnBxdHpncHl2bHlpcHhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTM0ODMsImV4cCI6MjA4NzUyOTQ4M30.oIdVuiKlstdYUi6bSjev61wGNr4hbL5rIWtwIwT_R-s';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function toggleMobileMenu() { document.querySelector('.nav-links')?.classList.toggle('open'); }
+
+        const params = new URLSearchParams(window.location.search);
+        const returnUrl = params.get('return') || '/consumer-checkout.html';
+
+        // Set register link to preserve return param
+        document.getElementById('registerLink').href = '/consumer-register.html' + (params.get('return') ? '?return=' + encodeURIComponent(params.get('return')) : '');
+
+        // If already logged in, redirect
+        (async () => {
+            const { data: { session } } = await db.auth.getSession();
+            if (session) window.location.href = returnUrl;
+        })();
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            const { error } = await db.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                document.getElementById('alert').className = 'alert alert-error show';
+                document.getElementById('alert').textContent = error.message;
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+                return;
+            }
+
+            window.location.href = returnUrl;
+        });
+    </script>
+</body>
+</html>

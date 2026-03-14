@@ -75,6 +75,7 @@
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let productMap = {};
+        let currentUser = null;
 
         function toggleMobileMenu() { document.querySelector('.nav-links')?.classList.toggle('open'); }
         document.addEventListener('click', e => { if (e.target.closest('.nav-links a')) document.querySelector('.nav-links')?.classList.remove('open'); });
@@ -91,6 +92,14 @@
 
         (async () => {
             updateBadge();
+
+            // Require authentication
+            const { data: { session } } = await db.auth.getSession();
+            if (!session) {
+                showAuthWall();
+                return;
+            }
+            currentUser = session.user;
 
             // Check if returning from a failed/abandoned Stripe payment
             const pendingOrderId = localStorage.getItem('consumer_order_id');
@@ -130,6 +139,20 @@
 
             renderCheckout();
         })();
+
+        function showAuthWall() {
+            document.getElementById('checkoutContent').innerHTML = `
+                <div style="grid-column:1/-1;max-width:480px;margin:0 auto;width:100%;text-align:center;padding:2rem 0;">
+                    <div style="width:56px;height:56px;background:var(--orange);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
+                        <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                    <h2 style="font-family:'Instrument Serif',serif;font-size:1.5rem;font-weight:400;margin-bottom:0.5rem;">Sign in to complete your order</h2>
+                    <p style="color:var(--gray-500);font-size:0.9rem;margin-bottom:1.75rem;line-height:1.5;">We require an account so we can keep you updated on your order and help if anything goes wrong.</p>
+                    <a href="/consumer-login.html?return=${encodeURIComponent(window.location.pathname)}" class="btn btn-primary" style="width:100%;margin-bottom:0.75rem;display:block;">Sign In</a>
+                    <a href="/consumer-register.html?return=${encodeURIComponent(window.location.pathname)}" class="btn btn-secondary" style="width:100%;display:block;">Create a Free Account</a>
+                    <p style="margin-top:1.25rem;font-size:0.8rem;color:var(--gray-400);">Business customer? <a href="/login.html" style="color:var(--orange);">Wholesale sign in</a></p>
+                </div>`;
+        }
 
         function showResumeUI(order) {
             const items = order.order_items || [];
@@ -240,14 +263,20 @@
 
             let html = '';
 
+            const meta = currentUser?.user_metadata || {};
+            const prefillName = esc(meta.full_name || '');
+            const prefillEmail = esc(currentUser?.email || '');
+            const prefillPhone = esc(meta.phone || '');
+
             // Left: Form
             html += `<div class="co-form">
                 <h2>Your Details</h2>
+                <p style="font-size:0.82rem;color:var(--gray-500);margin:-0.5rem 0 1rem;">Signed in as <strong>${prefillEmail}</strong>. <a href="#" onclick="handleSignOut(event)" style="color:var(--orange);">Not you?</a></p>
                 <div class="form-row">
-                    <div class="form-group"><label for="coName">Full Name *</label><input type="text" id="coName" placeholder="Your name" required></div>
-                    <div class="form-group"><label for="coEmail">Email *</label><input type="email" id="coEmail" placeholder="you@example.com" required></div>
+                    <div class="form-group"><label for="coName">Full Name *</label><input type="text" id="coName" placeholder="Your name" value="${prefillName}" required></div>
+                    <div class="form-group"><label for="coEmail">Email *</label><input type="email" id="coEmail" placeholder="you@example.com" value="${prefillEmail}" required></div>
                 </div>
-                <div class="form-group"><label for="coPhone">Phone</label><input type="tel" id="coPhone" placeholder="Your phone number"></div>
+                <div class="form-group"><label for="coPhone">Phone</label><input type="tel" id="coPhone" placeholder="Your phone number" value="${prefillPhone}"></div>
                 <h2 style="margin-top:1.5rem;">Shipping Address</h2>
                 <div class="form-group"><label for="coAddr1">Address Line 1 *</label><input type="text" id="coAddr1" placeholder="Street address" required></div>
                 <div class="form-group"><label for="coAddr2">Address Line 2</label><input type="text" id="coAddr2" placeholder="Apt, suite, etc."></div>
@@ -320,21 +349,29 @@
                 });
 
                 // Save order to database
-                const { data: orderResult, error: orderErr } = await db.rpc('create_guest_order', {
-                    p_guest_name: name,
-                    p_guest_email: email,
-                    p_guest_phone: phone,
-                    p_shipping_address_1: addr1,
-                    p_shipping_address_2: addr2,
-                    p_shipping_city: city,
-                    p_shipping_county: county,
-                    p_shipping_eircode: eircode,
-                    p_total: total,
-                    p_items: dbItems
-                });
+                const { data: newOrder, error: orderErr } = await db.from('orders').insert({
+                    user_id: currentUser.id,
+                    guest_name: name,
+                    guest_email: email,
+                    guest_phone: phone,
+                    shipping_address_1: addr1,
+                    shipping_address_2: addr2,
+                    shipping_city: city,
+                    shipping_county: county,
+                    shipping_eircode: eircode,
+                    subtotal: subtotal,
+                    total: total,
+                    payment_method: 'card',
+                    status: 'pending'
+                }).select('id').single();
 
                 if (orderErr) throw new Error('Failed to save order: ' + orderErr.message);
-                const orderId = orderResult.order_id;
+                const orderId = newOrder.id;
+
+                // Save order items
+                const orderItems = dbItems.map(i => ({ ...i, order_id: orderId }));
+                const { error: itemsErr } = await db.from('order_items').insert(orderItems);
+                if (itemsErr) throw new Error('Failed to save order items: ' + itemsErr.message);
 
                 // Reserve stock for each item
                 for (const item of cart) {
@@ -384,6 +421,12 @@
                 showAlert('alert', err.message, 'error');
                 btn.disabled = false;
             }
+        }
+
+        async function handleSignOut(e) {
+            e.preventDefault();
+            await db.auth.signOut();
+            window.location.href = '/consumer-login.html?return=' + encodeURIComponent(window.location.pathname);
         }
 
         function showAlert(id, msg, type) { const el = document.getElementById(id); el.className = 'alert alert-' + type + ' show'; el.textContent = msg; }

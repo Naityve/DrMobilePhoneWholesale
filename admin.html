@@ -1299,13 +1299,12 @@
                     <td>${order.payment_method ? cap(order.payment_method) : '—'}</td>
                     <td><span class="status-badge status-${statusMap[order.status] || 'pending'}">${cap(order.status)}</span></td>
                     <td>${fmtDate(order.created_at)}</td>
-                    <td class="actions" style="min-width:220px;">
+                    <td class="actions" style="min-width:200px;">
                         <button class="btn btn-sm btn-secondary" onclick="viewAdminOrder('${order.id}')" style="margin-right:0.25rem;">View</button>
-                        <select onchange="updateOrderStatus('${order.id}', this.value); this.value='';" style="padding:0.4rem;border-radius:6px;border:1px solid var(--gray-200);font-size:0.78rem;font-family:'DM Sans',sans-serif;margin-right:0.25rem;">
+                        <select onchange="updateOrderStatus('${order.id}', this.value); this.value='';" style="padding:0.4rem;border-radius:6px;border:1px solid var(--gray-200);font-size:0.78rem;font-family:'DM Sans',sans-serif;">
                             <option value="">Update...</option>
                             ${statusActions.map(s => `<option value="${s}">${cap(s)}</option>`).join('')}
                         </select>
-                        <button class="btn btn-sm" onclick="deleteOrder('${order.id}')" style="background:var(--red-dim);color:var(--red);border:none;cursor:pointer;border-radius:6px;padding:0.3rem 0.6rem;font-size:0.78rem;font-family:'DM Sans',sans-serif;font-weight:600;">Delete</button>
                     </td>
                 </tr>`;
             }).join('');
