@@ -273,7 +273,12 @@
 
                 if (itemsError) throw new Error('Failed to save order items: ' + itemsError.message);
 
-                // 3. Route based on payment method
+                // 3. Reserve stock for each item
+                for (const item of cartItems) {
+                    await db.rpc('deduct_stock', { p_product_id: item.product.id, p_quantity: item.quantity });
+                }
+
+                // 4. Route based on payment method
                 if (selectedPayment === 'card') {
                     await handleCardPayment(order, user);
                 } else {

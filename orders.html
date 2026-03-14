@@ -23,11 +23,17 @@
         /* Order list */
         .order-card { border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s; }
         .order-card:hover { border-color: var(--orange); box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+        .order-card.pending-payment { border-color: #FCD34D; background: #FFFBEB; }
         .order-card-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
         .order-card .order-id { font-weight: 700; font-size: 0.9rem; }
         .order-card .order-date { font-size: 0.82rem; color: var(--gray-500); }
         .order-card .order-summary { font-size: 0.84rem; color: var(--gray-500); margin-top: 0.3rem; }
         .order-card .total { font-weight: 700; font-size: 1rem; }
+        .order-card .pay-now-bar { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #FCD34D; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+        .order-card .pay-now-bar p { font-size: 0.82rem; color: #92400E; margin: 0; }
+        .btn-pay-now { background: var(--orange); color: white; border: none; border-radius: 8px; padding: 0.45rem 1rem; font-size: 0.85rem; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: opacity 0.2s; }
+        .btn-pay-now:hover { opacity: 0.88; }
+        .btn-pay-now:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Back link */
         .back-link { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.88rem; color: var(--gray-500); margin-bottom: 1.5rem; cursor: pointer; transition: color 0.2s; }
@@ -166,8 +172,14 @@
             content.innerHTML = allOrders.map(order => {
                 const items = order.order_items || [];
                 const itemCount = items.reduce((s, i) => s + i.quantity, 0);
+                const isPendingCard = order.status === 'pending' && order.payment_method === 'card';
                 const statusClass = order.status === 'paid' || order.status === 'completed' ? 'approved' : order.status === 'cancelled' ? 'rejected' : 'pending';
-                return `<div class="order-card" onclick="viewOrder('${order.id}')">
+                const payNowBar = isPendingCard ? `
+                    <div class="pay-now-bar" onclick="event.stopPropagation()">
+                        <p>⚠ Payment incomplete — your order is reserved but not confirmed.</p>
+                        <button class="btn-pay-now" id="paynow-${order.id}" onclick="retryPayment('${order.id}')">Complete Payment →</button>
+                    </div>` : '';
+                return `<div class="order-card${isPendingCard ? ' pending-payment' : ''}" onclick="viewOrder('${order.id}')">
                     <div class="order-card-row">
                         <span class="order-id">Order #${order.id.slice(0, 8).toUpperCase()}</span>
                         <span class="status-badge status-${statusClass}">${cap(order.status)}</span>
@@ -175,6 +187,7 @@
                         <span class="total">€${Number(order.total).toFixed(2)}</span>
                     </div>
                     <div class="order-summary">${itemCount} item${itemCount !== 1 ? 's' : ''} · ${order.payment_method === 'invoice' ? 'Invoice' : 'Card'}</div>
+                    ${payNowBar}
                 </div>`;
             }).join('');
         }
@@ -193,6 +206,11 @@
             const content = document.getElementById('ordersContent');
             content.innerHTML = `
                 <div class="back-link" onclick="renderOrderList()">← Back to Orders</div>
+                ${order.status === 'pending' && order.payment_method === 'card' ? `
+                <div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+                    <p style="margin:0;font-size:0.88rem;color:#92400E;">⚠ Payment was not completed. Your order is reserved but will not be processed until payment is received.</p>
+                    <button class="btn-pay-now" id="paynow-detail-${order.id}" onclick="retryPayment('${order.id}')">Complete Payment →</button>
+                </div>` : ''}
                 <div class="print-btn"><button class="btn btn-secondary btn-sm" onclick="window.print()">🖨 Print ${docTitle}</button></div>
                 <div class="print-doc">
                     <div class="print-header">
@@ -247,6 +265,46 @@
 
                     ${order.notes ? `<div class="order-notes"><label>Notes</label><p>${esc(order.notes)}</p></div>` : ''}
                 </div>`;
+        }
+
+        async function retryPayment(orderId) {
+            const btns = document.querySelectorAll(`#paynow-${orderId}, #paynow-detail-${orderId}`);
+            btns.forEach(b => { b.disabled = true; b.textContent = 'Redirecting...'; });
+
+            try {
+                const order = allOrders.find(o => o.id === orderId);
+                const items = (order.order_items || []).map(i => ({
+                    name: i.product_name,
+                    price: Number(i.unit_price),
+                    quantity: i.quantity
+                }));
+
+                const user = await getCurrentUser();
+                const baseUrl = window.location.origin;
+
+                const response = await fetch('/.netlify/functions/create-checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items,
+                        order_id: orderId,
+                        customer_email: userProfile.email,
+                        success_url: `${baseUrl}/order-success.html?order_id=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
+                        cancel_url: `${baseUrl}/orders.html`
+                    })
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                // Save new session ID
+                await db.from('orders').update({ stripe_session_id: data.session_id }).eq('id', orderId);
+
+                window.location.href = data.url;
+            } catch (err) {
+                btns.forEach(b => { b.disabled = false; b.textContent = 'Complete Payment →'; });
+                alert('Could not initiate payment: ' + err.message);
+            }
         }
 
         function esc(t) { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }

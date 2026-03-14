@@ -242,6 +242,11 @@
                 if (orderErr) throw new Error('Failed to save order: ' + orderErr.message);
                 const orderId = orderResult.order_id;
 
+                // Reserve stock for each item
+                for (const item of cart) {
+                    await db.rpc('deduct_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+                }
+
                 // Build Stripe items (products + shipping + discount)
                 showProcessing('Redirecting to payment...');
                 const stripeItems = cart.map(i => {
