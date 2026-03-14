@@ -547,10 +547,18 @@
                         <div class="pay-method" onclick="posSelectPayMethod('both', this)">
                             <div class="icon">💳💶</div><div class="label">Both</div>
                         </div>
+                        <div class="pay-method" onclick="posSelectPayMethod('multi_card', this)">
+                            <div class="icon">💳💳</div><div class="label">Split Cards</div>
+                        </div>
                     </div>
                     <div class="split-fields" id="posSplitFields">
                         <div><label>Cash Amount (€)</label><input type="number" id="posCashAmount" step="0.01" min="0" oninput="posUpdateSplit()"></div>
                         <div><label>Card Amount (€)</label><input type="number" id="posCardAmount" step="0.01" min="0" oninput="posUpdateSplit()"></div>
+                    </div>
+                    <div id="posMultiCardFields" style="display:none;margin-bottom:1.25rem;">
+                        <div id="posCardInputs" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.5rem;"></div>
+                        <button type="button" onclick="posAddCard()" style="background:none;border:1.5px dashed var(--gray-300);border-radius:8px;padding:0.5rem 1rem;font-size:0.85rem;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--gray-500);width:100%;margin-bottom:0.5rem;">+ Add Card</button>
+                        <div id="posMultiCardTotal" style="font-size:0.85rem;color:var(--gray-500);text-align:right;"></div>
                     </div>
                     <div id="posPayAlert" class="alert" style="margin-bottom:1rem;"></div>
                     <div style="display:flex;gap:0.75rem;">
@@ -1071,7 +1079,7 @@
                     retail_price: document.getElementById('prodRetailPrice').value ? parseFloat(document.getElementById('prodRetailPrice').value) : null,
                     sale_price: document.getElementById('prodSalePrice').value ? parseFloat(document.getElementById('prodSalePrice').value) : null,
                     retail_sale_price: document.getElementById('prodRetailSalePrice').value ? parseFloat(document.getElementById('prodRetailSalePrice').value) : null,
-                    category: document.getElementById('prodCategory')?.value || '',
+                    category: getSelectedCategories()[0] || '',
                     categories: getSelectedCategories(),
                     sku: document.getElementById('prodSku').value.trim(),
                     barcode: document.getElementById('prodBarcode').value.trim(),
@@ -1781,26 +1789,78 @@
             document.getElementById('posPaymentModal').classList.remove('show');
         }
 
+        let posCardAmounts = [];
+
         function posSelectPayMethod(method, el) {
             posPayMethod = method;
             document.querySelectorAll('.pay-method').forEach(e => e.classList.remove('selected'));
             if (el) {
                 el.closest('.pay-method').classList.add('selected');
             } else {
-                // Programmatic call — select by index
                 const methods = document.querySelectorAll('.pay-method');
-                const idx = method === 'card' ? 0 : method === 'cash' ? 1 : 2;
+                const idx = method === 'card' ? 0 : method === 'cash' ? 1 : method === 'both' ? 2 : 3;
                 if (methods[idx]) methods[idx].classList.add('selected');
             }
             const splitFields = document.getElementById('posSplitFields');
+            const multiFields = document.getElementById('posMultiCardFields');
             if (method === 'both') {
                 splitFields.classList.add('show');
-                const total = posItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+                multiFields.style.display = 'none';
                 document.getElementById('posCashAmount').value = '';
                 document.getElementById('posCardAmount').value = '';
+            } else if (method === 'multi_card') {
+                splitFields.classList.remove('show');
+                multiFields.style.display = 'block';
+                posCardAmounts = [0, 0];
+                posRenderCardInputs();
             } else {
                 splitFields.classList.remove('show');
+                multiFields.style.display = 'none';
             }
+        }
+
+        function posRenderCardInputs() {
+            const total = posItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+            const container = document.getElementById('posCardInputs');
+            container.innerHTML = posCardAmounts.map((amt, i) => `
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <label style="font-size:0.82rem;font-weight:500;min-width:60px;">Card ${i + 1}</label>
+                    <input type="number" step="0.01" min="0" value="${amt > 0 ? amt.toFixed(2) : ''}"
+                        placeholder="€0.00"
+                        style="flex:1;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.95rem;font-family:'DM Sans',sans-serif;outline:none;"
+                        onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"
+                        oninput="posUpdateCard(${i}, this.value)">
+                    ${posCardAmounts.length > 2 ? `<button type="button" onclick="posRemoveCard(${i})" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:1.1rem;padding:0 0.25rem;">✕</button>` : '<span style="width:1.4rem;"></span>'}
+                </div>`).join('');
+            posUpdateMultiCardTotal(total);
+        }
+
+        function posUpdateCard(idx, val) {
+            posCardAmounts[idx] = parseFloat(val) || 0;
+            const total = posItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+            posUpdateMultiCardTotal(total);
+        }
+
+        function posUpdateMultiCardTotal(total) {
+            const sum = posCardAmounts.reduce((s, a) => s + a, 0);
+            const remaining = Math.round((total - sum) * 100) / 100;
+            const el = document.getElementById('posMultiCardTotal');
+            el.textContent = remaining === 0
+                ? `✓ Total matched: €${total.toFixed(2)}`
+                : remaining > 0
+                ? `Remaining: €${remaining.toFixed(2)}`
+                : `Over by: €${Math.abs(remaining).toFixed(2)}`;
+            el.style.color = remaining === 0 ? 'var(--green)' : 'var(--red)';
+        }
+
+        function posAddCard() {
+            posCardAmounts.push(0);
+            posRenderCardInputs();
+        }
+
+        function posRemoveCard(idx) {
+            posCardAmounts.splice(idx, 1);
+            posRenderCardInputs();
         }
 
         function posUpdateSplit() {
@@ -1819,10 +1879,19 @@
             const total = posItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
             let cashAmount = 0, cardAmount = 0;
 
+            let multiCardAmounts = null;
             if (posPayMethod === 'card') {
                 cardAmount = total;
             } else if (posPayMethod === 'cash') {
                 cashAmount = total;
+            } else if (posPayMethod === 'multi_card') {
+                const sum = posCardAmounts.reduce((s, a) => s + a, 0);
+                if (Math.round(sum * 100) !== Math.round(total * 100)) {
+                    showAlert('posPayAlert', `Card amounts must equal €${total.toFixed(2)} (currently €${sum.toFixed(2)})`, 'error');
+                    return;
+                }
+                cardAmount = total;
+                multiCardAmounts = posCardAmounts.slice();
             } else {
                 cashAmount = parseFloat(document.getElementById('posCashAmount').value) || 0;
                 cardAmount = parseFloat(document.getElementById('posCardAmount').value) || 0;
@@ -1850,7 +1919,8 @@
                     cash_amount: cashAmount,
                     card_amount: cardAmount,
                     cashier_id: user.id,
-                    status: 'completed'
+                    status: 'completed',
+                    notes: multiCardAmounts ? JSON.stringify(multiCardAmounts) : null
                 }).select().single();
 
                 if (txnError) throw new Error(txnError.message);
@@ -1884,7 +1954,7 @@
                 }
 
                 // Print receipt
-                posPrintReceipt(transactionNumber, posPayMethod, cashAmount, cardAmount, total);
+                posPrintReceipt(transactionNumber, posPayMethod, cashAmount, cardAmount, total, multiCardAmounts);
 
                 // Reset
                 posHidePayment();
@@ -1899,12 +1969,12 @@
             }
         }
 
-        function posPrintReceipt(txnNumber, method, cash, card, total) {
+        function posPrintReceipt(txnNumber, method, cash, card, total, cardAmounts) {
             const now = new Date();
             const dateStr = now.toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
             const timeStr = now.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
             const w = getReceiptWidth();
-            const receiptHtml = buildReceiptHtml(txnNumber, dateStr, timeStr, posItems, method, cash, card, total, '', w);
+            const receiptHtml = buildReceiptHtml(txnNumber, dateStr, timeStr, posItems, method, cash, card, total, '', w, cardAmounts);
             openPrintWindow(receiptHtml);
         }
 
@@ -1938,7 +2008,7 @@
                 const date = new Date(t.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short' });
                 return `<div style="display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--gray-100);">
                     <span>${t.transaction_number}</span>
-                    <span>€${Number(t.total).toFixed(2)} · ${cap(t.payment_method)} · ${date} ${time}</span>
+                    <span>€${Number(t.total).toFixed(2)} · ${t.payment_method === 'multi_card' ? 'Split Cards' : cap(t.payment_method)} · ${date} ${time}</span>
                 </div>`;
             }).join('');
         }
@@ -2091,6 +2161,8 @@
             const time = new Date(t.created_at).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
             const payInfo = t.payment_method === 'both'
                 ? `Cash €${Number(t.cash_amount).toFixed(2)} + Card €${Number(t.card_amount).toFixed(2)}`
+                : t.payment_method === 'multi_card'
+                ? (() => { try { const a = JSON.parse(t.notes || '[]'); return a.map((v, i) => `Card ${i+1} €${Number(v).toFixed(2)}`).join(' + '); } catch(e) { return `Split Cards €${Number(t.card_amount).toFixed(2)}`; } })()
                 : cap(t.payment_method);
             return `<div class="fin-txn-card">
                 <div class="fin-txn-header">
@@ -2166,7 +2238,8 @@
             const dateStr = d.toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
             const timeStr = d.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
             const w = getReceiptWidth();
-            const html = buildReceiptHtml(t.transaction_number, dateStr, timeStr, items, t.payment_method, Number(t.cash_amount), Number(t.card_amount), Number(t.total), 'REPRINT', w);
+            const reprCardAmounts = t.payment_method === 'multi_card' && t.notes ? (() => { try { return JSON.parse(t.notes); } catch(e) { return null; } })() : null;
+            const html = buildReceiptHtml(t.transaction_number, dateStr, timeStr, items, t.payment_method, Number(t.cash_amount), Number(t.card_amount), Number(t.total), 'REPRINT', w, reprCardAmounts);
             openPrintWindow(html);
         }
 
@@ -2242,16 +2315,22 @@
                     <select id="finEditPayMethod" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;">
                         <option value="card" ${t.payment_method === 'card' ? 'selected' : ''}>Card</option>
                         <option value="cash" ${t.payment_method === 'cash' ? 'selected' : ''}>Cash</option>
-                        <option value="both" ${t.payment_method === 'both' ? 'selected' : ''}>Both</option>
+                        <option value="both" ${t.payment_method === 'both' ? 'selected' : ''}>Both (Card + Cash)</option>
+                        <option value="multi_card" ${t.payment_method === 'multi_card' ? 'selected' : ''}>Split Cards</option>
                     </select>
                 </div>
                 <div id="finEditSplit" style="${t.payment_method === 'both' ? 'display:grid;' : 'display:none;'}grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
                     <div><label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:0.3rem;">Cash Amount (€)</label><input type="number" id="finEditCash" value="${Number(t.cash_amount).toFixed(2)}" step="0.01" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;"></div>
                     <div><label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:0.3rem;">Card Amount (€)</label><input type="number" id="finEditCard" value="${Number(t.card_amount).toFixed(2)}" step="0.01" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;"></div>
                 </div>
+                <div id="finEditMultiCard" style="${t.payment_method === 'multi_card' ? 'display:block;' : 'display:none;'}margin-bottom:1rem;">
+                    <div id="finEditCardInputs" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.5rem;"></div>
+                    <button type="button" onclick="finEditAddCard()" style="background:none;border:1.5px dashed var(--gray-300);border-radius:8px;padding:0.4rem 0.75rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--gray-500);width:100%;margin-bottom:0.25rem;">+ Add Card</button>
+                    <div id="finEditCardTotal" style="font-size:0.82rem;text-align:right;color:var(--gray-500);"></div>
+                </div>
                 <div style="margin-bottom:1rem;">
                     <label style="font-size:0.82rem;font-weight:500;display:block;margin-bottom:0.3rem;">Notes</label>
-                    <textarea id="finEditNotes" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;min-height:60px;">${esc(t.notes || '')}</textarea>
+                    <textarea id="finEditNotes" style="width:100%;padding:0.6rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.9rem;font-family:'DM Sans',sans-serif;min-height:60px;">${t.payment_method === 'multi_card' ? '' : esc(t.notes || '')}</textarea>
                 </div>
                 <div id="finEditAlert" class="alert" style="margin-bottom:1rem;"></div>
                 <div style="display:flex;gap:0.75rem;">
@@ -2260,8 +2339,48 @@
                 </div>
             `;
 
+            // Init multi-card edit inputs if applicable
+            window.finEditCardAmounts = t.payment_method === 'multi_card' && t.notes
+                ? (() => { try { return JSON.parse(t.notes); } catch(e) { return [0, 0]; } })()
+                : [0, 0];
+            function finEditRenderCards() {
+                const container = document.getElementById('finEditCardInputs');
+                if (!container) return;
+                container.innerHTML = window.finEditCardAmounts.map((amt, i) => `
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <label style="font-size:0.82rem;font-weight:500;min-width:52px;">Card ${i+1}</label>
+                        <input type="number" step="0.01" min="0" value="${amt > 0 ? Number(amt).toFixed(2) : ''}" placeholder="€0.00"
+                            style="flex:1;padding:0.5rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.88rem;font-family:'DM Sans',sans-serif;"
+                            oninput="finEditUpdateCard(${i}, this.value)">
+                        ${window.finEditCardAmounts.length > 2 ? `<button type="button" onclick="finEditRemoveCard(${i})" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:1rem;">✕</button>` : '<span style="width:1.2rem;"></span>'}
+                    </div>`).join('');
+                finEditUpdateCardTotal();
+            }
+            window.finEditAddCard = function() { window.finEditCardAmounts.push(0); finEditRenderCards(); };
+            window.finEditRemoveCard = function(i) { window.finEditCardAmounts.splice(i, 1); finEditRenderCards(); };
+            window.finEditUpdateCard = function(i, v) { window.finEditCardAmounts[i] = parseFloat(v) || 0; finEditUpdateCardTotal(); };
+            function finEditUpdateCardTotal() {
+                let tot = 0;
+                const cnt = parseInt(document.getElementById('finEditModal').dataset.itemCount) || 0;
+                for (let i2 = 0; i2 < cnt; i2++) {
+                    tot += (parseInt(document.getElementById('finItemQty_' + i2)?.value) || 0) * (parseFloat(document.getElementById('finItemPrice_' + i2)?.value) || 0);
+                }
+                const sum = window.finEditCardAmounts.reduce((s, a) => s + a, 0);
+                const rem = Math.round((tot - sum) * 100) / 100;
+                const el = document.getElementById('finEditCardTotal');
+                if (el) { el.textContent = rem === 0 ? `✓ Matched: €${tot.toFixed(2)}` : rem > 0 ? `Remaining: €${rem.toFixed(2)}` : `Over by: €${Math.abs(rem).toFixed(2)}`; el.style.color = rem === 0 ? 'var(--green)' : 'var(--red)'; }
+            }
+            // Hide notes textarea for multi_card (notes field stores the JSON amounts)
+            const finEditNotesRow = document.getElementById('finEditNotes')?.closest('div[style*="margin-bottom"]') || document.getElementById('finEditNotes')?.parentElement;
+            if (t.payment_method === 'multi_card' && finEditNotesRow) finEditNotesRow.style.display = 'none';
+            if (t.payment_method === 'multi_card') finEditRenderCards();
+
             document.getElementById('finEditPayMethod').addEventListener('change', function() {
                 document.getElementById('finEditSplit').style.display = this.value === 'both' ? 'grid' : 'none';
+                document.getElementById('finEditMultiCard').style.display = this.value === 'multi_card' ? 'block' : 'none';
+                if (finEditNotesRow) finEditNotesRow.style.display = this.value === 'multi_card' ? 'none' : '';
+                if (this.value === 'multi_card' && window.finEditCardAmounts.length < 2) window.finEditCardAmounts = [0, 0];
+                if (this.value === 'multi_card') finEditRenderCards();
             });
 
             // Store item count for save function
@@ -2304,10 +2423,19 @@
                 newTotal += qty * price;
             }
 
-            let cashAmount = 0, cardAmount = 0;
+            let cashAmount = 0, cardAmount = 0, saveNotes = notes;
             if (method === 'card') { cardAmount = newTotal; }
             else if (method === 'cash') { cashAmount = newTotal; }
-            else {
+            else if (method === 'multi_card') {
+                const amounts = (window.finEditCardAmounts || []).filter(a => a > 0);
+                const sum = amounts.reduce((s, a) => s + a, 0);
+                if (Math.round(sum * 100) !== Math.round(newTotal * 100)) {
+                    showAlert('finEditAlert', `Card amounts must equal €${newTotal.toFixed(2)} (currently €${sum.toFixed(2)})`, 'error');
+                    return;
+                }
+                cardAmount = newTotal;
+                saveNotes = JSON.stringify(amounts);
+            } else {
                 cashAmount = parseFloat(document.getElementById('finEditCash').value) || 0;
                 cardAmount = parseFloat(document.getElementById('finEditCard').value) || 0;
                 if (Math.round((cashAmount + cardAmount) * 100) !== Math.round(newTotal * 100)) {
@@ -2331,7 +2459,7 @@
                     card_amount: cardAmount,
                     subtotal: newTotal,
                     total: newTotal,
-                    notes: notes
+                    notes: saveNotes
                 }).eq('id', txnId);
                 if (txnErr) throw new Error('Transaction header update failed: ' + txnErr.message);
 
@@ -2664,7 +2792,7 @@
             txns.forEach((t, idx) => {
                 const items = t.pos_transaction_items || [];
                 const time = new Date(t.created_at).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
-                const payLabel = t.payment_method === 'both' ? `Cash €${Number(t.cash_amount).toFixed(2)} + Card €${Number(t.card_amount).toFixed(2)}` : cap(t.payment_method);
+                const payLabel = t.payment_method === 'both' ? `Cash €${Number(t.cash_amount).toFixed(2)} + Card €${Number(t.card_amount).toFixed(2)}` : t.payment_method === 'multi_card' ? (() => { try { const a = JSON.parse(t.notes || '[]'); return a.map((v, i) => `Card ${i+1} €${Number(v).toFixed(2)}`).join(' + '); } catch(e) { return 'Split Cards'; } })() : cap(t.payment_method);
                 reportHtml += `<div style="margin-bottom:8px;">`;
                 reportHtml += `<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:bold;"><span>${t.transaction_number}</span><span>${time}</span></div>`;
                 items.forEach(i => {
@@ -2716,7 +2844,7 @@
         }
 
         // Update buildReceiptHtml to use saved receipt settings
-        function buildReceiptHtml(txnNumber, dateStr, timeStr, items, method, cash, card, total, extraTag, width) {
+        function buildReceiptHtml(txnNumber, dateStr, timeStr, items, method, cash, card, total, extraTag, width, cardAmounts) {
             const s = rcptGetSettings();
             const fs = s.fontSize + 'px';
             const headerHtml = s.headerLines ? s.headerLines.split('\n').map(l => `<span>${esc(l)}</span>`).join('<br>') : '';
@@ -2779,7 +2907,12 @@
             </table>
             <div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">
                 <div style="display:flex;justify-content:space-between;font-weight:bold;"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
-                <div style="margin-top:2px;">${method === 'card' ? 'Paid by Card' : method === 'cash' ? 'Paid by Cash' : `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`}</div>
+                <div style="margin-top:2px;">${
+                    method === 'card' ? 'Paid by Card' :
+                    method === 'cash' ? 'Paid by Cash' :
+                    method === 'multi_card' ? (cardAmounts || []).map((a, i) => `Card ${i+1}: €${Number(a).toFixed(2)}`).join(' / ') :
+                    `Cash: €${cash.toFixed(2)} / Card: €${card.toFixed(2)}`
+                }</div>
                 ${vatHtml}
             </div>
             ${s.footer ? `<div style="text-align:center;margin-top:10px;">${esc(s.footer)}</div>` : ''}`;
@@ -2933,7 +3066,7 @@
 
             // Payment methods pie
             const cashOnly = posTxns.filter(t => t.payment_method === 'cash').reduce((s, t) => s + Number(t.total), 0);
-            const cardOnly = posTxns.filter(t => t.payment_method === 'card').reduce((s, t) => s + Number(t.total), 0);
+            const cardOnly = posTxns.filter(t => t.payment_method === 'card' || t.payment_method === 'multi_card').reduce((s, t) => s + Number(t.total), 0);
             const bothTotal = posTxns.filter(t => t.payment_method === 'both').reduce((s, t) => s + Number(t.total), 0);
             dashCharts.payments = new Chart(document.getElementById('chartPayments'), {
                 type: 'doughnut', data: {
