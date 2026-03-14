@@ -1347,12 +1347,17 @@
                 }
             }
 
-            // Delete order items first, then the order
-            await db.from('order_items').delete().eq('order_id', orderId);
-            const { error } = await db.from('orders').delete().eq('id', orderId);
-            if (error) { showAlert('alert', 'Delete failed: ' + error.message, 'error'); return; }
+            // Delete in dependency order: invoice → order_items → order
+            await db.from('invoices').delete().eq('order_id', orderId);
+            const { error: itemsErr } = await db.from('order_items').delete().eq('order_id', orderId);
+            if (itemsErr) { showAlert('alert', 'Delete failed (items): ' + itemsErr.message, 'error'); return; }
+            const { error: orderErr } = await db.from('orders').delete().eq('id', orderId);
+            if (orderErr) { showAlert('alert', 'Delete failed (order): ' + orderErr.message, 'error'); return; }
+
+            // Remove from local array and re-render immediately
+            allOrders = allOrders.filter(o => o.id !== orderId);
+            renderOrders();
             showAlert('alert', 'Order deleted.', 'success');
-            await loadOrders();
         }
 
         function viewAdminOrder(orderId) {
