@@ -279,6 +279,12 @@
                     quantity: i.quantity
                 }));
 
+                // Re-add shipping if it was part of the original order
+                const shipping = Math.round((Number(order.total) - Number(order.subtotal)) * 100) / 100;
+                if (shipping > 0) {
+                    items.push({ name: 'Shipping', price: shipping, quantity: 1 });
+                }
+
                 const user = await getCurrentUser();
                 const baseUrl = window.location.origin;
 
