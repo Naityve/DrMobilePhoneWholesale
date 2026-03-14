@@ -86,6 +86,9 @@
         }
         function getRetailPrice(p) { if (p.is_on_sale_retail && p.retail_sale_price) return Number(p.retail_sale_price); return p.retail_price ? Number(p.retail_price) : Number(p.price); }
 
+        let shipSettings = { standard_rate: 4.99, free_threshold: 50, express_rate: 9.99, express_enabled: false, delivery_note: '' };
+        let activePromos = [];
+
         (async () => {
             updateBadge();
             const cart = getCart();
@@ -93,12 +96,53 @@
             const ids = cart.map(c => c.product_id);
             const { data: products } = await db.from('products').select('*').in('id', ids);
             (products || []).forEach(p => productMap[p.id] = p);
+
+            // Load shop settings
+            const { data: shipRow } = await db.from('shop_settings').select('value').eq('key', 'shipping').single();
+            if (shipRow) shipSettings = shipRow.value;
+            const { data: promoRow } = await db.from('shop_settings').select('value').eq('key', 'promotions').single();
+            if (promoRow) {
+                const now = new Date().toISOString().split('T')[0];
+                activePromos = (promoRow.value || []).filter(p => (!p.start_date || p.start_date <= now) && (!p.end_date || p.end_date >= now));
+            }
+
             renderCheckout();
         })();
 
+        function calcShippingAndPromos(subtotal) {
+            // Shipping
+            let shipping = shipSettings.standard_rate || 0;
+            let shippingLabel = 'Standard Shipping';
+            if (shipSettings.free_threshold > 0 && subtotal >= shipSettings.free_threshold) {
+                shipping = 0;
+                shippingLabel = 'Free Shipping';
+            }
+
+            // Promotions
+            let discount = 0;
+            let promoLabel = '';
+            for (const p of activePromos) {
+                if (subtotal < (p.min_spend || 0)) continue;
+                if (p.type === 'amount_off_threshold') {
+                    discount = Math.max(discount, p.value || 0);
+                    if (p.value >= discount) promoLabel = p.name + ': -€' + Number(p.value).toFixed(2);
+                } else if (p.type === 'percent_off_threshold') {
+                    const pctOff = subtotal * ((p.value || 0) / 100);
+                    if (pctOff > discount) { discount = pctOff; promoLabel = p.name + ': -' + p.value + '%'; }
+                } else if (p.type === 'free_shipping_threshold') {
+                    shipping = 0;
+                    shippingLabel = 'Free Shipping (' + p.name + ')';
+                }
+            }
+
+            return { shipping, shippingLabel, discount: Math.round(discount * 100) / 100, promoLabel };
+        }
+
         function renderCheckout() {
             const cart = getCart().filter(c => productMap[c.product_id]);
-            const total = cart.reduce((s, i) => s + getRetailPrice(productMap[i.product_id]) * i.quantity, 0);
+            const subtotal = cart.reduce((s, i) => s + getRetailPrice(productMap[i.product_id]) * i.quantity, 0);
+            const { shipping, shippingLabel, discount, promoLabel } = calcShippingAndPromos(subtotal);
+            const total = Math.max(0, subtotal + shipping - discount);
 
             let html = '';
 
@@ -122,6 +166,8 @@
                     <div class="form-group"></div>
                 </div>
                 <button class="btn btn-primary" style="width:100%;margin-top:1rem;" id="payBtn" onclick="handlePay()">Pay — €${total.toFixed(2)}</button>
+                ${shipSettings.delivery_note ? `<p style="font-size:0.78rem;color:var(--gray-500);text-align:center;margin-top:0.75rem;">${esc(shipSettings.delivery_note)}</p>` : ''}
+                <p style="font-size:0.72rem;color:var(--gray-400);text-align:center;margin-top:0.5rem;">By placing an order you agree to our <a href="/terms.html" style="color:var(--orange);">Terms & Conditions</a> and <a href="/privacy-policy.html" style="color:var(--orange);">Privacy Policy</a>.</p>
             </div>`;
 
             // Right: Summary
@@ -131,7 +177,19 @@
                 const price = getRetailPrice(p);
                 html += `<div class="sum-item"><div><div class="name">${esc(p.name)}</div><div class="qty">${item.quantity} × €${price.toFixed(2)}</div></div><div class="line-price">€${(price * item.quantity).toFixed(2)}</div></div>`;
             });
-            html += `<div class="sum-total"><span>Total</span><span>€${total.toFixed(2)}</span></div></div>`;
+            html += `<div style="padding:0.5rem 0;border-top:1px solid var(--gray-100);margin-top:0.25rem;">`;
+            html += `<div style="display:flex;justify-content:space-between;font-size:0.88rem;margin-bottom:0.3rem;"><span>Subtotal</span><span>€${subtotal.toFixed(2)}</span></div>`;
+            html += `<div style="display:flex;justify-content:space-between;font-size:0.88rem;margin-bottom:0.3rem;"><span>${shippingLabel}</span><span>${shipping === 0 ? 'FREE' : '€' + shipping.toFixed(2)}</span></div>`;
+            if (discount > 0) {
+                html += `<div style="display:flex;justify-content:space-between;font-size:0.88rem;color:var(--green);margin-bottom:0.3rem;"><span>${esc(promoLabel)}</span><span>-€${discount.toFixed(2)}</span></div>`;
+            }
+            html += `</div>`;
+            html += `<div class="sum-total"><span>Total</span><span>€${total.toFixed(2)}</span></div>`;
+            if (activePromos.length > 0 && discount === 0) {
+                const hint = activePromos.find(p => p.min_spend > subtotal);
+                if (hint) html += `<div style="font-size:0.78rem;color:var(--orange);margin-top:0.5rem;text-align:center;">${esc(hint.name)}: Spend €${Number(hint.min_spend).toFixed(2)} to save!</div>`;
+            }
+            html += '</div>';
 
             document.getElementById('checkoutContent').innerHTML = html;
         }
@@ -157,7 +215,9 @@
 
             try {
                 const cart = getCart().filter(c => productMap[c.product_id]);
-                const total = cart.reduce((s, i) => s + getRetailPrice(productMap[i.product_id]) * i.quantity, 0);
+                const subtotal = cart.reduce((s, i) => s + getRetailPrice(productMap[i.product_id]) * i.quantity, 0);
+                const { shipping, shippingLabel, discount, promoLabel } = calcShippingAndPromos(subtotal);
+                const total = Math.max(0, subtotal + shipping - discount);
 
                 // Build items for DB
                 const dbItems = cart.map(i => {
@@ -182,12 +242,18 @@
                 if (orderErr) throw new Error('Failed to save order: ' + orderErr.message);
                 const orderId = orderResult.order_id;
 
-                // Build Stripe items
+                // Build Stripe items (products + shipping + discount)
                 showProcessing('Redirecting to payment...');
                 const stripeItems = cart.map(i => {
                     const p = productMap[i.product_id];
                     return { name: p.name, price: getRetailPrice(p), quantity: i.quantity };
                 });
+                if (shipping > 0) {
+                    stripeItems.push({ name: shippingLabel, price: shipping, quantity: 1 });
+                }
+                if (discount > 0) {
+                    stripeItems.push({ name: promoLabel || 'Discount', price: -discount, quantity: 1 });
+                }
 
                 const baseUrl = window.location.origin;
                 const response = await fetch('/.netlify/functions/create-checkout', {

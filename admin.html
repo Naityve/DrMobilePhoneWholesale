@@ -98,6 +98,7 @@
             <button class="admin-main-tab" onclick="switchMainTab('stock', this)">Stock</button>
             <button class="admin-main-tab" onclick="switchMainTab('tickets', this)">Tickets</button>
             <button class="admin-main-tab" onclick="switchMainTab('receiptsettings', this)">Receipts</button>
+            <button class="admin-main-tab" onclick="switchMainTab('shopsettings', this)">Settings</button>
         </div>
 
         <!-- DASHBOARD PANEL -->
@@ -874,6 +875,66 @@
             </div>
         </div>
 
+        <!-- SHOP SETTINGS PANEL -->
+        <div id="panel-shopsettings" class="tab-panel">
+            <style>
+                .ss-section { border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; max-width: 700px; }
+                .ss-section h3 { font-family: 'Instrument Serif', serif; font-size: 1.2rem; font-weight: 400; margin-bottom: 0.75rem; }
+                .ss-section p.desc { font-size: 0.82rem; color: var(--gray-500); margin-bottom: 1rem; }
+                .ss-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
+                .ss-field label { font-size: 0.78rem; font-weight: 500; color: var(--gray-700); display: block; margin-bottom: 0.25rem; }
+                .ss-field input, .ss-field textarea { width: 100%; padding: 0.55rem 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 0.88rem; font-family: 'DM Sans', sans-serif; outline: none; }
+                .ss-field input:focus, .ss-field textarea:focus { border-color: var(--orange); }
+                .promo-card { border: 1px solid var(--gray-200); border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+                .promo-card .promo-info { font-size: 0.88rem; }
+                .promo-card .promo-info .promo-name { font-weight: 600; }
+                .promo-card .promo-info .promo-detail { font-size: 0.78rem; color: var(--gray-500); margin-top: 0.15rem; }
+                .promo-card .promo-badge { padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.7rem; font-weight: 600; }
+                .promo-card .promo-badge.active { background: var(--green-dim); color: #15803D; }
+                .promo-card .promo-badge.expired { background: var(--gray-100); color: var(--gray-500); }
+            </style>
+
+            <div class="ss-section">
+                <h3>Shipping</h3>
+                <p class="desc">Set shipping rates for consumer orders. Wholesale shipping is handled separately.</p>
+                <div class="ss-row">
+                    <div class="ss-field"><label>Standard Shipping (€)</label><input type="number" id="ssShipStandard" step="0.01" min="0" placeholder="4.99"></div>
+                    <div class="ss-field"><label>Free Shipping Over (€)</label><input type="number" id="ssShipFreeThreshold" step="0.01" min="0" placeholder="50.00"></div>
+                </div>
+                <div class="ss-row">
+                    <div class="ss-field"><label>Express Shipping (€)</label><input type="number" id="ssShipExpress" step="0.01" min="0" placeholder="9.99"></div>
+                    <div class="ss-field" style="display:flex;align-items:flex-end;"><label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;"><input type="checkbox" id="ssShipExpressEnabled" style="accent-color:var(--orange);"> Enable Express Shipping</label></div>
+                </div>
+                <div class="ss-field" style="margin-bottom:1rem;"><label>Delivery Note (shown at checkout)</label><textarea id="ssShipNote" rows="2" placeholder="e.g. Standard delivery 3-7 working days within Ireland."></textarea></div>
+                <button class="btn btn-primary btn-sm" onclick="ssSaveShipping()">Save Shipping Settings</button>
+            </div>
+
+            <div class="ss-section">
+                <h3>Promotions</h3>
+                <p class="desc">Create limited-time offers shown on the storefront and applied at checkout.</p>
+                <div style="border:1px solid var(--gray-200);border-radius:10px;padding:1rem;margin-bottom:1rem;background:var(--gray-50);">
+                    <div class="ss-row">
+                        <div class="ss-field"><label>Offer Name *</label><input type="text" id="ssPromoName" placeholder="e.g. Spring Sale"></div>
+                        <div class="ss-field"><label>Type</label><select id="ssPromoType" style="width:100%;padding:0.55rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;">
+                            <option value="amount_off_threshold">€ Off over threshold</option>
+                            <option value="percent_off_threshold">% Off over threshold</option>
+                            <option value="free_shipping_threshold">Free shipping over amount</option>
+                        </select></div>
+                    </div>
+                    <div class="ss-row">
+                        <div class="ss-field"><label>Discount Value</label><input type="number" id="ssPromoValue" step="0.01" min="0" placeholder="e.g. 5"></div>
+                        <div class="ss-field"><label>Minimum Spend (€)</label><input type="number" id="ssPromoMin" step="0.01" min="0" placeholder="e.g. 50"></div>
+                    </div>
+                    <div class="ss-row">
+                        <div class="ss-field"><label>Start Date</label><input type="date" id="ssPromoStart"></div>
+                        <div class="ss-field"><label>End Date</label><input type="date" id="ssPromoEnd"></div>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="ssAddPromo()">Add Promotion</button>
+                </div>
+                <div id="ssPromoList">Loading...</div>
+            </div>
+        </div>
+
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
@@ -953,6 +1014,9 @@
             }
             if (tab === 'receiptsettings') {
                 rcptLoadSettings();
+            }
+            if (tab === 'shopsettings') {
+                ssLoad();
             }
         }
 
@@ -3635,6 +3699,86 @@
         async function dashDismissReminder(reminderId) {
             await db.from('ticket_reminders').update({ is_dismissed: true }).eq('id', reminderId);
             await dashLoadWidgets();
+        }
+
+        // ── SHOP SETTINGS ──
+        async function ssLoad() {
+            const { data: shipRow } = await db.from('shop_settings').select('value').eq('key', 'shipping').single();
+            if (shipRow) {
+                const s = shipRow.value;
+                document.getElementById('ssShipStandard').value = s.standard_rate || '';
+                document.getElementById('ssShipFreeThreshold').value = s.free_threshold || '';
+                document.getElementById('ssShipExpress').value = s.express_rate || '';
+                document.getElementById('ssShipExpressEnabled').checked = s.express_enabled || false;
+                document.getElementById('ssShipNote').value = s.delivery_note || '';
+            }
+            await ssLoadPromos();
+        }
+
+        async function ssSaveShipping() {
+            const value = {
+                standard_rate: parseFloat(document.getElementById('ssShipStandard').value) || 0,
+                free_threshold: parseFloat(document.getElementById('ssShipFreeThreshold').value) || 0,
+                express_rate: parseFloat(document.getElementById('ssShipExpress').value) || 0,
+                express_enabled: document.getElementById('ssShipExpressEnabled').checked,
+                delivery_note: document.getElementById('ssShipNote').value.trim()
+            };
+            const { error } = await db.from('shop_settings').upsert({ key: 'shipping', value, updated_at: new Date().toISOString() });
+            if (error) { showAlert('alert', 'Error: ' + error.message, 'error'); return; }
+            showAlert('alert', 'Shipping settings saved!', 'success');
+        }
+
+        async function ssLoadPromos() {
+            const { data: row } = await db.from('shop_settings').select('value').eq('key', 'promotions').single();
+            const promos = (row && row.value) || [];
+            const container = document.getElementById('ssPromoList');
+            if (promos.length === 0) { container.innerHTML = '<div style="color:var(--gray-400);font-size:0.85rem;">No promotions.</div>'; return; }
+            const now = new Date().toISOString().split('T')[0];
+            container.innerHTML = promos.map((p, idx) => {
+                const isActive = (!p.start_date || p.start_date <= now) && (!p.end_date || p.end_date >= now);
+                const typeLabels = { amount_off_threshold: `€${p.value} off orders over €${p.min_spend}`, percent_off_threshold: `${p.value}% off orders over €${p.min_spend}`, free_shipping_threshold: `Free shipping on orders over €${p.min_spend}` };
+                return `<div class="promo-card">
+                    <div class="promo-info">
+                        <div class="promo-name">${esc(p.name)}</div>
+                        <div class="promo-detail">${typeLabels[p.type] || p.type} · ${p.start_date || '—'} to ${p.end_date || '—'}</div>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;align-items:center;">
+                        <span class="promo-badge ${isActive ? 'active' : 'expired'}">${isActive ? 'Active' : 'Expired'}</span>
+                        <button class="pos-remove" onclick="ssDeletePromo(${idx})">✕</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function ssAddPromo() {
+            const name = document.getElementById('ssPromoName').value.trim();
+            const type = document.getElementById('ssPromoType').value;
+            const value = parseFloat(document.getElementById('ssPromoValue').value) || 0;
+            const minSpend = parseFloat(document.getElementById('ssPromoMin').value) || 0;
+            const startDate = document.getElementById('ssPromoStart').value;
+            const endDate = document.getElementById('ssPromoEnd').value;
+            if (!name) { showAlert('alert', 'Promotion name is required.', 'error'); return; }
+
+            const { data: row } = await db.from('shop_settings').select('value').eq('key', 'promotions').single();
+            const promos = (row && row.value) || [];
+            promos.push({ name, type, value, min_spend: minSpend, start_date: startDate, end_date: endDate });
+            await db.from('shop_settings').upsert({ key: 'promotions', value: promos, updated_at: new Date().toISOString() });
+            document.getElementById('ssPromoName').value = '';
+            document.getElementById('ssPromoValue').value = '';
+            document.getElementById('ssPromoMin').value = '';
+            document.getElementById('ssPromoStart').value = '';
+            document.getElementById('ssPromoEnd').value = '';
+            showAlert('alert', 'Promotion added!', 'success');
+            await ssLoadPromos();
+        }
+
+        async function ssDeletePromo(idx) {
+            if (!confirm('Delete this promotion?')) return;
+            const { data: row } = await db.from('shop_settings').select('value').eq('key', 'promotions').single();
+            const promos = (row && row.value) || [];
+            promos.splice(idx, 1);
+            await db.from('shop_settings').upsert({ key: 'promotions', value: promos, updated_at: new Date().toISOString() });
+            await ssLoadPromos();
         }
     </script>
 </body>
