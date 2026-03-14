@@ -91,6 +91,28 @@
 
         (async () => {
             updateBadge();
+
+            // Check if returning from a failed/abandoned Stripe payment
+            const pendingOrderId = localStorage.getItem('consumer_order_id');
+            if (pendingOrderId) {
+                const { data: pendingOrder } = await db
+                    .from('orders')
+                    .select('*, order_items(*)')
+                    .eq('id', pendingOrderId)
+                    .single();
+
+                if (pendingOrder && pendingOrder.status === 'pending') {
+                    showResumeUI(pendingOrder);
+                    return;
+                } else {
+                    // Order already completed or not found — clear state and restore cart
+                    localStorage.removeItem('consumer_order_id');
+                    localStorage.removeItem('consumer_stripe_session');
+                    const backup = localStorage.getItem('consumer_cart_backup');
+                    if (backup) { localStorage.setItem('consumer_cart', backup); localStorage.removeItem('consumer_cart_backup'); }
+                }
+            }
+
             const cart = getCart();
             if (cart.length === 0) { window.location.href = '/consumer-cart.html'; return; }
             const ids = cart.map(c => c.product_id);
@@ -108,6 +130,78 @@
 
             renderCheckout();
         })();
+
+        function showResumeUI(order) {
+            const items = order.order_items || [];
+            const itemRows = items.map(i =>
+                `<div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--gray-100);font-size:0.88rem;">
+                    <span>${esc(i.product_name)} <span style="color:var(--gray-500);">×${i.quantity}</span></span>
+                    <span>€${(Number(i.unit_price) * i.quantity).toFixed(2)}</span>
+                </div>`
+            ).join('');
+            const itemsSubtotal = items.reduce((s, i) => s + Number(i.unit_price) * i.quantity, 0);
+            const shipping = Math.round((Number(order.total) - itemsSubtotal) * 100) / 100;
+
+            document.getElementById('checkoutContent').innerHTML = `
+                <div style="grid-column:1/-1;max-width:520px;margin:0 auto;width:100%;">
+                    <div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:14px;padding:1.5rem;margin-bottom:1.5rem;">
+                        <p style="font-weight:600;margin-bottom:0.25rem;">⚠ You have an incomplete order</p>
+                        <p style="font-size:0.85rem;color:#92400E;margin:0;">Your payment didn't go through. You can complete it now or start a fresh order.</p>
+                    </div>
+                    <div style="border:1px solid var(--gray-200);border-radius:14px;padding:1.5rem;margin-bottom:1rem;">
+                        <h2 style="font-family:'Instrument Serif',serif;font-size:1.2rem;font-weight:400;margin-bottom:1rem;">Order Summary</h2>
+                        ${itemRows}
+                        ${shipping > 0 ? `<div style="display:flex;justify-content:space-between;padding:0.4rem 0;font-size:0.88rem;"><span>Shipping</span><span>€${shipping.toFixed(2)}</span></div>` : ''}
+                        <div style="display:flex;justify-content:space-between;padding:0.75rem 0 0;border-top:2px solid var(--gray-200);margin-top:0.25rem;font-weight:700;font-size:1.1rem;">
+                            <span>Total</span><span>€${Number(order.total).toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div id="resumeAlert" class="alert" style="margin-bottom:1rem;"></div>
+                    <button class="btn btn-primary" style="width:100%;margin-bottom:0.75rem;" id="resumeBtn" onclick="resumePayment('${order.id}')">Complete Payment — €${Number(order.total).toFixed(2)}</button>
+                    <button class="btn btn-secondary" style="width:100%;" onclick="startNewOrder()">Start a New Order Instead</button>
+                </div>`;
+        }
+
+        async function resumePayment(orderId) {
+            const btn = document.getElementById('resumeBtn');
+            btn.disabled = true; btn.textContent = 'Redirecting to payment...';
+            try {
+                const { data: order } = await db.from('orders').select('*, order_items(*)').eq('id', orderId).single();
+                const items = (order.order_items || []).map(i => ({ name: i.product_name, price: Number(i.unit_price), quantity: i.quantity }));
+                const itemsSubtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+                const shipping = Math.round((Number(order.total) - itemsSubtotal) * 100) / 100;
+                if (shipping > 0) items.push({ name: 'Shipping', price: shipping, quantity: 1 });
+
+                const baseUrl = window.location.origin;
+                const response = await fetch('/.netlify/functions/create-checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items,
+                        order_id: orderId,
+                        customer_email: order.guest_email || '',
+                        success_url: baseUrl + '/consumer-success.html?order_id=' + orderId,
+                        cancel_url: baseUrl + '/consumer-checkout.html'
+                    })
+                });
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                localStorage.setItem('consumer_order_id', orderId);
+                localStorage.setItem('consumer_stripe_session', data.session_id);
+                window.location.href = data.url;
+            } catch (err) {
+                btn.disabled = false; btn.textContent = 'Complete Payment — €' + Number(0).toFixed(2);
+                showAlert('resumeAlert', err.message, 'error');
+            }
+        }
+
+        function startNewOrder() {
+            localStorage.removeItem('consumer_order_id');
+            localStorage.removeItem('consumer_stripe_session');
+            const backup = localStorage.getItem('consumer_cart_backup');
+            if (backup) { localStorage.setItem('consumer_cart', backup); localStorage.removeItem('consumer_cart_backup'); }
+            window.location.href = '/consumer-cart.html';
+        }
 
         function calcShippingAndPromos(subtotal) {
             // Shipping

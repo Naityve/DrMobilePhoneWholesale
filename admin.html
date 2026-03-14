@@ -1347,12 +1347,9 @@
                 }
             }
 
-            // Delete in dependency order: invoice → order_items → order
-            await db.from('invoices').delete().eq('order_id', orderId);
-            const { error: itemsErr } = await db.from('order_items').delete().eq('order_id', orderId);
-            if (itemsErr) { showAlert('alert', 'Delete failed (items): ' + itemsErr.message, 'error'); return; }
-            const { error: orderErr } = await db.from('orders').delete().eq('id', orderId);
-            if (orderErr) { showAlert('alert', 'Delete failed (order): ' + orderErr.message, 'error'); return; }
+            // Delete via SECURITY DEFINER function to bypass RLS
+            const { error: delErr } = await db.rpc('delete_order', { p_order_id: orderId });
+            if (delErr) { showAlert('alert', 'Delete failed: ' + delErr.message, 'error'); return; }
 
             // Remove from local array and re-render immediately
             allOrders = allOrders.filter(o => o.id !== orderId);
@@ -2331,8 +2328,29 @@
                 </div>
                 <div class="fin-txn-footer">
                     <span class="fin-txn-total">€${Number(o.total).toFixed(2)}</span>
+                    <div class="fin-txn-actions">
+                        <button class="btn btn-sm btn-reject" onclick="finDeleteOnlineOrder('${o.id}')">Delete</button>
+                    </div>
                 </div>
             </div>`;
+        }
+
+        async function finDeleteOnlineOrder(orderId) {
+            if (!confirm('Permanently delete this online order? This cannot be undone.')) return;
+            const order = finOnlineOrders.find(o => o.id === orderId);
+            // Restore stock for non-completed orders
+            const stockStatuses = ['pending', 'paid', 'invoiced', 'shipped'];
+            if (order && stockStatuses.includes(order.status)) {
+                for (const item of (order.order_items || [])) {
+                    if (item.product_id) await db.rpc('restore_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+                }
+            }
+            const { error } = await db.rpc('delete_order', { p_order_id: orderId });
+            if (error) { showAlert('alert', 'Delete failed: ' + error.message, 'error'); return; }
+            finOnlineOrders = finOnlineOrders.filter(o => o.id !== orderId);
+            finRenderSummary();
+            finRenderContent();
+            showAlert('alert', 'Order deleted.', 'success');
         }
 
         // ── Reprint POS receipt ──
