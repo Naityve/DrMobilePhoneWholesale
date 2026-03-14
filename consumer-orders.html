@@ -188,6 +188,7 @@
             const subtotal = Number(order.subtotal) || items.reduce((s, i) => s + Number(i.unit_price) * i.quantity, 0);
             const shipping = Math.round((Number(order.total) - subtotal) * 100) / 100;
             const isPendingCard = order.status === 'pending' && order.payment_method === 'card';
+            const canCancel = ['pending', 'paid'].includes(order.status);
 
             document.getElementById('ordersContent').innerHTML = `
                 <button class="back-link" onclick="renderOrderList()">← Back to Orders</button>
@@ -196,7 +197,11 @@
                     <p style="margin:0;font-size:0.88rem;color:#92400E;">⚠ Payment was not completed. Your order is reserved but will not be processed until payment is received.</p>
                     <button class="btn-pay-now" id="paynow-detail-${order.id}" onclick="retryPayment('${order.id}')">Complete Payment →</button>
                 </div>` : ''}
-                <div class="print-btn"><button class="btn btn-secondary btn-sm" onclick="window.print()">🖨 Print</button></div>
+                <div id="cancelAlert" class="alert" style="margin-bottom:1rem;"></div>
+                <div style="display:flex;gap:0.75rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+                    <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨 Print</button>
+                    ${canCancel ? `<button class="btn btn-sm" id="cancelBtn" style="background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;" onclick="cancelOrder('${order.id}')">Cancel Order</button>` : ''}
+                </div>
                 <div class="print-doc">
                     <div class="print-header">
                         <div class="company">
@@ -240,6 +245,27 @@
                         </div>
                     </div>
                 </div>`;
+        }
+
+        async function cancelOrder(orderId) {
+            if (!confirm('Are you sure you want to cancel this order? This cannot be undone.')) return;
+
+            const btn = document.getElementById('cancelBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Cancelling...'; }
+
+            const { error } = await db.rpc('cancel_consumer_order', { p_order_id: orderId });
+
+            if (error) {
+                const alertEl = document.getElementById('cancelAlert');
+                if (alertEl) { alertEl.className = 'alert alert-error show'; alertEl.textContent = 'Could not cancel order: ' + error.message; }
+                if (btn) { btn.disabled = false; btn.textContent = 'Cancel Order'; }
+                return;
+            }
+
+            // Update local state and go back to list
+            const order = allOrders.find(o => o.id === orderId);
+            if (order) order.status = 'cancelled';
+            renderOrderList();
         }
 
         async function retryPayment(orderId) {
