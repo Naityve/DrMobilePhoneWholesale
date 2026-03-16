@@ -216,7 +216,7 @@
                     <div class="print-header">
                         <div class="company">
                             <h2>DrMobile<span>Phone</span></h2>
-                            <p>Wholesale Consumer Electronics<br>Dublin, Ireland<br>info@drmobilephone.ie<br>+353 089 989 9550</p>
+                            <p>Unit 1 College Way, Kilcock Road<br>Clane, Co. Kildare, Ireland<br>045 949 611 &nbsp;·&nbsp; 089 989 9550<br>info@drmobilephone.ie</p>
                         </div>
                         <div class="doc-title">
                             <h1>${docTitle}</h1>
@@ -272,27 +272,12 @@
             btns.forEach(b => { b.disabled = true; b.textContent = 'Redirecting...'; });
 
             try {
-                const order = allOrders.find(o => o.id === orderId);
-                const items = (order.order_items || []).map(i => ({
-                    name: i.product_name,
-                    price: Number(i.unit_price),
-                    quantity: i.quantity
-                }));
-
-                // Re-add shipping if it was part of the original order
-                const shipping = Math.round((Number(order.total) - Number(order.subtotal)) * 100) / 100;
-                if (shipping > 0) {
-                    items.push({ name: 'Shipping', price: shipping, quantity: 1 });
-                }
-
-                const user = await getCurrentUser();
                 const baseUrl = window.location.origin;
 
                 const response = await fetch('/.netlify/functions/create-checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        items,
                         order_id: orderId,
                         customer_email: userProfile.email,
                         success_url: `${baseUrl}/order-success.html?order_id=${orderId}&session_id={CHECKOUT_SESSION_ID}`,

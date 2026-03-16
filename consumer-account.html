@@ -85,6 +85,21 @@
             <a href="/consumer-orders.html" class="btn btn-secondary" style="margin-bottom:0.75rem;display:block;">View My Orders</a>
             <button class="btn" style="width:100%;background:var(--gray-100);color:var(--gray-700);border:none;" id="signOutBtn" onclick="handleSignOut()">Sign Out</button>
         </div>
+
+        <div class="account-section" style="border-color:#FECACA;">
+            <h2>Data &amp; Privacy</h2>
+            <p style="font-size:0.88rem;color:var(--gray-600);line-height:1.6;margin-bottom:1rem;">Under GDPR you have the right to request a copy of your data or to have your account permanently deleted. Order records that fall within our 6-year statutory retention period will be anonymised rather than deleted. Read our <a href="/privacy-policy.html" style="color:var(--orange);">Privacy Policy</a> for full details.</p>
+            <div id="deleteAlert" class="alert" style="margin-bottom:1rem;"></div>
+            <div id="deleteConfirm" style="display:none;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:1.25rem;margin-bottom:1rem;">
+                <p style="font-size:0.9rem;font-weight:600;margin-bottom:0.5rem;color:#991B1B;">Are you absolutely sure?</p>
+                <p style="font-size:0.85rem;color:#7F1D1D;line-height:1.5;margin-bottom:1rem;">This will permanently delete your account and sign you out. Any orders placed will have your personal details removed but the order records will be retained for tax compliance. This cannot be undone.</p>
+                <div style="display:flex;gap:0.75rem;">
+                    <button class="btn" style="flex:1;background:#DC2626;color:white;border:none;" id="confirmDeleteBtn" onclick="deleteAccount()">Yes, Delete My Account</button>
+                    <button class="btn btn-secondary" style="flex:1;" onclick="cancelDelete()">Cancel</button>
+                </div>
+            </div>
+            <button class="btn" style="width:100%;background:white;color:#DC2626;border:1.5px solid #FECACA;" id="requestDeleteBtn" onclick="showDeleteConfirm()">Request Account Deletion</button>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -170,6 +185,51 @@
             const el = document.getElementById(id);
             el.className = 'alert alert-' + type + ' show';
             el.textContent = msg;
+        }
+
+        function showDeleteConfirm() {
+            document.getElementById('deleteConfirm').style.display = 'block';
+            document.getElementById('requestDeleteBtn').style.display = 'none';
+        }
+
+        function cancelDelete() {
+            document.getElementById('deleteConfirm').style.display = 'none';
+            document.getElementById('requestDeleteBtn').style.display = 'block';
+        }
+
+        async function deleteAccount() {
+            const btn = document.getElementById('confirmDeleteBtn');
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+
+            try {
+                const { data: { session } } = await db.auth.getSession();
+                if (!session) throw new Error('Session expired. Please sign in again.');
+
+                const response = await fetch('/.netlify/functions/delete-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+
+                const data = await response.json();
+                if (!response.ok || data.error) throw new Error(data.error || 'Deletion failed');
+
+                // Sign out locally and clear storage
+                await db.auth.signOut();
+                localStorage.removeItem('consumer_cart');
+                localStorage.removeItem('consumer_cart_backup');
+                localStorage.removeItem('consumer_order_id');
+                localStorage.removeItem('consumer_stripe_session');
+
+                window.location.href = '/?deleted=1';
+            } catch (err) {
+                showAlert('deleteAlert', err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Yes, Delete My Account';
+            }
         }
     </script>
 </body>

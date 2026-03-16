@@ -89,6 +89,7 @@
 
         let shipSettings = { standard_rate: 4.99, free_threshold: 50, express_rate: 9.99, express_enabled: false, delivery_note: '' };
         let activePromos = [];
+        let vatSettings = { goods_vat_registered: false, vat_number: '' };
 
         (async () => {
             updateBadge();
@@ -132,6 +133,8 @@
             // Load shop settings
             const { data: shipRow } = await db.from('shop_settings').select('value').eq('key', 'shipping').single();
             if (shipRow) shipSettings = shipRow.value;
+            const { data: vatRow } = await db.from('shop_settings').select('value').eq('key', 'vat').single();
+            if (vatRow?.value) vatSettings = vatRow.value;
             const { data: promoRow } = await db.from('shop_settings').select('value').eq('key', 'promotions').single();
             if (promoRow) {
                 const now = new Date().toISOString().split('T')[0];
@@ -190,20 +193,14 @@
             const btn = document.getElementById('resumeBtn');
             btn.disabled = true; btn.textContent = 'Redirecting to payment...';
             try {
-                const { data: order } = await db.from('orders').select('*, order_items(*)').eq('id', orderId).single();
-                const items = (order.order_items || []).map(i => ({ name: i.product_name, price: Number(i.unit_price), quantity: i.quantity }));
-                const itemsSubtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-                const shipping = Math.round((Number(order.total) - itemsSubtotal) * 100) / 100;
-                if (shipping > 0) items.push({ name: 'Shipping', price: shipping, quantity: 1 });
-
+                const { data: order } = await db.from('orders').select('guest_email').eq('id', orderId).single();
                 const baseUrl = window.location.origin;
                 const response = await fetch('/.netlify/functions/create-checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        items,
                         order_id: orderId,
-                        customer_email: order.guest_email || '',
+                        customer_email: order?.guest_email || '',
                         success_url: baseUrl + '/consumer-success.html?order_id=' + orderId,
                         cancel_url: baseUrl + '/consumer-checkout.html'
                     })
@@ -289,13 +286,18 @@
                     <div class="form-group"><label for="coEircode">Eircode</label><input type="text" id="coEircode" placeholder="e.g. D01 AB12"></div>
                     <div class="form-group"></div>
                 </div>
-                <button class="btn btn-primary" style="width:100%;margin-top:1rem;" id="payBtn" onclick="handlePay()">Pay — €${total.toFixed(2)}</button>
+                <div style="margin:1rem 0 0.75rem;">
+                    <label style="display:flex;align-items:flex-start;gap:0.6rem;font-size:0.85rem;color:var(--gray-700);cursor:pointer;line-height:1.4;">
+                        <input type="checkbox" id="consentTerms" style="margin-top:0.2rem;accent-color:var(--orange);flex-shrink:0;width:16px;height:16px;">
+                        I have read and agree to the <a href="/terms.html" target="_blank" style="color:var(--orange);">Terms &amp; Conditions</a> and <a href="/privacy-policy.html" target="_blank" style="color:var(--orange);">Privacy Policy</a>
+                    </label>
+                </div>
+                <button class="btn btn-primary" style="width:100%;" id="payBtn" onclick="handlePay()">Pay — €${total.toFixed(2)}</button>
                 ${shipSettings.delivery_note ? `<p style="font-size:0.78rem;color:var(--gray-500);text-align:center;margin-top:0.75rem;">${esc(shipSettings.delivery_note)}</p>` : ''}
-                <p style="font-size:0.72rem;color:var(--gray-400);text-align:center;margin-top:0.5rem;">By placing an order you agree to our <a href="/terms.html" style="color:var(--orange);">Terms & Conditions</a> and <a href="/privacy-policy.html" style="color:var(--orange);">Privacy Policy</a>.</p>
             </div>`;
 
             // Right: Summary
-            html += '<div class="order-summary"><h2>Order Summary</h2>';
+            html += `<div class="order-summary"><h2>Order Summary</h2>`;
             cart.forEach(item => {
                 const p = productMap[item.product_id];
                 const price = getRetailPrice(p);
@@ -309,10 +311,29 @@
             }
             html += `</div>`;
             html += `<div class="sum-total"><span>Total</span><span>€${total.toFixed(2)}</span></div>`;
+
+            // VAT notice
+            if (vatSettings.goods_vat_registered) {
+                const vatNum = vatSettings.vat_number ? ` VAT No: ${esc(vatSettings.vat_number)}.` : '';
+                html += `<p style="font-size:0.78rem;color:var(--gray-500);margin-top:0.75rem;line-height:1.5;">All prices are inclusive of VAT at the applicable rate.${vatNum}</p>`;
+            } else {
+                html += `<p style="font-size:0.78rem;color:var(--gray-500);margin-top:0.75rem;line-height:1.5;">Prices shown are exclusive of VAT. DrMobilePhone is not currently VAT registered for the sale of goods as the annual registration threshold has not been exceeded.</p>`;
+            }
+
             if (activePromos.length > 0 && discount === 0) {
                 const hint = activePromos.find(p => p.min_spend > subtotal);
                 if (hint) html += `<div style="font-size:0.78rem;color:var(--orange);margin-top:0.5rem;text-align:center;">${esc(hint.name)}: Spend €${Number(hint.min_spend).toFixed(2)} to save!</div>`;
             }
+
+            // ── Pre-purchase information (EU Consumer Rights Directive requirement) ──
+            const deliveryNote = shipSettings.delivery_note || '3–7 working days within Ireland';
+            html += `<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--gray-100);font-size:0.78rem;color:var(--gray-500);line-height:1.65;">
+                <div style="margin-bottom:0.4rem;"><strong style="color:var(--gray-700);">Estimated delivery:</strong> ${esc(deliveryNote)}</div>
+                <div style="margin-bottom:0.4rem;"><strong style="color:var(--gray-700);">Right to cancel:</strong> You have 14 days from delivery to cancel and receive a full refund. <a href="/returns.html" target="_blank" style="color:var(--orange);">Returns policy →</a></div>
+                <div style="margin-bottom:0.4rem;"><strong style="color:var(--gray-700);">Seller:</strong> DrMobilePhone, Unit 1 College Way, Kilcock Road, Clane, Co. Kildare, Ireland</div>
+                <div><strong style="color:var(--gray-700);">Contact:</strong> <a href="mailto:info@drmobilephone.ie" style="color:var(--orange);">info@drmobilephone.ie</a> &nbsp;·&nbsp; 045 949 611</div>
+            </div>`;
+
             html += '</div>';
 
             document.getElementById('checkoutContent').innerHTML = html;
@@ -330,6 +351,11 @@
 
             if (!name || !email || !addr1 || !city) {
                 showAlert('alert', 'Please fill in all required fields.', 'error');
+                return;
+            }
+
+            if (!document.getElementById('consentTerms').checked) {
+                showAlert('alert', 'You must accept the Terms & Conditions and Privacy Policy to place an order.', 'error');
                 return;
             }
 
@@ -379,25 +405,12 @@
                     await db.rpc('deduct_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
                 }
 
-                // Build Stripe items (products + shipping + discount)
                 showProcessing('Redirecting to payment...');
-                const stripeItems = cart.map(i => {
-                    const p = productMap[i.product_id];
-                    return { name: p.name, price: getRetailPrice(p), quantity: i.quantity };
-                });
-                if (shipping > 0) {
-                    stripeItems.push({ name: shippingLabel, price: shipping, quantity: 1 });
-                }
-                if (discount > 0) {
-                    stripeItems.push({ name: promoLabel || 'Discount', price: -discount, quantity: 1 });
-                }
-
                 const baseUrl = window.location.origin;
                 const response = await fetch('/.netlify/functions/create-checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        items: stripeItems,
                         order_id: orderId,
                         customer_email: email,
                         success_url: baseUrl + '/consumer-success.html?order_id=' + orderId,

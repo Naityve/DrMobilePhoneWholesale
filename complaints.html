@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complaints Procedure — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .page-wrap { max-width: 800px; margin: 0 auto; padding: 7rem 2rem 3rem; }
+        .page-wrap h1 { font-family: 'Instrument Serif', serif; font-size: 2.2rem; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 0.3rem; }
+        .page-wrap .updated { font-size: 0.88rem; color: var(--gray-500); margin-bottom: 2.5rem; }
+        .page-wrap h2 { font-family: 'Instrument Serif', serif; font-size: 1.4rem; font-weight: 400; margin-top: 2rem; margin-bottom: 0.75rem; }
+        .page-wrap h3 { font-size: 1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .page-wrap p { font-size: 0.92rem; color: var(--gray-700); line-height: 1.7; margin-bottom: 0.75rem; }
+        .page-wrap ul { margin: 0.5rem 0 1rem 1.5rem; }
+        .page-wrap li { font-size: 0.92rem; color: var(--gray-700); line-height: 1.7; margin-bottom: 0.3rem; }
+        .page-wrap a { color: var(--orange); }
+        .info-box { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.25rem; margin: 1.5rem 0; }
+        .info-box p { margin-bottom: 0.3rem; }
+        .steps { counter-reset: step; list-style: none; margin: 0; padding: 0; }
+        .step { counter-increment: step; display: flex; gap: 1rem; margin-bottom: 1.25rem; padding: 1.25rem; border: 1px solid var(--gray-200); border-radius: 14px; }
+        .step-num { background: var(--orange); color: white; font-weight: 700; font-size: 0.88rem; min-width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 0.1rem; }
+        .step-body { flex: 1; }
+        .step-body h3 { margin: 0 0 0.4rem; font-size: 0.95rem; font-weight: 600; }
+        .step-body p { margin: 0; font-size: 0.88rem; color: var(--gray-600); line-height: 1.6; }
+        .step-body a { color: var(--orange); }
+        .timeline-box { border: 1px solid var(--gray-200); border-radius: 12px; overflow: hidden; margin: 1.25rem 0; }
+        .timeline-row { display: flex; padding: 0.75rem 1rem; border-bottom: 1px solid var(--gray-100); font-size: 0.88rem; }
+        .timeline-row:last-child { border-bottom: none; }
+        .timeline-row .tl-label { font-weight: 600; min-width: 200px; color: var(--gray-700); }
+        .timeline-row .tl-value { color: var(--gray-600); }
+        .external-card { border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+        .external-card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.35rem; }
+        .external-card p { font-size: 0.85rem; color: var(--gray-600); margin-bottom: 0.3rem; line-height: 1.5; }
+        .external-card p:last-child { margin-bottom: 0; }
+        .consumer-cart-link { position: relative; display: flex; align-items: center; gap: 0.3rem; }
+        .consumer-cart-badge { position: absolute; top: -6px; right: -10px; min-width: 18px; height: 18px; background: var(--orange); color: white; font-size: 0.68rem; font-weight: 700; border-radius: 100px; display: none; align-items: center; justify-content: center; padding: 0 4px; }
+        .site-footer { background: var(--black); color: white; padding: 3rem 2rem 2rem; margin-top: 3rem; }
+        .footer-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem; }
+        .footer-brand h3 { font-family: 'Instrument Serif', serif; font-size: 1.3rem; font-weight: 400; margin-bottom: 0.5rem; }
+        .footer-brand h3 span { color: var(--orange); }
+        .footer-brand p { font-size: 0.85rem; color: rgba(255,255,255,0.5); line-height: 1.6; }
+        .footer-col h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.4); margin-bottom: 0.8rem; }
+        .footer-col a { display: block; font-size: 0.88rem; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; transition: color 0.2s; }
+        .footer-col a:hover { color: var(--orange); }
+        .footer-bottom { max-width: 1200px; margin: 2rem auto 0; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; font-size: 0.8rem; color: rgba(255,255,255,0.3); }
+        @media (max-width: 768px) { .page-wrap { padding: 6rem 1.25rem 2rem; } .footer-inner { grid-template-columns: 1fr; gap: 2rem; } .step { flex-direction: column; } .timeline-row { flex-direction: column; gap: 0.25rem; } .timeline-row .tl-label { min-width: auto; } }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg></div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links" id="navLinks">
+            <button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <a href="/">Shop</a>
+            <a href="/wholesale.html">Wholesale</a>
+            <a href="/consumer-cart.html" class="consumer-cart-link">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                Cart <span class="consumer-cart-badge" id="consumerCartBadge">0</span>
+            </a>
+        </div>
+        <button class="hamburger" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+    </nav>
+
+    <div class="page-wrap">
+        <h1>Complaints Procedure</h1>
+        <p class="updated">Last updated: 16 March 2026</p>
+
+        <p>We aim to provide an excellent experience for every customer. If something has gone wrong, we want to hear about it and put it right as quickly as possible. This procedure applies to all customers — consumer and trade — for products, services, and delivery.</p>
+
+        <div class="info-box">
+            <p><strong>Prefer to start straight away?</strong></p>
+            <p>Email: <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a></p>
+            <p>Phone: 045 949 611 &nbsp;·&nbsp; 089 989 9550</p>
+            <p>Post: DrMobilePhone, Unit 1 College Way, Kilcock Road, Clane, Co. Kildare, Ireland</p>
+        </div>
+
+        <h2>Our Complaints Process</h2>
+
+        <ol class="steps">
+            <li class="step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                    <h3>Contact Us Directly</h3>
+                    <p>Most issues can be resolved quickly by getting in touch. Email <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a>, call 045 949 611, or visit us in store. Please include your order reference number and a clear description of the issue.</p>
+                </div>
+            </li>
+            <li class="step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                    <h3>Formal Written Complaint</h3>
+                    <p>If your issue is not resolved to your satisfaction after initial contact, you may raise a formal written complaint by emailing <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a> with the subject line <em>"Formal Complaint"</em> and include:</p>
+                    <p>Your name and contact details &nbsp;·&nbsp; Your order reference &nbsp;·&nbsp; A clear description of the complaint &nbsp;·&nbsp; What outcome you are seeking</p>
+                </div>
+            </li>
+            <li class="step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                    <h3>We Respond &amp; Investigate</h3>
+                    <p>We will acknowledge your complaint within <strong>2 working days</strong> and aim to provide a full response and resolution within <strong>14 working days</strong>. If we need longer we will tell you why and give you a revised timeframe.</p>
+                </div>
+            </li>
+            <li class="step">
+                <div class="step-num">4</div>
+                <div class="step-body">
+                    <h3>If You Are Still Unsatisfied</h3>
+                    <p>If you are not happy with our response, you can escalate to an external body — see the section below. We will always cooperate fully with external dispute resolution.</p>
+                </div>
+            </li>
+        </ol>
+
+        <h2>Our Response Commitments</h2>
+        <div class="timeline-box">
+            <div class="timeline-row">
+                <span class="tl-label">Acknowledgement</span>
+                <span class="tl-value">Within 2 working days of receiving your complaint</span>
+            </div>
+            <div class="timeline-row">
+                <span class="tl-label">Full response</span>
+                <span class="tl-value">Within 14 working days (we will update you if this is not possible)</span>
+            </div>
+            <div class="timeline-row">
+                <span class="tl-label">Refunds (where applicable)</span>
+                <span class="tl-value">Within 14 days of confirming your entitlement</span>
+            </div>
+            <div class="timeline-row">
+                <span class="tl-label">Replacements (where applicable)</span>
+                <span class="tl-value">Dispatched as soon as stock allows after agreement</span>
+            </div>
+        </div>
+
+        <h2>Returns &amp; Refund Complaints</h2>
+        <p>If your complaint relates to a return, refund, or a faulty product, please also read our <a href="/returns.html">Returns &amp; Refunds Policy</a> which sets out your statutory rights in detail. You have the right to a repair, replacement, or refund for faulty goods under the Consumer Rights Act 2022, and a 14-day right of cancellation for online orders.</p>
+
+        <h2>External Escalation</h2>
+        <p>If we have been unable to resolve your complaint within a reasonable time, or if you are dissatisfied with our final response, you have the right to contact the following bodies free of charge:</p>
+
+        <div class="external-card">
+            <h3>Competition and Consumer Protection Commission (CCPC)</h3>
+            <p>The CCPC enforces consumer rights law in Ireland and provides free information and advice to consumers.</p>
+            <p>Website: <a href="https://www.ccpc.ie" target="_blank">www.ccpc.ie</a></p>
+            <p>Helpline: 01 402 5555 (Monday–Friday, 9am–6pm)</p>
+        </div>
+
+        <div class="external-card">
+            <h3>EU Online Dispute Resolution (ODR) Platform</h3>
+            <p>For online purchases, EU consumers can use the European Commission's ODR platform to seek resolution without going to court. We are required by EU law to make you aware of this platform.</p>
+            <p>Website: <a href="https://ec.europa.eu/consumers/odr" target="_blank">ec.europa.eu/consumers/odr</a></p>
+            <p>Our ODR contact email: <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a></p>
+        </div>
+
+        <div class="external-card">
+            <h3>Small Claims Court</h3>
+            <p>For disputes involving amounts up to €2,000, consumers may use the Small Claims procedure through the Irish Courts Service — a low-cost and straightforward process.</p>
+            <p>Website: <a href="https://www.courts.ie/small-claims" target="_blank">www.courts.ie/small-claims</a></p>
+            <p>Fee: €25</p>
+        </div>
+
+        <h2>Data Protection Complaints</h2>
+        <p>If your complaint relates to how we have handled your personal data, please refer to our <a href="/privacy-policy.html">Privacy Policy</a>. For unresolved data protection issues you may contact the Data Protection Commission:</p>
+        <div class="info-box">
+            <p><strong>Data Protection Commission</strong></p>
+            <p>21 Fitzwilliam Square South, Dublin 2, D02 RD28</p>
+            <p>Phone: +353 (0)1 765 0100</p>
+            <p>Website: <a href="https://www.dataprotection.ie" target="_blank">www.dataprotection.ie</a></p>
+        </div>
+
+        <h2>Contact Us</h2>
+        <div class="info-box">
+            <p><strong>DrMobilePhone</strong></p>
+            <p>Unit 1 College Way, Kilcock Road, Clane, Co. Kildare, Ireland</p>
+            <p>Email: <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a></p>
+            <p>Phone: 045 949 611 &nbsp;·&nbsp; 089 989 9550</p>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <h3>DrMobile<span>Phone</span></h3>
+                <p>Unit 1 College Way, Kilcock Road, Clane, Co. Kildare, Ireland</p>
+                <p style="margin-top:0.4rem;"><a href="tel:+35345949611" style="color:rgba(255,255,255,0.5);">045 949 611</a> &nbsp;·&nbsp; <a href="tel:+353899899550" style="color:rgba(255,255,255,0.5);">089 989 9550</a></p>
+                <p style="margin-top:0.2rem;"><a href="mailto:info@drmobilephone.ie" style="color:rgba(255,255,255,0.5);">info@drmobilephone.ie</a></p>
+            </div>
+            <div class="footer-col">
+                <h4>Shop</h4>
+                <a href="/">All Products</a>
+                <a href="/consumer-cart.html">Your Cart</a>
+                <a href="/delivery.html">Delivery Information</a>
+            </div>
+            <div class="footer-col">
+                <h4>Business</h4>
+                <a href="/wholesale.html">Wholesale Portal</a>
+                <a href="/login.html">Trade Login</a>
+                <a href="/register.html">Open Trade Account</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal &amp; Help</h4>
+                <a href="/privacy-policy.html">Privacy Policy</a>
+                <a href="/terms.html">Terms &amp; Conditions</a>
+                <a href="/returns.html">Returns Policy</a>
+                <a href="/complaints.html">Complaints</a>
+                <a href="/contact.html">Contact Us</a>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2026 DrMobilePhone. All rights reserved.</div>
+    </footer>
+
+    <script>
+        function toggleMobileMenu() { document.querySelector('.nav-links')?.classList.toggle('open'); }
+        document.addEventListener('click', e => { if (e.target.closest('.nav-links a')) document.querySelector('.nav-links')?.classList.remove('open'); });
+        try {
+            const cart = JSON.parse(localStorage.getItem('consumer_cart') || '[]');
+            const count = cart.reduce((s, i) => s + i.quantity, 0);
+            const badge = document.getElementById('consumerCartBadge');
+            if (badge && count > 0) { badge.textContent = count; badge.style.display = 'flex'; }
+        } catch(e) {}
+    </script>
+</body>
+</html>

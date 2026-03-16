@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Information — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .page-wrap { max-width: 800px; margin: 0 auto; padding: 7rem 2rem 3rem; }
+        .page-wrap h1 { font-family: 'Instrument Serif', serif; font-size: 2.2rem; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 0.3rem; }
+        .page-wrap .updated { font-size: 0.88rem; color: var(--gray-500); margin-bottom: 2.5rem; }
+        .page-wrap h2 { font-family: 'Instrument Serif', serif; font-size: 1.4rem; font-weight: 400; margin-top: 2rem; margin-bottom: 0.75rem; }
+        .page-wrap h3 { font-size: 1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .page-wrap p { font-size: 0.92rem; color: var(--gray-700); line-height: 1.7; margin-bottom: 0.75rem; }
+        .page-wrap ul { margin: 0.5rem 0 1rem 1.5rem; }
+        .page-wrap li { font-size: 0.92rem; color: var(--gray-700); line-height: 1.7; margin-bottom: 0.3rem; }
+        .page-wrap a { color: var(--orange); }
+        .info-box { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.25rem; margin: 1.5rem 0; }
+        .info-box p { margin-bottom: 0.3rem; }
+        .highlight-box { background: #FFF7ED; border: 1.5px solid var(--orange); border-radius: 12px; padding: 1.25rem; margin: 1.5rem 0; }
+        .highlight-box p { margin-bottom: 0.3rem; }
+        .rate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin: 1.25rem 0; }
+        .rate-card { border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.25rem; }
+        .rate-card .rate-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--gray-500); font-weight: 500; margin-bottom: 0.4rem; }
+        .rate-card .rate-price { font-size: 1.5rem; font-weight: 700; color: var(--black); margin-bottom: 0.2rem; }
+        .rate-card .rate-price.free { color: #15803D; }
+        .rate-card .rate-desc { font-size: 0.82rem; color: var(--gray-500); line-height: 1.4; }
+        .consumer-cart-link { position: relative; display: flex; align-items: center; gap: 0.3rem; }
+        .consumer-cart-badge { position: absolute; top: -6px; right: -10px; min-width: 18px; height: 18px; background: var(--orange); color: white; font-size: 0.68rem; font-weight: 700; border-radius: 100px; display: none; align-items: center; justify-content: center; padding: 0 4px; }
+        .site-footer { background: var(--black); color: white; padding: 3rem 2rem 2rem; margin-top: 3rem; }
+        .footer-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem; }
+        .footer-brand h3 { font-family: 'Instrument Serif', serif; font-size: 1.3rem; font-weight: 400; margin-bottom: 0.5rem; }
+        .footer-brand h3 span { color: var(--orange); }
+        .footer-brand p { font-size: 0.85rem; color: rgba(255,255,255,0.5); line-height: 1.6; }
+        .footer-col h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.4); margin-bottom: 0.8rem; }
+        .footer-col a { display: block; font-size: 0.88rem; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; transition: color 0.2s; }
+        .footer-col a:hover { color: var(--orange); }
+        .footer-bottom { max-width: 1200px; margin: 2rem auto 0; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; font-size: 0.8rem; color: rgba(255,255,255,0.3); }
+        @media (max-width: 768px) { .page-wrap { padding: 6rem 1.25rem 2rem; } .footer-inner { grid-template-columns: 1fr; gap: 2rem; } .rate-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg></div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links" id="navLinks">
+            <button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <a href="/">Shop</a>
+            <a href="/wholesale.html">Wholesale</a>
+            <a href="/consumer-cart.html" class="consumer-cart-link">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                Cart <span class="consumer-cart-badge" id="consumerCartBadge">0</span>
+            </a>
+        </div>
+        <button class="hamburger" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+    </nav>
+
+    <div class="page-wrap">
+        <h1>Delivery Information</h1>
+        <p class="updated">Last updated: 16 March 2026</p>
+
+        <div class="highlight-box">
+            <p><strong>Exact shipping costs are shown at checkout</strong> before you complete your purchase. You will always see the full total including delivery before you are charged.</p>
+        </div>
+
+        <h2>Delivery Rates</h2>
+        <p>All prices shown at checkout include delivery to any address in the Republic of Ireland. Current rates are shown below and are also confirmed at checkout.</p>
+        <div class="rate-grid" id="rateGrid">
+            <!-- Populated by JS from shop settings -->
+            <div class="rate-card">
+                <div class="rate-label">Standard Delivery</div>
+                <div class="rate-price" id="rateStandard">Loading...</div>
+                <div class="rate-desc">Tracked delivery to any address in the Republic of Ireland</div>
+            </div>
+            <div class="rate-card" id="freeCard">
+                <div class="rate-label">Free Delivery</div>
+                <div class="rate-price free" id="rateFree">Loading...</div>
+                <div class="rate-desc" id="freeDesc">On orders over a certain value — shown at checkout</div>
+            </div>
+            <div class="rate-card" id="expressCard" style="display:none;">
+                <div class="rate-label">Express Delivery</div>
+                <div class="rate-price" id="rateExpress">Loading...</div>
+                <div class="rate-desc">Faster delivery where available — selected at checkout</div>
+            </div>
+        </div>
+
+        <h2>Delivery Timeframes</h2>
+        <p>Estimated delivery times are for orders placed before 2pm on working days (Monday to Friday, excluding Irish public holidays). Orders placed after 2pm or on a weekend/public holiday will be processed the next working day.</p>
+
+        <div class="info-box">
+            <p><strong>Standard Delivery:</strong> 3–7 working days within the Republic of Ireland</p>
+            <p><strong>Express Delivery:</strong> 1–3 working days (where available)</p>
+            <p>Delivery timeframes are estimates and not guaranteed. Delays can occasionally occur due to carrier issues, high demand periods, or circumstances outside our control.</p>
+        </div>
+
+        <h2>Where We Deliver</h2>
+        <p>We currently deliver to all addresses within the <strong>Republic of Ireland</strong>. We do not currently offer standard delivery to Northern Ireland or Great Britain. If you require delivery outside the Republic of Ireland, please contact us at <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a> to discuss options.</p>
+
+        <h2>Order Tracking</h2>
+        <p>Once your order has been dispatched you will receive a dispatch notification by email. You can also view the status of your order at any time from your <a href="/consumer-orders.html">account orders page</a>.</p>
+        <p>If you have not received your order within the estimated timeframe, please contact us and we will investigate with the carrier.</p>
+
+        <h2>Delivery Attempt &amp; Missed Deliveries</h2>
+        <p>If a delivery attempt is unsuccessful, the carrier will typically leave a card or send a notification with instructions for re-delivery or collection from a local depot. If you have difficulty collecting your parcel, contact us and we will assist.</p>
+
+        <h2>Damaged or Missing Items</h2>
+        <p>If your order arrives damaged or items are missing, please:</p>
+        <ul>
+            <li>Take photographs of the packaging and contents</li>
+            <li>Contact us within <strong>48 hours</strong> of delivery at <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a> or call 045 949 611</li>
+            <li>Retain all original packaging until we have resolved the issue</li>
+        </ul>
+        <p>We will arrange a replacement or refund for any items confirmed as damaged in transit or missing from your order. Under the Consumer Rights Act 2022, risk of damage remains with us until the goods are delivered to you.</p>
+
+        <h2>Failed Delivery &amp; Returned Parcels</h2>
+        <p>If a parcel is returned to us because it could not be delivered (e.g. incorrect address provided, uncollected from depot), we will contact you to arrange re-delivery. A re-delivery charge may apply to cover carrier costs. If you do not respond within 14 days of our notification, we will process a refund for the goods value minus the original shipping cost.</p>
+
+        <h2>Your Right to Cancel</h2>
+        <p>For all online orders, you have the right to cancel within <strong>14 days of receiving your goods</strong> under the EU Consumer Rights Directive. This is in addition to your rights for faulty or misdescribed goods. See our <a href="/returns.html">Returns &amp; Refunds Policy</a> for full details and how to initiate a return.</p>
+
+        <h2>Wholesale &amp; Trade Orders</h2>
+        <p>Delivery for wholesale and trade account orders is handled separately and agreed at account opening. Please contact us directly to discuss bulk delivery requirements.</p>
+
+        <h2>Contact Us About Delivery</h2>
+        <div class="info-box">
+            <p><strong>DrMobilePhone</strong></p>
+            <p>Unit 1 College Way, Kilcock Road, Clane, Co. Kildare, Ireland</p>
+            <p>Email: <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a></p>
+            <p>Phone: 045 949 611 &nbsp;·&nbsp; 089 989 9550</p>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <h3>DrMobile<span>Phone</span></h3>
+                <p>Unit 1 College Way, Kilcock Road, Clane, Co. Kildare, Ireland</p>
+                <p style="margin-top:0.4rem;"><a href="tel:+35345949611" style="color:rgba(255,255,255,0.5);">045 949 611</a> &nbsp;·&nbsp; <a href="tel:+353899899550" style="color:rgba(255,255,255,0.5);">089 989 9550</a></p>
+                <p style="margin-top:0.2rem;"><a href="mailto:info@drmobilephone.ie" style="color:rgba(255,255,255,0.5);">info@drmobilephone.ie</a></p>
+            </div>
+            <div class="footer-col">
+                <h4>Shop</h4>
+                <a href="/">All Products</a>
+                <a href="/consumer-cart.html">Your Cart</a>
+                <a href="/delivery.html">Delivery Information</a>
+            </div>
+            <div class="footer-col">
+                <h4>Business</h4>
+                <a href="/wholesale.html">Wholesale Portal</a>
+                <a href="/login.html">Trade Login</a>
+                <a href="/register.html">Open Trade Account</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal &amp; Help</h4>
+                <a href="/privacy-policy.html">Privacy Policy</a>
+                <a href="/terms.html">Terms &amp; Conditions</a>
+                <a href="/returns.html">Returns Policy</a>
+                <a href="/complaints.html">Complaints</a>
+                <a href="/contact.html">Contact Us</a>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2026 DrMobilePhone. All rights reserved.</div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://btzbifpqtzgpyvlyipxk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0emJpZnBxdHpncHl2bHlpcHhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTM0ODMsImV4cCI6MjA4NzUyOTQ4M30.oIdVuiKlstdYUi6bSjev61wGNr4hbL5rIWtwIwT_R-s';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function toggleMobileMenu() { document.querySelector('.nav-links')?.classList.toggle('open'); }
+        document.addEventListener('click', e => { if (e.target.closest('.nav-links a')) document.querySelector('.nav-links')?.classList.remove('open'); });
+
+        (async () => {
+            try {
+                const cart = JSON.parse(localStorage.getItem('consumer_cart') || '[]');
+                const count = cart.reduce((s, i) => s + i.quantity, 0);
+                const badge = document.getElementById('consumerCartBadge');
+                if (badge && count > 0) { badge.textContent = count; badge.style.display = 'flex'; }
+            } catch(e) {}
+
+            const { data: shipRow } = await db.from('shop_settings').select('value').eq('key', 'shipping').single();
+            const s = shipRow?.value || {};
+            const stdRate = s.standard_rate ?? 4.99;
+            const freeThreshold = s.free_threshold ?? 50;
+            const expressRate = s.express_rate ?? 9.99;
+            const expressEnabled = s.express_enabled || false;
+
+            document.getElementById('rateStandard').textContent = stdRate === 0 ? 'Free' : `€${Number(stdRate).toFixed(2)}`;
+            if (freeThreshold > 0) {
+                document.getElementById('rateFree').textContent = `Free`;
+                document.getElementById('freeDesc').textContent = `On orders over €${Number(freeThreshold).toFixed(2)}`;
+            } else {
+                document.getElementById('freeCard').style.display = 'none';
+            }
+            if (expressEnabled) {
+                document.getElementById('expressCard').style.display = '';
+                document.getElementById('rateExpress').textContent = `€${Number(expressRate).toFixed(2)}`;
+            }
+        })();
+    </script>
+</body>
+</html>

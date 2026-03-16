@@ -58,6 +58,18 @@
                         <input type="password" id="password_confirm" placeholder="Repeat password" required minlength="8">
                     </div>
                 </div>
+                <div style="margin-bottom:0.75rem;">
+                    <label style="display:flex;align-items:flex-start;gap:0.6rem;font-size:0.85rem;color:var(--gray-700);cursor:pointer;line-height:1.4;">
+                        <input type="checkbox" id="consentTerms" required style="margin-top:0.2rem;accent-color:var(--orange);flex-shrink:0;width:16px;height:16px;">
+                        I have read and agree to the <a href="/terms.html" target="_blank" style="color:var(--orange);">Terms &amp; Conditions</a> *
+                    </label>
+                </div>
+                <div style="margin-bottom:1.25rem;">
+                    <label style="display:flex;align-items:flex-start;gap:0.6rem;font-size:0.85rem;color:var(--gray-700);cursor:pointer;line-height:1.4;">
+                        <input type="checkbox" id="consentPrivacy" required style="margin-top:0.2rem;accent-color:var(--orange);flex-shrink:0;width:16px;height:16px;">
+                        I have read and agree to the <a href="/privacy-policy.html" target="_blank" style="color:var(--orange);">Privacy Policy</a> *
+                    </label>
+                </div>
                 <button type="submit" class="btn btn-primary" id="submitBtn">Create Account &amp; Continue</button>
             </form>
 
@@ -106,6 +118,11 @@
             if (!fullName || !email || !password) {
                 alertEl.className = 'alert alert-error show';
                 alertEl.textContent = 'Please fill in all required fields.';
+                return;
+            }
+            if (!document.getElementById('consentTerms').checked || !document.getElementById('consentPrivacy').checked) {
+                alertEl.className = 'alert alert-error show';
+                alertEl.textContent = 'You must accept the Terms & Conditions and Privacy Policy to create an account.';
                 return;
             }
             if (password.length < 8) {

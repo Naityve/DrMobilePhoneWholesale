@@ -9,12 +9,29 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
-        .success-wrap { max-width: 600px; margin: 0 auto; padding: 8rem 2rem 3rem; text-align: center; }
-        .success-icon { width: 80px; height: 80px; border-radius: 50%; background: var(--green-dim); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2.5rem; }
-        .success-wrap h1 { font-family: 'Instrument Serif', serif; font-size: 2rem; font-weight: 400; margin-bottom: 0.5rem; }
-        .success-wrap p { font-size: 0.95rem; color: var(--gray-500); margin-bottom: 2rem; line-height: 1.6; }
-        .success-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
-        .success-actions .btn { width: auto; }
+        .success-wrap { max-width: 620px; margin: 0 auto; padding: 7rem 2rem 3rem; }
+        .success-header { text-align: center; margin-bottom: 2rem; }
+        .success-icon { width: 72px; height: 72px; border-radius: 50%; background: #DCFCE7; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+        .success-icon svg { color: #16A34A; }
+        .success-header h1 { font-family: 'Instrument Serif', serif; font-size: 2rem; font-weight: 400; margin-bottom: 0.5rem; }
+        .success-header p { font-size: 0.95rem; color: var(--gray-500); line-height: 1.6; margin: 0; }
+        .order-ref-box { background: #FFF7ED; border: 1.5px solid var(--orange); border-radius: 12px; padding: 1rem 1.5rem; text-align: center; margin-bottom: 1.5rem; }
+        .order-ref-box .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-500); margin-bottom: 0.25rem; }
+        .order-ref-box .ref { font-size: 1.3rem; font-weight: 700; }
+        .order-card { border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.25rem; }
+        .order-card h2 { font-family: 'Instrument Serif', serif; font-size: 1.1rem; font-weight: 400; margin-bottom: 1rem; }
+        .item-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100); font-size: 0.88rem; }
+        .item-row:last-of-type { border-bottom: none; }
+        .item-name { font-weight: 500; }
+        .item-qty { color: var(--gray-500); margin-left: 0.35rem; }
+        .item-price { font-weight: 600; }
+        .total-row { display: flex; justify-content: space-between; padding: 0.75rem 0 0; border-top: 2px solid var(--gray-200); margin-top: 0.35rem; font-weight: 700; font-size: 1.05rem; }
+        .subtotal-row { display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.85rem; color: var(--gray-600); }
+        .info-strip { background: var(--gray-50); border-radius: 10px; padding: 1rem; font-size: 0.82rem; color: var(--gray-600); line-height: 1.65; margin-bottom: 1.25rem; }
+        .info-strip strong { color: var(--gray-800); }
+        .info-strip a { color: var(--orange); }
+        .action-buttons { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+        .action-buttons .btn { flex: 1; min-width: 140px; text-align: center; }
         @media (max-width: 768px) { .success-wrap { padding: 6rem 1.25rem 2rem; } }
     </style>
 </head>
@@ -27,17 +44,39 @@
         <div class="nav-links" id="navLinks">
             <button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             <a href="/">Shop</a>
-            <a href="/wholesale.html">Wholesale</a>
+            <a href="/consumer-orders.html">My Orders</a>
         </div>
         <button class="hamburger" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
     </nav>
 
     <div class="success-wrap">
-        <div class="success-icon">✓</div>
-        <h1>Payment Successful!</h1>
-        <p>Thank you for your order. You will receive a confirmation email shortly. We will process and ship your order as soon as possible.</p>
-        <div class="success-actions">
-            <a href="/" class="btn btn-primary">Continue Shopping</a>
+        <div class="success-header">
+            <div class="success-icon">
+                <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h1>Payment Confirmed</h1>
+            <p>Thank you for your order. A confirmation email has been sent to <span id="confirmEmail" style="font-weight:600;color:var(--black);"></span></p>
+        </div>
+
+        <div class="order-ref-box">
+            <div class="label">Order Reference</div>
+            <div class="ref" id="orderRef">Loading...</div>
+        </div>
+
+        <div id="orderDetails">
+            <!-- Populated by JS -->
+        </div>
+
+        <div class="info-strip">
+            <strong>Estimated delivery:</strong> 3–7 working days within Ireland.<br>
+            <strong>Right to cancel:</strong> You have 14 days from delivery to cancel for any reason.
+            <a href="/returns.html">Full returns policy →</a><br>
+            <strong>Questions?</strong> <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a> &nbsp;·&nbsp; 045 949 611
+        </div>
+
+        <div class="action-buttons">
+            <a href="/consumer-orders.html" class="btn btn-primary">View My Orders</a>
+            <a href="/" class="btn btn-secondary">Continue Shopping</a>
         </div>
     </div>
 
@@ -47,33 +86,98 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0emJpZnBxdHpncHl2bHlpcHhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTM0ODMsImV4cCI6MjA4NzUyOTQ4M30.oIdVuiKlstdYUi6bSjev61wGNr4hbL5rIWtwIwT_R-s';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        function toggleMobileMenu() { document.querySelector('.nav-links')?.classList.toggle('open'); }
+        document.addEventListener('click', e => { if (e.target.closest('.nav-links a')) document.querySelector('.nav-links')?.classList.remove('open'); });
+        function esc(t) { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }
+
         (async () => {
-            // Get order ID from URL or localStorage
-            const params = new URLSearchParams(window.location.search);
-            const orderId = params.get('order_id') || localStorage.getItem('consumer_order_id');
+            const params    = new URLSearchParams(window.location.search);
+            const orderId   = params.get('order_id') || localStorage.getItem('consumer_order_id');
             const sessionId = localStorage.getItem('consumer_stripe_session') || '';
 
-            // Confirm payment in database
+            // Mark order as paid and confirm payment
             if (orderId) {
                 try {
-                    await db.rpc('confirm_guest_payment', {
-                        p_order_id: orderId,
-                        p_session_id: sessionId
-                    });
+                    await db.rpc('confirm_guest_payment', { p_order_id: orderId, p_session_id: sessionId });
                 } catch (e) {
                     console.error('Payment confirmation error:', e);
                 }
             }
 
-            // Clean up
+            // Clean up cart / session storage
             localStorage.removeItem('consumer_cart');
             localStorage.removeItem('consumer_cart_backup');
             localStorage.removeItem('consumer_order_id');
             localStorage.removeItem('consumer_stripe_session');
-        })();
 
-        function toggleMobileMenu() { document.querySelector('.nav-links')?.classList.toggle('open'); }
-        document.addEventListener('click', e => { if (e.target.closest('.nav-links a')) document.querySelector('.nav-links')?.classList.remove('open'); });
+            if (!orderId) {
+                document.getElementById('orderRef').textContent = '—';
+                document.getElementById('orderDetails').innerHTML = '<p style="color:var(--gray-500);font-size:0.9rem;">Order details unavailable.</p>';
+                return;
+            }
+
+            // Display order reference immediately
+            document.getElementById('orderRef').textContent = '#' + orderId.slice(0, 8).toUpperCase();
+
+            // Trigger confirmation email (fire-and-forget — failure silently logged)
+            fetch('/.netlify/functions/send-order-confirmation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: orderId })
+            }).catch(err => console.error('Confirmation email error:', err));
+
+            // Fetch order details to display
+            try {
+                const { data: order } = await db
+                    .from('orders')
+                    .select('*, order_items(*)')
+                    .eq('id', orderId)
+                    .single();
+
+                if (!order) return;
+
+                // Show email address in header
+                if (order.guest_email) {
+                    document.getElementById('confirmEmail').textContent = order.guest_email;
+                }
+
+                const items    = order.order_items || [];
+                const subtotal = Number(order.subtotal || 0);
+                const total    = Number(order.total    || 0);
+                const shipping = total - subtotal;
+
+                let html = '';
+
+                // Items card
+                html += '<div class="order-card"><h2>Items Ordered</h2>';
+                items.forEach(i => {
+                    html += `<div class="item-row">
+                        <span><span class="item-name">${esc(i.product_name)}</span><span class="item-qty">× ${i.quantity}</span></span>
+                        <span class="item-price">€${(Number(i.unit_price) * i.quantity).toFixed(2)}</span>
+                    </div>`;
+                });
+                html += `<div class="subtotal-row"><span>Subtotal</span><span>€${subtotal.toFixed(2)}</span></div>`;
+                html += `<div class="subtotal-row"><span>Shipping</span><span>${shipping > 0 ? '€' + shipping.toFixed(2) : 'Free'}</span></div>`;
+                html += `<div class="total-row"><span>Total Paid</span><span>€${total.toFixed(2)}</span></div>`;
+                html += '</div>';
+
+                // Address card
+                if (order.shipping_address_1) {
+                    html += '<div class="order-card"><h2>Delivery Address</h2>';
+                    html += `<p style="font-size:0.9rem;color:var(--gray-700);line-height:1.6;margin:0;">
+                        ${esc(order.guest_name || '')}<br>
+                        ${esc(order.shipping_address_1)}${order.shipping_address_2 ? '<br>' + esc(order.shipping_address_2) : ''}<br>
+                        ${esc(order.shipping_city || '')}${order.shipping_county ? ', ' + esc(order.shipping_county) : ''}${order.shipping_eircode ? ' ' + esc(order.shipping_eircode) : ''}
+                    </p>`;
+                    html += '</div>';
+                }
+
+                document.getElementById('orderDetails').innerHTML = html;
+
+            } catch (err) {
+                console.error('Failed to load order details:', err);
+            }
+        })();
     </script>
 </body>
 </html>

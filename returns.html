@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Returns & Refunds Policy — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .legal-wrap { max-width: 800px; margin: 0 auto; padding: 7rem 2rem 3rem; }
+        .legal-wrap h1 { font-family: 'Instrument Serif', serif; font-size: 2.2rem; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 0.3rem; }
+        .legal-wrap .updated { font-size: 0.88rem; color: var(--gray-500); margin-bottom: 2.5rem; }
+        .legal-wrap h2 { font-family: 'Instrument Serif', serif; font-size: 1.4rem; font-weight: 400; margin-top: 2rem; margin-bottom: 0.75rem; color: var(--black); }
+        .legal-wrap h3 { font-size: 1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .legal-wrap p { font-size: 0.92rem; color: var(--gray-700); line-height: 1.7; margin-bottom: 0.75rem; }
+        .legal-wrap ul, .legal-wrap ol { margin: 0.5rem 0 1rem 1.5rem; }
+        .legal-wrap li { font-size: 0.92rem; color: var(--gray-700); line-height: 1.7; margin-bottom: 0.3rem; }
+        .legal-wrap a { color: var(--orange); }
+        .legal-wrap .info-box { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.25rem; margin: 1.5rem 0; }
+        .legal-wrap .info-box p { margin-bottom: 0.3rem; }
+        .legal-wrap .highlight-box { background: #FFF7ED; border: 1.5px solid var(--orange); border-radius: 12px; padding: 1.25rem; margin: 1.5rem 0; }
+        .legal-wrap .highlight-box p { margin-bottom: 0.3rem; }
+        .legal-wrap table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        .legal-wrap th, .legal-wrap td { text-align: left; padding: 0.6rem 0.8rem; font-size: 0.88rem; border-bottom: 1px solid var(--gray-200); }
+        .legal-wrap th { font-weight: 600; color: var(--gray-500); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .steps { counter-reset: step; list-style: none; margin-left: 0; padding: 0; }
+        .steps li { counter-increment: step; display: flex; gap: 1rem; margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--gray-200); border-radius: 12px; align-items: flex-start; }
+        .steps li::before { content: counter(step); background: var(--orange); color: white; font-weight: 700; font-size: 0.85rem; min-width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 0.1rem; }
+        .steps li .step-content { flex: 1; }
+        .steps li .step-title { font-weight: 600; font-size: 0.92rem; margin-bottom: 0.25rem; }
+        .steps li .step-desc { font-size: 0.85rem; color: var(--gray-600); line-height: 1.5; margin: 0; }
+        .consumer-cart-link { position: relative; display: flex; align-items: center; gap: 0.3rem; }
+        .consumer-cart-badge { position: absolute; top: -6px; right: -10px; min-width: 18px; height: 18px; background: var(--orange); color: white; font-size: 0.68rem; font-weight: 700; border-radius: 100px; display: none; align-items: center; justify-content: center; padding: 0 4px; }
+        .site-footer { background: var(--black); color: white; padding: 3rem 2rem 2rem; margin-top: 3rem; }
+        .footer-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem; }
+        .footer-brand h3 { font-family: 'Instrument Serif', serif; font-size: 1.3rem; font-weight: 400; margin-bottom: 0.5rem; }
+        .footer-brand h3 span { color: var(--orange); }
+        .footer-brand p { font-size: 0.85rem; color: rgba(255,255,255,0.5); line-height: 1.6; }
+        .footer-col h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.4); margin-bottom: 0.8rem; }
+        .footer-col a { display: block; font-size: 0.88rem; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; transition: color 0.2s; }
+        .footer-col a:hover { color: var(--orange); }
+        .footer-bottom { max-width: 1200px; margin: 2rem auto 0; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; font-size: 0.8rem; color: rgba(255,255,255,0.3); }
+        @media (max-width: 768px) { .legal-wrap { padding: 6rem 1.25rem 2rem; } .footer-inner { grid-template-columns: 1fr; gap: 2rem; } }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg></div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links" id="navLinks">
+            <button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <a href="/">Shop</a>
+            <a href="/wholesale.html">Wholesale</a>
+            <a href="/consumer-cart.html" class="consumer-cart-link">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                Cart <span class="consumer-cart-badge" id="consumerCartBadge">0</span>
+            </a>
+        </div>
+        <button class="hamburger" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+    </nav>
+
+    <div class="legal-wrap">
+        <h1>Returns &amp; Refunds Policy</h1>
+        <p class="updated">Last updated: 16 March 2026</p>
+
+        <div class="highlight-box">
+            <p><strong>Your statutory rights are fully protected.</strong> Under the Consumer Rights Act 2022 and the EU Consumer Information, Cancellation and Other Rights Regulations 2013, you have the right to return goods that are faulty, not as described, or simply because you changed your mind (within 14 days of delivery for online orders). These rights are in addition to any goodwill policy we operate.</p>
+        </div>
+
+        <div class="info-box">
+            <p><strong>To start a return, contact us:</strong></p>
+            <p>Email: <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a></p>
+            <p>Phone: 045 949 611 &nbsp;·&nbsp; 089 989 9550</p>
+            <p>Address: Unit 1 College Way, Kilcock Road, Clane, Co. Kildare, Ireland</p>
+            <p>Please include your order reference number in all correspondence.</p>
+        </div>
+
+        <h2>1. Your Right to Cancel (14-Day Cooling-Off Period)</h2>
+        <p>If you ordered online or by distance, you have a <strong>statutory right to cancel your order within 14 calendar days</strong> of receiving your goods — no reason needed. This right is provided by the European Union (Consumer Information, Cancellation and Other Rights) Regulations 2013 (S.I. No. 484 of 2013).</p>
+
+        <table>
+            <thead><tr><th>Detail</th><th>Rule</th></tr></thead>
+            <tbody>
+                <tr><td>Cancellation window</td><td>14 calendar days from the day you receive the goods</td></tr>
+                <tr><td>How to cancel</td><td>Email us at <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a> with your order reference and a clear statement that you wish to cancel</td></tr>
+                <tr><td>Return deadline</td><td>You must send the goods back within 14 days of notifying us of your cancellation</td></tr>
+                <tr><td>Return postage</td><td>You are responsible for the direct cost of returning the goods to us under the cooling-off right</td></tr>
+                <tr><td>Refund timing</td><td>We will issue your refund within 14 days of receiving the goods back (or evidence of postage)</td></tr>
+                <tr><td>What is refunded</td><td>The full product price plus the cost of standard outbound delivery. Supplementary delivery charges (e.g. express shipping) are not refunded</td></tr>
+                <tr><td>Condition of goods</td><td>Goods must be returned in a saleable condition. You are liable for any diminished value caused by handling beyond what is necessary to assess the product</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Exceptions — When the Cooling-Off Right Does Not Apply</h3>
+        <p>The 14-day right of cancellation does not apply to:</p>
+        <ul>
+            <li>Goods that have been unsealed after delivery and cannot be returned for health protection or hygiene reasons (e.g. in-ear headphones or earbuds where the hygiene seal has been broken)</li>
+            <li>Goods made to your specifications or clearly personalised</li>
+            <li>Services that have been fully performed with your prior consent (e.g. a completed phone repair)</li>
+            <li>In-store purchases — the cooling-off period applies to distance and off-premises contracts only</li>
+        </ul>
+
+        <h3>Model Cancellation Form</h3>
+        <p>You may use this form to cancel your order. It is not mandatory — any clear written statement will do.</p>
+        <div class="info-box">
+            <p>To: DrMobilePhone, Unit 1 College Way, Kilcock Road, Clane, Co. Kildare, Ireland</p>
+            <p>Email: <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a></p>
+            <p style="margin-top:0.75rem;">I hereby give notice that I cancel my contract of sale of the following goods:</p>
+            <p>Order reference: _______________</p>
+            <p>Ordered on: _______________ / Received on: _______________</p>
+            <p>Name: _______________</p>
+            <p>Address: _______________</p>
+            <p>Date: _______________</p>
+        </div>
+
+        <h2>2. Faulty, Damaged, or Not As Described Goods</h2>
+        <p>Under the Consumer Rights Act 2022, all goods we sell must be of satisfactory quality, fit for purpose, and match their description. If your item is faulty, damaged on arrival, or significantly different from how it was described, you have the following rights:</p>
+
+        <table>
+            <thead><tr><th>Timeframe</th><th>Your Rights</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>Within 30 days of delivery</strong></td>
+                    <td>You may reject the goods and receive a full refund (the "short-term right to reject"). You may also choose a repair or replacement instead.</td>
+                </tr>
+                <tr>
+                    <td><strong>30 days to 6 months after delivery</strong></td>
+                    <td>You are entitled to a repair or replacement at no cost to you. If the repair or replacement is impossible, disproportionate, or unsuccessful after one attempt, you are entitled to a full or partial refund.</td>
+                </tr>
+                <tr>
+                    <td><strong>6 months to 6 years after delivery</strong></td>
+                    <td>You may still have rights, but the burden of proof shifts — you may be required to demonstrate that the fault existed at the time of delivery.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>For faulty goods, <strong>we will cover all return postage costs</strong>. Please do not return faulty goods before contacting us — we will arrange collection or provide a prepaid label where applicable.</p>
+
+        <h2>3. How to Return an Item — Step by Step</h2>
+        <ol class="steps">
+            <li>
+                <div class="step-content">
+                    <div class="step-title">Contact us before returning</div>
+                    <div class="step-desc">Email <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a> with your order reference, a description of the issue, and (for faulty goods) a photo if possible. We will confirm your return is authorised and provide instructions.</div>
+                </div>
+            </li>
+            <li>
+                <div class="step-content">
+                    <div class="step-title">Pack the item securely</div>
+                    <div class="step-desc">Use the original packaging where possible. Include a note with your name, order reference, and reason for return. We are not responsible for items damaged in transit due to inadequate packaging.</div>
+                </div>
+            </li>
+            <li>
+                <div class="step-content">
+                    <div class="step-title">Send the item back</div>
+                    <div class="step-desc">For faulty goods, we will arrange postage. For cooling-off returns (change of mind), you are responsible for return postage. We recommend using a tracked service and retaining proof of postage.</div>
+                </div>
+            </li>
+            <li>
+                <div class="step-content">
+                    <div class="step-title">We inspect and process</div>
+                    <div class="step-desc">Once we receive the item, we will inspect it and confirm the outcome within 5 working days. We will notify you by email.</div>
+                </div>
+            </li>
+            <li>
+                <div class="step-content">
+                    <div class="step-title">Receive your refund or replacement</div>
+                    <div class="step-desc">Refunds are issued to your original payment method within 14 days of us receiving the goods. Replacements are dispatched as soon as stock allows.</div>
+                </div>
+            </li>
+        </ol>
+
+        <h2>4. Refund Timelines</h2>
+        <table>
+            <thead><tr><th>Scenario</th><th>Refund Issued Within</th></tr></thead>
+            <tbody>
+                <tr><td>Cooling-off cancellation (change of mind)</td><td>14 days of receiving goods back from you</td></tr>
+                <tr><td>Faulty / not as described — short-term right to reject (within 30 days)</td><td>14 days of us confirming the fault</td></tr>
+                <tr><td>Failed repair or replacement</td><td>14 days of confirming the outcome</td></tr>
+                <tr><td>Item lost in transit to you</td><td>14 days of confirming the loss with the carrier</td></tr>
+            </tbody>
+        </table>
+        <p>All refunds are returned to the original payment method used at checkout. We do not issue cash refunds for online orders.</p>
+
+        <h2>5. Items Not Eligible for Return</h2>
+        <p>The following items cannot be returned unless they are faulty or not as described:</p>
+        <ul>
+            <li>In-ear headphones, earbuds, or any audio accessories where the hygiene seal has been broken after delivery</li>
+            <li>Items that have been personalised or custom-configured to your specification</li>
+            <li>Gift cards or store credit vouchers</li>
+            <li>Items damaged by misuse, accidental damage, or liquid after delivery</li>
+            <li>Software, digital products, or items with a digital component that have been downloaded or activated</li>
+        </ul>
+
+        <h2>6. Repair Service Warranty Returns</h2>
+        <p>All repair services carried out by DrMobilePhone carry a <strong>90-day warranty</strong> on the specific repair performed.</p>
+        <ul>
+            <li>If the same fault recurs within 90 days of the repair, we will re-examine the device and re-perform the repair or issue a refund of the repair charge at no additional cost.</li>
+            <li>The warranty does not cover new faults, physical damage, liquid damage, or faults unrelated to the original repair.</li>
+            <li>To make a warranty claim, bring the device to our premises or contact us at <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a> with your repair ticket number.</li>
+            <li>We are not liable for data loss during any repair. Always back up your device before submitting it for repair.</li>
+        </ul>
+
+        <h2>7. Wholesale / Trade Customer Returns</h2>
+        <p>Trade account returns are governed by the terms agreed at account opening. The 14-day consumer cooling-off period and Consumer Rights Act 2022 protections do not apply to business-to-business transactions.</p>
+        <p>Goods that are genuinely faulty or were incorrectly supplied will be replaced or credited. Please contact us within 5 working days of delivery to report any discrepancies or defects.</p>
+
+        <h2>8. In-Store Purchases</h2>
+        <p>For items purchased in-store:</p>
+        <ul>
+            <li>The 14-day cooling-off right does not apply to in-store purchases (it applies only to distance and off-premises contracts).</li>
+            <li>Your statutory rights under the Consumer Rights Act 2022 still apply in full — faulty or misdescribed goods will be refunded, repaired, or replaced.</li>
+            <li>Please retain your receipt. Proof of purchase is required for all in-store return requests.</li>
+        </ul>
+
+        <h2>9. Contact Us</h2>
+        <p>If you have a question about a return or are not satisfied with how a return has been handled, please contact us:</p>
+        <div class="info-box">
+            <p><strong>DrMobilePhone</strong></p>
+            <p>Unit 1 College Way, Kilcock Road, Clane, Co. Kildare, Ireland</p>
+            <p>Email: <a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a></p>
+            <p>Phone: 045 949 611 &nbsp;·&nbsp; 089 989 9550</p>
+        </div>
+        <p>If you remain unsatisfied after contacting us, you may refer your complaint to the Competition and Consumer Protection Commission (CCPC) at <a href="https://www.ccpc.ie" target="_blank">www.ccpc.ie</a>, or use the EU Online Dispute Resolution platform at <a href="https://ec.europa.eu/consumers/odr" target="_blank">ec.europa.eu/consumers/odr</a>.</p>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <h3>DrMobile<span>Phone</span></h3>
+                <p>Quality phone accessories and consumer electronics, shipped across Ireland.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Shop</h4>
+                <a href="/">All Products</a>
+                <a href="/consumer-cart.html">Your Cart</a>
+            </div>
+            <div class="footer-col">
+                <h4>Business</h4>
+                <a href="/wholesale.html">Wholesale Portal</a>
+                <a href="/login.html">Trade Login</a>
+                <a href="/register.html">Open Trade Account</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <a href="/privacy-policy.html">Privacy Policy</a>
+                <a href="/terms.html">Terms &amp; Conditions</a>
+                <a href="/returns.html">Returns Policy</a>
+                <a href="/delivery.html">Delivery Information</a>
+                <a href="/complaints.html">Complaints</a>
+                <a href="/contact.html">Contact Us</a>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2026 DrMobilePhone. All rights reserved.</div>
+    </footer>
+
+    <script>
+        function toggleMobileMenu() { document.querySelector('.nav-links')?.classList.toggle('open'); }
+        document.addEventListener('click', e => { if (e.target.closest('.nav-links a')) document.querySelector('.nav-links')?.classList.remove('open'); });
+        try {
+            const cart = JSON.parse(localStorage.getItem('consumer_cart') || '[]');
+            const count = cart.reduce((s, i) => s + i.quantity, 0);
+            const badge = document.getElementById('consumerCartBadge');
+            if (badge && count > 0) { badge.textContent = count; badge.style.display = 'flex'; }
+        } catch(e) {}
+    </script>
+</body>
+</html>

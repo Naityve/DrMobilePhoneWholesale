@@ -866,7 +866,7 @@
                 </div>
                 <div class="form-group" style="margin-bottom:1.25rem;">
                     <label style="font-size:0.82rem;font-weight:600;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Header Lines <span style="font-weight:400;color:var(--gray-400);">(one per line — address, phone, etc.)</span></label>
-                    <textarea id="rcptHeaderLines" rows="4" placeholder="Dublin, Ireland&#10;+353 089 989 9550" style="width:100%;padding:0.7rem 1rem;border:1.5px solid var(--gray-200);border-radius:10px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></textarea>
+                    <textarea id="rcptHeaderLines" rows="4" placeholder="Unit 1 College Way, Kilcock Road&#10;Clane, Co. Kildare, Ireland&#10;045 949 611  ·  089 989 9550" style="width:100%;padding:0.7rem 1rem;border:1.5px solid var(--gray-200);border-radius:10px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></textarea>
                 </div>
                 <div class="form-group" style="margin-bottom:1.25rem;">
                     <label style="font-size:0.82rem;font-weight:600;color:var(--gray-700);margin-bottom:0.4rem;display:block;">Footer Message</label>
@@ -929,6 +929,25 @@
                 </div>
                 <div class="ss-field" style="margin-bottom:1rem;"><label>Delivery Note (shown at checkout)</label><textarea id="ssShipNote" rows="2" placeholder="e.g. Standard delivery 3-7 working days within Ireland."></textarea></div>
                 <button class="btn btn-primary btn-sm" onclick="ssSaveShipping()">Save Shipping Settings</button>
+            </div>
+
+            <div class="ss-section">
+                <h3>VAT — Sale of Goods</h3>
+                <p class="desc">Toggle this when your business crosses the VAT registration threshold for goods and obtains a VAT number. Controls what is displayed to customers at consumer checkout.</p>
+                <div class="ss-field" style="margin-bottom:1rem;">
+                    <label style="display:flex;align-items:flex-start;gap:0.6rem;cursor:pointer;font-size:0.88rem;font-weight:500;color:var(--gray-700);line-height:1.4;">
+                        <input type="checkbox" id="ssVatRegistered" style="accent-color:var(--orange);width:17px;height:17px;flex-shrink:0;margin-top:0.15rem;" onchange="document.getElementById('ssVatNumberWrap').style.display=this.checked?'block':'none'">
+                        Business is VAT registered for the sale of goods
+                    </label>
+                    <p style="font-size:0.78rem;color:var(--gray-500);margin-top:0.4rem;line-height:1.5;"><strong>OFF:</strong> Checkout displays a notice that prices do not include VAT and the business is not currently VAT registered for goods. <strong>ON:</strong> Checkout states that all prices are inclusive of VAT.</p>
+                </div>
+                <div id="ssVatNumberWrap" style="display:none;margin-bottom:1rem;">
+                    <div class="ss-field" style="max-width:280px;">
+                        <label>VAT Number</label>
+                        <input type="text" id="ssVatNumber" placeholder="IE 1234567X">
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="ssSaveVat()">Save VAT Settings</button>
             </div>
 
             <div class="ss-section">
@@ -1398,7 +1417,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:2px solid var(--black);">
                         <div>
                             <h2 style="font-family:'Instrument Serif',serif;font-size:1.5rem;font-weight:400;margin-bottom:0.2rem;">DrMobile<span style="color:var(--orange);">Phone</span></h2>
-                            <p style="font-size:0.8rem;color:var(--gray-500);line-height:1.5;">Wholesale Consumer Electronics<br>Dublin, Ireland<br>info@drmobilephone.ie<br>+353 089 989 9550</p>
+                            <p style="font-size:0.8rem;color:var(--gray-500);line-height:1.5;">Unit 1 College Way, Kilcock Road<br>Clane, Co. Kildare, Ireland<br>045 949 611 &nbsp;·&nbsp; 089 989 9550<br>info@drmobilephone.ie</p>
                         </div>
                         <div style="text-align:right;">
                             <h1 style="font-family:'Instrument Serif',serif;font-size:1.8rem;font-weight:400;margin-bottom:0.3rem;">${docTitle}</h1>
@@ -2824,7 +2843,7 @@
         function rcptGetSettings() {
             return {
                 businessName: localStorage.getItem('rcpt_business_name') || 'DrMobilePhone',
-                headerLines: localStorage.getItem('rcpt_header_lines') || 'Dublin, Ireland\n+353 089 989 9550',
+                headerLines: localStorage.getItem('rcpt_header_lines') || 'Unit 1 College Way, Kilcock Road\nClane, Co. Kildare, Ireland\n045 949 611  ·  089 989 9550',
                 footer: localStorage.getItem('rcpt_footer') || 'Thank you for your purchase!',
                 width: localStorage.getItem('pos_receipt_width') || '80',
                 minHeight: localStorage.getItem('rcpt_min_height') || '0',
@@ -3822,6 +3841,13 @@
 
         // ── SHOP SETTINGS ──
         async function ssLoad() {
+            const { data: vatRow } = await db.from('shop_settings').select('value').eq('key', 'vat').single();
+            if (vatRow) {
+                const v = vatRow.value || {};
+                document.getElementById('ssVatRegistered').checked = v.goods_vat_registered || false;
+                document.getElementById('ssVatNumber').value = v.vat_number || '';
+                document.getElementById('ssVatNumberWrap').style.display = v.goods_vat_registered ? 'block' : 'none';
+            }
             const { data: shipRow } = await db.from('shop_settings').select('value').eq('key', 'shipping').single();
             if (shipRow) {
                 const s = shipRow.value;
@@ -3889,6 +3915,14 @@
             document.getElementById('ssPromoEnd').value = '';
             showAlert('alert', 'Promotion added!', 'success');
             await ssLoadPromos();
+        }
+
+        async function ssSaveVat() {
+            const registered = document.getElementById('ssVatRegistered').checked;
+            const vatNumber = document.getElementById('ssVatNumber').value.trim();
+            const value = { goods_vat_registered: registered, vat_number: vatNumber };
+            await db.from('shop_settings').upsert({ key: 'vat', value, updated_at: new Date().toISOString() });
+            showAlert('alert', 'VAT settings saved!', 'success');
         }
 
         async function ssDeletePromo(idx) {

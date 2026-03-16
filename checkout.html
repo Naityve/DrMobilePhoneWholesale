@@ -204,6 +204,13 @@
                 </div>
             </div>`;
 
+            html += `<div style="margin:1rem 0 0.75rem;">
+                <label style="display:flex;align-items:flex-start;gap:0.6rem;font-size:0.85rem;color:var(--gray-700);cursor:pointer;line-height:1.4;">
+                    <input type="checkbox" id="consentTerms" style="margin-top:0.2rem;accent-color:var(--orange);flex-shrink:0;width:16px;height:16px;">
+                    I have read and agree to the <a href="/terms.html" target="_blank" style="color:var(--orange);">Terms &amp; Conditions</a> and <a href="/privacy-policy.html" target="_blank" style="color:var(--orange);">Privacy Policy</a>
+                </label>
+            </div>`;
+
             html += `<button class="btn btn-primary checkout-btn" id="checkoutBtn" onclick="placeOrder()">
                 ${selectedPayment === 'invoice' ? 'Place Order on Account' : 'Pay with Card — €' + total.toFixed(2)}
             </button>`;
@@ -252,6 +259,11 @@
         }
 
         async function placeOrder() {
+            if (!document.getElementById('consentTerms').checked) {
+                showAlert('alert', 'You must accept the Terms & Conditions and Privacy Policy to place an order.', 'error');
+                return;
+            }
+
             const btn = document.getElementById('checkoutBtn');
             btn.disabled = true;
             showProcessing('Processing your order...');
@@ -320,22 +332,12 @@
         async function handleCardPayment(order, user, shipping, shippingLabel) {
             showProcessing('Redirecting to Stripe...');
 
-            const items = cartItems.map(item => {
-                const p = item.product;
-                const price = (p.is_on_sale && p.sale_price) ? Number(p.sale_price) : Number(p.price);
-                return { name: p.name, price: price, quantity: item.quantity };
-            });
-            if (shipping > 0) {
-                items.push({ name: shippingLabel, price: shipping, quantity: 1 });
-            }
-
             const baseUrl = window.location.origin;
 
             const response = await fetch('/.netlify/functions/create-checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    items: items,
                     order_id: order.id,
                     customer_email: profile.email,
                     success_url: `${baseUrl}/order-success.html?order_id=${order.id}&session_id={CHECKOUT_SESSION_ID}`,

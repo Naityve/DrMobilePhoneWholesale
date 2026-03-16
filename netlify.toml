@@ -1,2 +1,5 @@
 [functions]
   directory = "netlify/functions"
+
+[functions.cleanup-pending-orders]
+  schedule = "0 3 * * *"

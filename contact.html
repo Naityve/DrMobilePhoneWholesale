@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us — DrMobilePhone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .contact-wrap { max-width: 900px; margin: 0 auto; padding: 7rem 2rem 3rem; }
+        .contact-wrap h1 { font-family: 'Instrument Serif', serif; font-size: 2.2rem; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 0.3rem; }
+        .contact-wrap .subtitle { font-size: 0.95rem; color: var(--gray-500); margin-bottom: 2.5rem; }
+        .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+        .contact-card { border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.5rem; }
+        .contact-card h2 { font-family: 'Instrument Serif', serif; font-size: 1.2rem; font-weight: 400; margin-bottom: 1rem; }
+        .contact-row { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 1rem; }
+        .contact-row:last-child { margin-bottom: 0; }
+        .contact-icon { width: 38px; height: 38px; background: #FFF5EE; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .contact-detail { flex: 1; }
+        .contact-detail .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--gray-500); font-weight: 500; margin-bottom: 0.2rem; }
+        .contact-detail .value { font-size: 0.92rem; font-weight: 500; color: var(--black); }
+        .contact-detail .value a { color: var(--orange); text-decoration: none; }
+        .contact-detail .value a:hover { text-decoration: underline; }
+        .contact-detail .sub { font-size: 0.8rem; color: var(--gray-500); margin-top: 0.15rem; }
+        .identity-card { border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .identity-card h2 { font-family: 'Instrument Serif', serif; font-size: 1.2rem; font-weight: 400; margin-bottom: 1rem; }
+        .identity-table { width: 100%; border-collapse: collapse; }
+        .identity-table td { padding: 0.55rem 0; border-bottom: 1px solid var(--gray-100); font-size: 0.9rem; vertical-align: top; }
+        .identity-table td:first-child { font-weight: 500; color: var(--gray-600); width: 200px; padding-right: 1rem; }
+        .identity-table tr:last-child td { border-bottom: none; }
+        .vat-note { background: #FFF7ED; border: 1.5px solid var(--orange); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+        .vat-note h3 { font-size: 0.92rem; font-weight: 600; color: var(--black); margin-bottom: 0.4rem; }
+        .vat-note p { font-size: 0.88rem; color: var(--gray-700); line-height: 1.6; margin: 0; }
+        .consumer-cart-link { position: relative; display: flex; align-items: center; gap: 0.3rem; }
+        .consumer-cart-badge { position: absolute; top: -6px; right: -10px; min-width: 18px; height: 18px; background: var(--orange); color: white; font-size: 0.68rem; font-weight: 700; border-radius: 100px; display: none; align-items: center; justify-content: center; padding: 0 4px; }
+        .site-footer { background: var(--black); color: white; padding: 3rem 2rem 2rem; margin-top: 3rem; }
+        .footer-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem; }
+        .footer-brand h3 { font-family: 'Instrument Serif', serif; font-size: 1.3rem; font-weight: 400; margin-bottom: 0.5rem; }
+        .footer-brand h3 span { color: var(--orange); }
+        .footer-brand p { font-size: 0.85rem; color: rgba(255,255,255,0.5); line-height: 1.6; }
+        .footer-col h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.4); margin-bottom: 0.8rem; }
+        .footer-col a { display: block; font-size: 0.88rem; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; transition: color 0.2s; }
+        .footer-col a:hover { color: var(--orange); }
+        .footer-bottom { max-width: 1200px; margin: 2rem auto 0; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; font-size: 0.8rem; color: rgba(255,255,255,0.3); }
+        @media (max-width: 768px) {
+            .contact-wrap { padding: 6rem 1.25rem 2rem; }
+            .contact-grid { grid-template-columns: 1fr; }
+            .identity-table td:first-child { width: 140px; }
+            .footer-inner { grid-template-columns: 1fr; gap: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/" class="logo">
+            <div class="logo-icon"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg></div>
+            <div class="logo-text">DrMobile<span>Phone</span></div>
+        </a>
+        <div class="nav-links" id="navLinks">
+            <button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <a href="/">Shop</a>
+            <a href="/wholesale.html">Wholesale</a>
+            <a href="/consumer-cart.html" class="consumer-cart-link">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                Cart <span class="consumer-cart-badge" id="consumerCartBadge">0</span>
+            </a>
+        </div>
+        <button class="hamburger" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+    </nav>
+
+    <div class="contact-wrap">
+        <h1>Contact Us</h1>
+        <p class="subtitle">Get in touch — we're happy to help with orders, repairs, wholesale enquiries, or anything else.</p>
+
+        <div class="contact-grid">
+            <div class="contact-card">
+                <h2>Get in Touch</h2>
+
+                <div class="contact-row">
+                    <div class="contact-icon">
+                        <svg width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    </div>
+                    <div class="contact-detail">
+                        <div class="label">Email</div>
+                        <div class="value"><a href="mailto:info@drmobilephone.ie">info@drmobilephone.ie</a></div>
+                    </div>
+                </div>
+
+                <div class="contact-row">
+                    <div class="contact-icon">
+                        <svg width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .18h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.09-1.09a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.9z"/></svg>
+                    </div>
+                    <div class="contact-detail">
+                        <div class="label">Phone</div>
+                        <div class="value"><a href="tel:+35345949611">045 949 611</a></div>
+                        <div class="sub"><a href="tel:+353899899550" style="color:var(--gray-500);">089 989 9550</a></div>
+                    </div>
+                </div>
+
+                <div class="contact-row">
+                    <div class="contact-icon">
+                        <svg width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    </div>
+                    <div class="contact-detail">
+                        <div class="label">Address</div>
+                        <div class="value">Unit 1 College Way<br>Kilcock Road, Clane<br>Co. Kildare, Ireland</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-card">
+                <h2>Useful Links</h2>
+                <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                    <a href="/consumer-orders.html" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;border:1px solid var(--gray-200);border-radius:10px;color:var(--black);text-decoration:none;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--orange)'" onmouseout="this.style.borderColor='var(--gray-200)'">
+                        <svg width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                        <span style="font-size:0.9rem;font-weight:500;">Track My Order</span>
+                    </a>
+                    <a href="/returns.html" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;border:1px solid var(--gray-200);border-radius:10px;color:var(--black);text-decoration:none;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--orange)'" onmouseout="this.style.borderColor='var(--gray-200)'">
+                        <svg width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+                        <span style="font-size:0.9rem;font-weight:500;">Returns &amp; Refunds</span>
+                    </a>
+                    <a href="/wholesale.html" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;border:1px solid var(--gray-200);border-radius:10px;color:var(--black);text-decoration:none;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--orange)'" onmouseout="this.style.borderColor='var(--gray-200)'">
+                        <svg width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+                        <span style="font-size:0.9rem;font-weight:500;">Wholesale Enquiries</span>
+                    </a>
+                    <a href="/privacy-policy.html" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;border:1px solid var(--gray-200);border-radius:10px;color:var(--black);text-decoration:none;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--orange)'" onmouseout="this.style.borderColor='var(--gray-200)'">
+                        <svg width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <span style="font-size:0.9rem;font-weight:500;">Data &amp; Privacy Rights</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="identity-card">
+            <h2>Business Identity</h2>
+            <table class="identity-table">
+                <tr>
+                    <td>Trading Name</td>
+                    <td>DrMobilePhone</td>
+                </tr>
+                <tr>
+                    <td>Legal Structure</td>
+                    <td>Partnership</td>
+                </tr>
+                <tr>
+                    <td>Registered Address</td>
+                    <td>Unit 1 College Way, Kilcock Road, Clane, Co. Kildare, Ireland</td>
+                </tr>
+                <tr>
+                    <td>Email</td>
+                    <td><a href="mailto:info@drmobilephone.ie" style="color:var(--orange);">info@drmobilephone.ie</a></td>
+                </tr>
+                <tr>
+                    <td>Phone</td>
+                    <td><a href="tel:+35345949611" style="color:var(--orange);">045 949 611</a> &nbsp;·&nbsp; <a href="tel:+353899899550" style="color:var(--orange);">089 989 9550</a></td>
+                </tr>
+                <tr>
+                    <td>VAT — Services</td>
+                    <td>VAT registered for services (repair services at 13.5%)</td>
+                </tr>
+                <tr>
+                    <td>VAT — Sale of Goods</td>
+                    <td>Not currently VAT registered for the sale of goods. The annual turnover threshold for goods VAT registration has not been exceeded. Prices shown for goods are exclusive of VAT.</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="vat-note">
+            <h3>VAT Notice — Sale of Goods</h3>
+            <p>DrMobilePhone is not currently VAT registered for the sale of goods. We have not exceeded the annual VAT registration threshold for goods under Irish VAT legislation. Prices displayed for goods on this website are exclusive of VAT. No VAT is charged on goods purchases. This notice will be updated when VAT registration for goods is obtained.</p>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <h3>DrMobile<span>Phone</span></h3>
+                <p>Unit 1 College Way, Kilcock Road, Clane, Co. Kildare, Ireland</p>
+                <p style="margin-top:0.4rem;"><a href="tel:+35345949611" style="color:rgba(255,255,255,0.5);">045 949 611</a> &nbsp;·&nbsp; <a href="tel:+353899899550" style="color:rgba(255,255,255,0.5);">089 989 9550</a></p>
+                <p style="margin-top:0.2rem;"><a href="mailto:info@drmobilephone.ie" style="color:rgba(255,255,255,0.5);">info@drmobilephone.ie</a></p>
+            </div>
+            <div class="footer-col">
+                <h4>Shop</h4>
+                <a href="/">All Products</a>
+                <a href="/consumer-cart.html">Your Cart</a>
+            </div>
+            <div class="footer-col">
+                <h4>Business</h4>
+                <a href="/wholesale.html">Wholesale Portal</a>
+                <a href="/login.html">Trade Login</a>
+                <a href="/register.html">Open Trade Account</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <a href="/privacy-policy.html">Privacy Policy</a>
+                <a href="/terms.html">Terms &amp; Conditions</a>
+                <a href="/returns.html">Returns Policy</a>
+                <a href="/delivery.html">Delivery Information</a>
+                <a href="/complaints.html">Complaints</a>
+                <a href="/contact.html">Contact Us</a>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2026 DrMobilePhone. All rights reserved.</div>
+    </footer>
+
+    <script>
+        function toggleMobileMenu() { document.querySelector('.nav-links')?.classList.toggle('open'); }
+        document.addEventListener('click', e => { if (e.target.closest('.nav-links a')) document.querySelector('.nav-links')?.classList.remove('open'); });
+        try {
+            const cart = JSON.parse(localStorage.getItem('consumer_cart') || '[]');
+            const count = cart.reduce((s, i) => s + i.quantity, 0);
+            const badge = document.getElementById('consumerCartBadge');
+            if (badge && count > 0) { badge.textContent = count; badge.style.display = 'flex'; }
+        } catch(e) {}
+    </script>
+</body>
+</html>
