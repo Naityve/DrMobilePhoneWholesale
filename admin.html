@@ -163,6 +163,15 @@
             </div>
             <div style="margin-bottom:2rem;" id="dashWidgetsMobile"></div>
 
+            <!-- Stock Alerts Widget -->
+            <div id="dashStockAlertWrap" style="display:none;border:1.5px solid #FECACA;border-radius:14px;padding:1.25rem;margin-bottom:2rem;background:#FEF2F2;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+                    <h4 style="font-size:0.95rem;font-weight:600;color:#DC2626;">⚠ Stock Alerts</h4>
+                    <button class="btn btn-sm btn-secondary" onclick="switchMainTab('stock', document.querySelectorAll('.admin-main-tab')[5])" style="font-size:0.72rem;">Manage Stock</button>
+                </div>
+                <div id="dashStockAlerts" style="font-size:0.85rem;"></div>
+            </div>
+
             <div class="dash-kpis" id="dashKpis"></div>
 
             <div class="dash-charts">
@@ -743,9 +752,9 @@
             <div class="stk-table-wrap">
                 <table class="stk-table">
                     <thead><tr>
-                        <th></th><th>Product</th><th>Barcode</th><th>SKU</th><th class="r">Cost</th><th class="r">Retail</th><th class="r">Margin</th><th class="r">Stock</th><th>Track</th><th>VAT</th><th>Online</th><th>Categories</th>
+                        <th></th><th>Product</th><th>Barcode</th><th>SKU</th><th class="r">Cost</th><th class="r">Retail</th><th class="r">Margin</th><th class="r">Stock</th><th>Track</th><th>VAT</th><th>Online</th><th>Categories</th><th title="Show a dashboard alert when stock is low or out">Alert</th><th class="r" title="Trigger alert when stock falls below this quantity (0 = out of stock only)">Min Qty</th>
                     </tr></thead>
-                    <tbody id="stkTableBody"><tr><td colspan="12" class="empty-state">Loading...</td></tr></tbody>
+                    <tbody id="stkTableBody"><tr><td colspan="14" class="empty-state">Loading...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -2683,7 +2692,7 @@
 
             const tbody = document.getElementById('stkTableBody');
             if (prods.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="12" class="empty-state">No products found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="14" class="empty-state">No products found.</td></tr>';
                 return;
             }
             tbody.innerHTML = prods.map(p => {
@@ -2711,6 +2720,8 @@
                     </select></td>
                     <td><span class="stk-online-badge ${online ? 'yes' : 'no'}">${online ? 'Online' : 'In-store'}</span></td>
                     <td style="font-size:0.75rem;color:var(--gray-500);">${cats.map(c => esc(c)).join(', ') || '—'}</td>
+                    <td style="text-align:center;"><input type="checkbox" ${p.stock_alert_enabled ? 'checked' : ''} id="alertChk-${p.id}" onchange="stkInlineUpdate('${p.id}','stock_alert_enabled',this.checked);var m=document.getElementById('alertMin-${p.id}');m.disabled=!this.checked;m.style.opacity=this.checked?'1':'0.3';" style="accent-color:var(--orange);cursor:pointer;width:16px;height:16px;"></td>
+                    <td class="r"><input type="number" id="alertMin-${p.id}" value="${p.stock_alert_min || 0}" min="0" ${!p.stock_alert_enabled ? 'disabled' : ''} style="width:50px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;opacity:${p.stock_alert_enabled ? '1' : '0.3'};" onchange="stkInlineUpdate('${p.id}','stock_alert_min',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
                 </tr>`;
             }).join('');
         }
@@ -2770,11 +2781,11 @@
 
         async function stkInlineUpdate(productId, field, value) {
             const updateData = {};
-            if (field === 'stock_quantity') {
+            if (field === 'stock_quantity' || field === 'stock_alert_min') {
                 updateData[field] = parseInt(value) || 0;
             } else if (field === 'vat_category') {
                 updateData[field] = value;
-            } else if (field === 'track_stock') {
+            } else if (field === 'track_stock' || field === 'stock_alert_enabled') {
                 updateData[field] = value === true || value === 'true';
             } else {
                 updateData[field] = parseFloat(value) || 0;
@@ -3709,7 +3720,7 @@
             win.onload = () => { win.print(); win.close(); };
         }
 
-        // ── Dashboard Widgets: Active Tickets & Reminders ──
+        // ── Dashboard Widgets: Active Tickets, Reminders & Stock Alerts ──
         async function dashLoadWidgets() {
             // Active tickets
             const { data: activeTickets } = await db.from('repair_tickets').select('id, ticket_number, customer_name, device_type, device_model, status, priority, created_at').not('status', 'in', '("completed","cancelled")').order('created_at', { ascending: false }).limit(5);
@@ -3753,11 +3764,48 @@
                     </div>`;
                 }).join('');
             }
+
+            dashRenderStockAlerts();
         }
 
         async function dashDismissReminder(reminderId) {
             await db.from('ticket_reminders').update({ is_dismissed: true }).eq('id', reminderId);
             await dashLoadWidgets();
+        }
+
+        function dashRenderStockAlerts() {
+            const alerts = allProducts.filter(p =>
+                p.stock_alert_enabled === true && (
+                    p.stock_quantity === 0 ||
+                    (p.stock_alert_min > 0 && p.stock_quantity < p.stock_alert_min)
+                )
+            );
+
+            const wrap = document.getElementById('dashStockAlertWrap');
+            const div = document.getElementById('dashStockAlerts');
+            if (!wrap || !div) return;
+
+            if (alerts.length === 0) {
+                wrap.style.display = 'none';
+                return;
+            }
+
+            wrap.style.display = 'block';
+            div.innerHTML = alerts.map(p => {
+                const isOut = p.stock_quantity === 0;
+                const label = isOut
+                    ? `<span style="color:#DC2626;font-weight:600;">Out of Stock</span>`
+                    : `<span style="color:#D97706;font-weight:600;">Low Stock — ${p.stock_quantity} left</span> <span style="color:var(--gray-500);font-size:0.78rem;">(min ${p.stock_alert_min})</span>`;
+                const img = p.internal_image_url || p.image_url;
+                return `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;border-bottom:1px solid #FECACA;">
+                    ${img ? `<img src="${esc(img)}" style="width:32px;height:32px;border-radius:6px;object-fit:contain;background:white;flex-shrink:0;">` : '<div style="width:32px;height:32px;border-radius:6px;background:white;display:flex;align-items:center;justify-content:center;font-size:0.75rem;flex-shrink:0;">📦</div>'}
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.name)}</div>
+                        <div style="font-size:0.78rem;margin-top:0.1rem;">${label}</div>
+                    </div>
+                    <span style="font-size:0.75rem;font-weight:700;background:${isOut ? '#DC2626' : '#D97706'};color:white;padding:0.15rem 0.5rem;border-radius:100px;">${p.stock_quantity}</span>
+                </div>`;
+            }).join('');
         }
 
         // ── SHOP SETTINGS ──
