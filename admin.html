@@ -682,13 +682,23 @@
                 .stk-stat-card { padding: 1rem 1.25rem; border: 1px solid var(--gray-200); border-radius: 12px; flex: 1; min-width: 150px; }
                 .stk-stat-card .num { font-size: 1.5rem; font-weight: 700; }
                 .stk-stat-card .lbl { font-size: 0.78rem; color: var(--gray-500); }
-                .stk-table-wrap { overflow-x: auto; }
-                .stk-table { width: 100%; border-collapse: collapse; min-width: 900px; }
-                .stk-table thead th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-500); font-weight: 600; padding: 0.6rem 0.5rem; border-bottom: 2px solid var(--gray-200); white-space: nowrap; }
+                .stk-table-wrap { width: 100%; }
+                .stk-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                .stk-table thead th { text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-500); font-weight: 600; padding: 0.5rem 0.35rem; border-bottom: 2px solid var(--gray-200); white-space: nowrap; overflow: hidden; }
                 .stk-table thead th.r { text-align: right; }
-                .stk-table tbody td { padding: 0.5rem; font-size: 0.84rem; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+                .stk-table tbody td { padding: 0.4rem 0.35rem; font-size: 0.82rem; border-bottom: 1px solid var(--gray-100); vertical-align: middle; overflow: hidden; }
                 .stk-table tbody td.r { text-align: right; }
                 .stk-table tbody tr:hover { background: var(--gray-50); }
+                .stk-table col.col-img    { width: 48px; }
+                .stk-table col.col-name   { width: auto; }
+                .stk-table col.col-price  { width: 72px; }
+                .stk-table col.col-margin { width: 58px; }
+                .stk-table col.col-stock  { width: 62px; }
+                .stk-table col.col-chk    { width: 42px; }
+                .stk-table col.col-vat    { width: 68px; }
+                .stk-table col.col-online { width: 60px; }
+                .stk-table col.col-alert  { width: 42px; }
+                .stk-table col.col-min    { width: 60px; }
                 .stk-img { width: 40px; height: 40px; border-radius: 6px; object-fit: contain; background: var(--gray-100); }
                 .stk-no-img { width: 40px; height: 40px; border-radius: 6px; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--gray-300); }
                 .stk-online-badge { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.68rem; font-weight: 600; }
@@ -751,10 +761,13 @@
             </div>
             <div class="stk-table-wrap">
                 <table class="stk-table">
+                    <colgroup>
+                        <col class="col-img"><col class="col-name"><col class="col-price"><col class="col-price"><col class="col-margin"><col class="col-stock"><col class="col-chk"><col class="col-vat"><col class="col-online"><col class="col-alert"><col class="col-min">
+                    </colgroup>
                     <thead><tr>
-                        <th></th><th>Product</th><th>Barcode</th><th>SKU</th><th class="r">Cost</th><th class="r">Retail</th><th class="r">Margin</th><th class="r">Stock</th><th>Track</th><th>VAT</th><th>Online</th><th>Categories</th><th title="Show a dashboard alert when stock is low or out">Alert</th><th class="r" title="Trigger alert when stock falls below this quantity (0 = out of stock only)">Min Qty</th>
+                        <th></th><th>Product</th><th class="r">Cost</th><th class="r">Retail</th><th class="r">Margin</th><th class="r">Stock</th><th style="text-align:center;">Track</th><th>VAT</th><th>Online</th><th style="text-align:center;" title="Show a dashboard alert when stock is low or out">Alert</th><th class="r" title="Alert when stock falls below this quantity (0 = out of stock only)">Min</th>
                     </tr></thead>
-                    <tbody id="stkTableBody"><tr><td colspan="14" class="empty-state">Loading...</td></tr></tbody>
+                    <tbody id="stkTableBody"><tr><td colspan="11" class="empty-state">Loading...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -2692,36 +2705,35 @@
 
             const tbody = document.getElementById('stkTableBody');
             if (prods.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="14" class="empty-state">No products found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No products found.</td></tr>';
                 return;
             }
+
+            const inp = 'width:100%;text-align:right;padding:0.2rem 0.3rem;border:1px solid var(--gray-200);border-radius:4px;font-size:0.8rem;font-family:\'DM Sans\',sans-serif;outline:none;box-sizing:border-box;';
             tbody.innerHTML = prods.map(p => {
                 const cost = Number(p.cost_price || 0);
                 const retail = Number(p.retail_price || p.price || 0);
                 const margin = retail > 0 ? ((retail - cost) / retail * 100) : 0;
                 const marginClass = margin >= 30 ? 'good' : margin >= 10 ? 'low' : 'neg';
                 const img = p.internal_image_url || p.image_url;
-                const cats = (p.categories && p.categories.length) ? p.categories : (p.category ? [p.category] : []);
                 const online = p.available_online !== false;
+                const stockRed = p.stock_quantity === 0 && p.track_stock !== false ? 'color:var(--red);font-weight:600;' : '';
                 return `<tr>
                     <td>${img ? `<img src="${esc(img)}" class="stk-img">` : '<div class="stk-no-img">📦</div>'}</td>
-                    <td style="font-weight:500;">${esc(p.name)}</td>
-                    <td style="font-size:0.78rem;color:var(--gray-500);">${esc(p.barcode || '—')}</td>
-                    <td style="font-size:0.78rem;color:var(--gray-500);">${esc(p.sku || '—')}</td>
-                    <td class="r"><input type="number" value="${cost.toFixed(2)}" step="0.01" min="0" style="width:70px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;" onchange="stkInlineUpdate('${p.id}','cost_price',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
-                    <td class="r"><input type="number" value="${retail.toFixed(2)}" step="0.01" min="0" style="width:70px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;" onchange="stkInlineUpdate('${p.id}','retail_price',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
-                    <td class="r"><span class="stk-margin ${marginClass}">${margin.toFixed(1)}%</span></td>
-                    <td class="r"><input type="number" value="${p.stock_quantity}" min="0" style="width:60px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;${p.stock_quantity === 0 && p.track_stock !== false ? 'color:var(--red);font-weight:600;' : ''}" onchange="stkInlineUpdate('${p.id}','stock_quantity',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
+                    <td style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(p.name)}">${esc(p.name)}</td>
+                    <td class="r"><input type="number" value="${cost.toFixed(2)}" step="0.01" min="0" style="${inp}" onchange="stkInlineUpdate('${p.id}','cost_price',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
+                    <td class="r"><input type="number" value="${retail.toFixed(2)}" step="0.01" min="0" style="${inp}" onchange="stkInlineUpdate('${p.id}','retail_price',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
+                    <td class="r"><span class="stk-margin ${marginClass}">${margin.toFixed(0)}%</span></td>
+                    <td class="r"><input type="number" value="${p.stock_quantity}" min="0" style="${inp}${stockRed}" onchange="stkInlineUpdate('${p.id}','stock_quantity',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
                     <td style="text-align:center;"><input type="checkbox" ${p.track_stock !== false ? 'checked' : ''} onchange="stkInlineUpdate('${p.id}','track_stock',this.checked)" style="accent-color:var(--orange);cursor:pointer;"></td>
-                    <td><select onchange="stkInlineUpdate('${p.id}','vat_category',this.value)" style="padding:0.25rem 0.3rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.75rem;font-family:'DM Sans',sans-serif;outline:none;">
+                    <td><select onchange="stkInlineUpdate('${p.id}','vat_category',this.value)" style="width:100%;padding:0.2rem 0.2rem;border:1px solid var(--gray-200);border-radius:4px;font-size:0.72rem;font-family:'DM Sans',sans-serif;outline:none;">
                         <option value="none" ${(p.vat_category || 'none') === 'none' ? 'selected' : ''}>None</option>
                         <option value="service" ${p.vat_category === 'service' ? 'selected' : ''}>13.5%</option>
                         <option value="goods" ${p.vat_category === 'goods' ? 'selected' : ''}>23%</option>
                     </select></td>
-                    <td><span class="stk-online-badge ${online ? 'yes' : 'no'}">${online ? 'Online' : 'In-store'}</span></td>
-                    <td style="font-size:0.75rem;color:var(--gray-500);">${cats.map(c => esc(c)).join(', ') || '—'}</td>
-                    <td style="text-align:center;"><input type="checkbox" ${p.stock_alert_enabled ? 'checked' : ''} id="alertChk-${p.id}" onchange="stkInlineUpdate('${p.id}','stock_alert_enabled',this.checked);var m=document.getElementById('alertMin-${p.id}');m.disabled=!this.checked;m.style.opacity=this.checked?'1':'0.3';" style="accent-color:var(--orange);cursor:pointer;width:16px;height:16px;"></td>
-                    <td class="r"><input type="number" id="alertMin-${p.id}" value="${p.stock_alert_min || 0}" min="0" ${!p.stock_alert_enabled ? 'disabled' : ''} style="width:50px;text-align:right;padding:0.25rem 0.4rem;border:1px solid var(--gray-200);border-radius:5px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;opacity:${p.stock_alert_enabled ? '1' : '0.3'};" onchange="stkInlineUpdate('${p.id}','stock_alert_min',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
+                    <td><span class="stk-online-badge ${online ? 'yes' : 'no'}">${online ? 'On' : 'In'}</span></td>
+                    <td style="text-align:center;"><input type="checkbox" ${p.stock_alert_enabled ? 'checked' : ''} id="alertChk-${p.id}" onchange="stkInlineUpdate('${p.id}','stock_alert_enabled',this.checked);var m=document.getElementById('alertMin-${p.id}');m.disabled=!this.checked;m.style.opacity=this.checked?'1':'0.3';" style="accent-color:var(--orange);cursor:pointer;"></td>
+                    <td class="r"><input type="number" id="alertMin-${p.id}" value="${p.stock_alert_min || 0}" min="0" ${!p.stock_alert_enabled ? 'disabled' : ''} style="${inp}opacity:${p.stock_alert_enabled ? '1' : '0.3'};" onchange="stkInlineUpdate('${p.id}','stock_alert_min',this.value)" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"></td>
                 </tr>`;
             }).join('');
         }
