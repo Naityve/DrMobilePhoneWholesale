@@ -631,10 +631,11 @@
             <div class="fin-layout">
                 <div class="fin-sidebar">
                     <h3>Select Period</h3>
-                    <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;">
-                        <input type="date" class="fin-date-input" id="finStartPicker" style="margin-bottom:0;flex:1;" onchange="finLoadRange()">
-                        <span style="color:var(--gray-500);font-size:0.82rem;white-space:nowrap;">to</span>
-                        <input type="date" class="fin-date-input" id="finEndPicker" style="margin-bottom:0;flex:1;" onchange="finLoadRange()">
+                    <div style="margin-bottom:0.75rem;">
+                        <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);display:block;margin-bottom:0.25rem;">From</label>
+                        <input type="date" class="fin-date-input" id="finStartPicker" style="margin-bottom:0.5rem;width:100%;" onchange="finLoadRange()">
+                        <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);display:block;margin-bottom:0.25rem;">To</label>
+                        <input type="date" class="fin-date-input" id="finEndPicker" style="margin-bottom:0;width:100%;" onchange="finLoadRange()">
                     </div>
                     <div class="fin-quick-dates">
                         <button class="fin-quick-btn active" onclick="finQuickDate('today', this)">Today</button>
@@ -657,6 +658,7 @@
                         <div class="fin-stat"><span class="label">Profit Margin</span><span class="val" id="finMargin">-</span></div>
                     </div>
                     <button class="btn btn-secondary" style="width:100%;margin-top:1rem;font-size:0.85rem;" onclick="finPrintReport()">🖨 Print Report</button>
+                    <button class="btn btn-reject" style="width:100%;margin-top:0.5rem;font-size:0.85rem;" onclick="finDeleteRange()">Delete Range Data</button>
                 </div>
 
                 <div class="fin-content" id="finContent">
@@ -2463,6 +2465,65 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
             w.document.close();
             w.focus();
             w.onload = () => w.print();
+        }
+
+        async function finDeleteRange() {
+            if (!finDateStart) { showAlert('alert', 'Select a date range first.', 'error'); return; }
+
+            const startLabel = new Date(finDateStart).toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
+            const endLabel   = new Date(new Date(finDateEnd) - 1).toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
+            const periodLabel = startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
+            const posCount    = finPosTxns.length;
+            const onlineCount = finOnlineOrders.length;
+
+            if (posCount === 0 && onlineCount === 0) {
+                showAlert('alert', 'No transactions in the selected range to delete.', 'error');
+                return;
+            }
+
+            // ── First confirmation ────────────────────────────────────────────
+            const first = confirm(
+                `Delete all transaction data for ${periodLabel}?\n\n` +
+                `• ${posCount} POS transaction${posCount !== 1 ? 's' : ''}\n` +
+                `• ${onlineCount} online order${onlineCount !== 1 ? 's' : ''}\n\n` +
+                `This cannot be undone.`
+            );
+            if (!first) return;
+
+            // ── Second confirmation — must type the period ────────────────────
+            const typed = prompt(
+                `Final confirmation: type the word DELETE in capitals to permanently remove all ${posCount + onlineCount} record${posCount + onlineCount !== 1 ? 's' : ''} for ${periodLabel}.`
+            );
+            if (typed === null) return; // cancelled
+            if (typed.trim() !== 'DELETE') {
+                showAlert('alert', 'Deletion cancelled — you did not type DELETE.', 'error');
+                return;
+            }
+
+            // ── Delete POS transactions (items cascade via FK) ────────────────
+            let errors = [];
+            if (posCount > 0) {
+                const { error } = await db.from('pos_transactions')
+                    .delete()
+                    .gte('created_at', finDateStart)
+                    .lte('created_at', finDateEnd);
+                if (error) errors.push('POS: ' + error.message);
+            }
+
+            // ── Delete online orders ──────────────────────────────────────────
+            for (const o of finOnlineOrders) {
+                const { error } = await db.rpc('delete_order', { p_order_id: o.id });
+                if (error) errors.push(`Order ${o.id.slice(0,8)}: ` + error.message);
+            }
+
+            if (errors.length > 0) {
+                showAlert('alert', 'Some deletions failed: ' + errors.join('; '), 'error');
+            } else {
+                showAlert('alert', `Deleted ${posCount + onlineCount} record${posCount + onlineCount !== 1 ? 's' : ''} for ${periodLabel}.`, 'success');
+            }
+
+            // Reload to reflect changes
+            await finFetchData();
         }
 
         function finRenderContent() {
