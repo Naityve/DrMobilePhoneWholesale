@@ -847,6 +847,17 @@
                         <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Model</label><input type="text" id="tktDeviceModel" placeholder="e.g. iPhone 15 Pro" style="width:100%;padding:0.55rem 0.7rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.88rem;font-family:'DM Sans',sans-serif;outline:none;"></div>
                     </div>
                     <div class="fg" style="margin-bottom:0.75rem;"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Issue Description *</label><textarea id="tktIssue" rows="3" placeholder="Describe the problem..." style="width:100%;padding:0.55rem 0.7rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.88rem;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;"></textarea></div>
+                    <div class="fg" style="margin-bottom:0.75rem;">
+                        <label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.4rem;">Pattern Lock <span style="font-weight:400;color:var(--gray-400);">(optional — click dots in order)</span></label>
+                        <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+                            <canvas id="tktPatternCanvas" width="150" height="150" style="border:1.5px solid var(--gray-200);border-radius:12px;cursor:pointer;touch-action:none;background:#fafafa;flex-shrink:0;"></canvas>
+                            <div>
+                                <div id="tktPatternInfo" style="font-size:0.82rem;color:var(--gray-500);margin-bottom:0.6rem;">Click dots to record pattern</div>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="tktClearPattern()">Clear Pattern</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="tktPatternLock" value="">
+                    </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
                         <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Priority</label><select id="tktPriority" style="width:100%;padding:0.55rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;"><option value="low">Low</option><option value="normal" selected>Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
                         <div class="fg"><label style="font-size:0.78rem;font-weight:500;display:block;margin-bottom:0.2rem;">Status</label><select id="tktStatus" style="width:100%;padding:0.55rem;border:1.5px solid var(--gray-200);border-radius:8px;font-size:0.85rem;font-family:'DM Sans',sans-serif;"><option value="open">Open</option><option value="in_progress">In Progress</option><option value="waiting_parts">Waiting Parts</option><option value="ready">Ready</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></div>
@@ -3740,6 +3751,104 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
 
         // ── TICKETS SYSTEM ──
         let allTickets = [], tktCurrentFilter = 'active', tktViewingId = null;
+        let tktPattern = [];
+
+        function tktPatternPos(idx, sz) {
+            const pad = Math.round(sz * 0.2);
+            const step = (sz - pad * 2) / 2;
+            return { x: pad + (idx % 3) * step, y: pad + Math.floor(idx / 3) * step };
+        }
+
+        function tktDrawPattern(canvasId, pattern, editable) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const sz = canvas.width;
+            ctx.clearRect(0, 0, sz, sz);
+            const r = Math.round(sz * (editable ? 0.088 : 0.082));
+
+            if (pattern.length > 1) {
+                ctx.save();
+                ctx.strokeStyle = '#E8611A';
+                ctx.lineWidth = editable ? 2.5 : 2;
+                ctx.globalAlpha = 0.55;
+                ctx.beginPath();
+                const fp = tktPatternPos(pattern[0] - 1, sz);
+                ctx.moveTo(fp.x, fp.y);
+                for (let i = 1; i < pattern.length; i++) {
+                    const p = tktPatternPos(pattern[i] - 1, sz);
+                    ctx.lineTo(p.x, p.y);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            for (let i = 0; i < 9; i++) {
+                const pos = tktPatternPos(i, sz);
+                const orderIdx = pattern.indexOf(i + 1);
+                const selected = orderIdx !== -1;
+
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = selected ? '#FFF7ED' : '#F3F4F6';
+                ctx.fill();
+                ctx.strokeStyle = selected ? '#E8611A' : '#D1D5DB';
+                ctx.lineWidth = selected ? 2 : 1.5;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, r * 0.36, 0, Math.PI * 2);
+                ctx.fillStyle = selected ? '#E8611A' : '#9CA3AF';
+                ctx.fill();
+
+                if (selected && editable) {
+                    ctx.fillStyle = '#C04A10';
+                    ctx.font = `bold ${Math.round(sz * 0.072)}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(orderIdx + 1, pos.x + r + Math.round(sz * 0.05), pos.y - r);
+                }
+            }
+        }
+
+        function tktLoadPattern(patternStr) {
+            tktPattern = patternStr ? patternStr.split(',').map(Number).filter(n => n >= 1 && n <= 9) : [];
+            document.getElementById('tktPatternLock').value = tktPattern.length ? tktPattern.join(',') : '';
+            const info = document.getElementById('tktPatternInfo');
+            if (info) info.textContent = tktPattern.length ? tktPattern.length + ' point' + (tktPattern.length !== 1 ? 's' : '') + ' recorded' : 'Click dots to record pattern';
+            tktDrawPattern('tktPatternCanvas', tktPattern, true);
+            const canvas = document.getElementById('tktPatternCanvas');
+            if (canvas && !canvas._tktBound) {
+                canvas._tktBound = true;
+                canvas.onclick = function(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+                    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+                    const hitR = Math.round(canvas.width * 0.15);
+                    for (let i = 0; i < 9; i++) {
+                        const pos = tktPatternPos(i, canvas.width);
+                        if (Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2) <= hitR) {
+                            if (!tktPattern.includes(i + 1)) {
+                                tktPattern.push(i + 1);
+                                document.getElementById('tktPatternLock').value = tktPattern.join(',');
+                                const info = document.getElementById('tktPatternInfo');
+                                if (info) info.textContent = tktPattern.length + ' point' + (tktPattern.length !== 1 ? 's' : '') + ' recorded';
+                                tktDrawPattern('tktPatternCanvas', tktPattern, true);
+                            }
+                            break;
+                        }
+                    }
+                };
+            }
+        }
+
+        function tktClearPattern() {
+            tktPattern = [];
+            document.getElementById('tktPatternLock').value = '';
+            const info = document.getElementById('tktPatternInfo');
+            if (info) info.textContent = 'Click dots to record pattern';
+            tktDrawPattern('tktPatternCanvas', tktPattern, true);
+        }
 
         async function tktLoad() {
             const { data } = await db.from('repair_tickets').select('*').order('created_at', { ascending: false });
@@ -3814,6 +3923,10 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
                         <div class="field"><label>Cost</label><p>Est: €${Number(t.estimated_cost || 0).toFixed(2)} · Final: €${Number(t.final_cost || 0).toFixed(2)}</p></div>
                     </div>
                     <div class="field" style="margin-bottom:1rem;"><label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);font-weight:600;display:block;margin-bottom:0.2rem;">Issue</label><p style="font-size:0.88rem;">${esc(t.issue_description)}</p></div>
+                    ${t.pattern_lock ? `<div class="field" style="margin-bottom:1rem;">
+                        <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);font-weight:600;display:block;margin-bottom:0.4rem;">Pattern Lock</label>
+                        <canvas id="tktViewPatternCanvas" width="120" height="120" style="border:1px solid var(--gray-200);border-radius:10px;background:#fafafa;"></canvas>
+                    </div>` : ''}
 
                     <!-- Reminders -->
                     <div style="border-top:1px solid var(--gray-100);padding-top:1rem;margin-bottom:1rem;">
@@ -3845,6 +3958,8 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
                         ${(notes || []).map(n => `<div class="tkt-note-item"><span class="note-time">${new Date(n.created_at).toLocaleString('en-IE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span><div class="note-text">${esc(n.note)}</div></div>`).join('') || '<div style="color:var(--gray-400);font-size:0.82rem;">No notes yet.</div>'}
                     </div>
                 </div>`;
+
+            if (t.pattern_lock) tktDrawPattern('tktViewPatternCanvas', t.pattern_lock.split(',').map(Number), false);
         }
 
         async function tktUpdateStatus(ticketId, status) {
@@ -3900,6 +4015,7 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
                 document.getElementById('tktEstCost').value = t.estimated_cost || '';
                 document.getElementById('tktFormTitle').textContent = 'Edit Ticket';
                 document.getElementById('tktFormSubmitBtn').textContent = 'Save Changes';
+                tktLoadPattern(t.pattern_lock || '');
             } else {
                 document.getElementById('tktEditId').value = '';
                 document.getElementById('tktCustName').value = '';
@@ -3912,6 +4028,7 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
                 document.getElementById('tktEstCost').value = '';
                 document.getElementById('tktFormTitle').textContent = 'New Repair Ticket';
                 document.getElementById('tktFormSubmitBtn').textContent = 'Create Ticket';
+                tktLoadPattern('');
             }
         }
 
@@ -3934,7 +4051,8 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
                 issue_description: issue,
                 priority: document.getElementById('tktPriority').value,
                 status: document.getElementById('tktStatus').value,
-                estimated_cost: parseFloat(document.getElementById('tktEstCost').value) || 0
+                estimated_cost: parseFloat(document.getElementById('tktEstCost').value) || 0,
+                pattern_lock: document.getElementById('tktPatternLock').value || null
             };
 
             if (editId) {
@@ -3989,6 +4107,9 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
                 <strong>Issue:</strong><br>
                 ${esc(t.issue_description)}
             </div>
+            ${t.pattern_lock ? `<div style="border-top:1px dashed #000;padding-top:4px;margin-bottom:6px;">
+                <strong>Pattern Lock:</strong> ${t.pattern_lock.split(',').join(' → ')}
+            </div>` : ''}
             <div style="border-top:1px dashed #000;padding-top:6px;margin-top:6px;text-align:center;">
                 <div style="margin-bottom:20px;">Please retain this ticket for collection.</div>
                 <div>${esc(t.ticket_number)}</div>
