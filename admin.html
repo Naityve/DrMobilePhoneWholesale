@@ -2114,7 +2114,7 @@
                     cash_amount: signedCash,
                     card_amount: signedCard,
                     cashier_id: user.id,
-                    status: isRefund ? 'refund' : 'completed',
+                    status: 'completed',
                     notes: multiCardAmounts ? JSON.stringify(multiCardAmounts) : null
                 }).select().single();
 
@@ -2207,7 +2207,7 @@
             container.innerHTML = data.map(t => {
                 const time = new Date(t.created_at).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
                 const date = new Date(t.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short' });
-                const isRefund = t.status === 'refund';
+                const isRefund = t.transaction_number && t.transaction_number.startsWith('REF-');
                 const amtStr = (isRefund ? '-' : '') + '€' + Math.abs(Number(t.total)).toFixed(2);
                 const methodStr = t.payment_method === 'multi_card' ? 'Split Cards' : cap(t.payment_method);
                 return `<div style="display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--gray-100);${isRefund ? 'color:var(--orange);' : ''}">
@@ -2299,14 +2299,17 @@
         }
 
         function finRenderSummary() {
-            const posCount = finPosTxns.length;
-            const posRevenue = finPosTxns.reduce((s, t) => s + Number(t.total), 0);
-            const cashTotal = finPosTxns.reduce((s, t) => s + Number(t.cash_amount || 0), 0);
-            const cardTotal = finPosTxns.reduce((s, t) => s + Number(t.card_amount || 0), 0);
+            const posRefunds = finPosTxns.filter(t => t.transaction_number && t.transaction_number.startsWith('REF-'));
+            const posSales   = finPosTxns.filter(t => !t.transaction_number || !t.transaction_number.startsWith('REF-'));
+            const posCount   = posSales.length;
+            const posRevenue = finPosTxns.reduce((s, t) => s + Number(t.total), 0); // negative refund totals auto-deduct
+            const cashTotal  = finPosTxns.reduce((s, t) => s + Number(t.cash_amount || 0), 0);
+            const cardTotal  = finPosTxns.reduce((s, t) => s + Number(t.card_amount || 0), 0);
+            const refundTotal = posRefunds.reduce((s, t) => s + Math.abs(Number(t.total)), 0);
             const onlineCount = finOnlineOrders.filter(o => o.status !== 'cancelled').length;
             const onlineRevenue = finOnlineOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0);
 
-            document.getElementById('finPosTxnCount').textContent = posCount;
+            document.getElementById('finPosTxnCount').textContent = posRefunds.length > 0 ? `${posCount} sales, ${posRefunds.length} refund${posRefunds.length > 1 ? 's' : ''} (-€${refundTotal.toFixed(2)})` : posCount;
             document.getElementById('finPosRevenue').textContent = '€' + posRevenue.toFixed(2);
             document.getElementById('finCashTotal').textContent = '€' + cashTotal.toFixed(2);
             document.getElementById('finCardTotal').textContent = '€' + cardTotal.toFixed(2);
@@ -2316,11 +2319,12 @@
 
             // Profit calculation using cost_price stored on each transaction item
             let totalCost = 0;
-            // POS cost - use cost_price from transaction item (falls back to product lookup for old data)
+            // POS cost - refunds restore stock so their cost is subtracted
             finPosTxns.forEach(t => {
+                const isRefund = t.transaction_number && t.transaction_number.startsWith('REF-');
                 (t.pos_transaction_items || []).forEach(i => {
                     const cost = i.cost_price != null ? Number(i.cost_price) : (() => { const prod = allProducts.find(p => p.id === i.product_id); return prod ? Number(prod.cost_price || 0) : 0; })();
-                    totalCost += cost * i.quantity;
+                    totalCost += isRefund ? -(cost * i.quantity) : (cost * i.quantity);
                 });
             });
             // Online cost (still uses product lookup since online orders don't have cost_price on items)
@@ -3238,9 +3242,10 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
             let dayVatBreakdown = {};
 
             txns.forEach(t => {
+                const isRefundTxn = t.transaction_number && t.transaction_number.startsWith('REF-');
                 (t.pos_transaction_items || []).forEach(i => {
                     const cost = i.cost_price != null ? Number(i.cost_price) : (() => { const prod = allProducts.find(p => p.id === i.product_id); return prod ? Number(prod.cost_price || 0) : 0; })();
-                    totalCost += cost * i.quantity;
+                    totalCost += isRefundTxn ? -(cost * i.quantity) : (cost * i.quantity);
                     // VAT calc
                     const cat = i.vat_category || 'none';
                     const rate = vatRates[cat] || 0;
@@ -3264,9 +3269,10 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
             txns.forEach((t, idx) => {
                 const items = t.pos_transaction_items || [];
                 const time = new Date(t.created_at).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
-                const payLabel = t.payment_method === 'both' ? `Cash €${Number(t.cash_amount).toFixed(2)} + Card €${Number(t.card_amount).toFixed(2)}` : t.payment_method === 'multi_card' ? (() => { try { const a = JSON.parse(t.notes || '[]'); return a.map((v, i) => `Card ${i+1} €${Number(v).toFixed(2)}`).join(' + '); } catch(e) { return 'Split Cards'; } })() : cap(t.payment_method);
-                reportHtml += `<div style="margin-bottom:8px;">`;
-                reportHtml += `<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:bold;"><span>${t.transaction_number}</span><span>${time}</span></div>`;
+                const isRefundTxn = t.transaction_number && t.transaction_number.startsWith('REF-');
+                const payLabel = t.payment_method === 'both' ? `Cash €${Math.abs(Number(t.cash_amount)).toFixed(2)} + Card €${Math.abs(Number(t.card_amount)).toFixed(2)}` : t.payment_method === 'multi_card' ? (() => { try { const a = JSON.parse(t.notes || '[]'); return a.map((v, i) => `Card ${i+1} €${Number(v).toFixed(2)}`).join(' + '); } catch(e) { return 'Split Cards'; } })() : cap(t.payment_method);
+                reportHtml += `<div style="margin-bottom:8px;${isRefundTxn ? 'opacity:0.85;' : ''}">`;
+                reportHtml += `<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:bold;"><span>${t.transaction_number}${isRefundTxn ? ' [REFUND]' : ''}</span><span>${time}</span></div>`;
                 items.forEach(i => {
                     const vatCat = i.vat_category || 'none';
                     const vatLabel = vatCat === 'service' ? ' [S 13.5%]' : vatCat === 'goods' ? ' [G 23%]' : '';
@@ -3276,17 +3282,23 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
                         reportHtml += `<div style="font-size:10px;padding-left:16px;font-weight:700;">↳ ${discLabel} (was €${Number(i.original_price || i.unit_price).toFixed(2)})</div>`;
                     }
                 });
-                reportHtml += `<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-top:2px;"><span>Total (${payLabel})</span><span>€${Number(t.total).toFixed(2)}</span></div>`;
+                reportHtml += `<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-top:2px;"><span>${isRefundTxn ? 'Refunded' : 'Total'} (${payLabel})</span><span>${isRefundTxn ? '-' : ''}€${Math.abs(Number(t.total)).toFixed(2)}</span></div>`;
                 reportHtml += '</div>';
                 if (idx < txns.length - 1) reportHtml += '<hr style="border:none;border-top:1px dotted #ccc;margin:6px 0;">';
             });
 
+            const salesTxns   = txns.filter(t => !t.transaction_number || !t.transaction_number.startsWith('REF-'));
+            const refundTxns  = txns.filter(t => t.transaction_number && t.transaction_number.startsWith('REF-'));
+            const grossSales  = salesTxns.reduce((s, t) => s + Number(t.total), 0);
+            const totalRefund = refundTxns.reduce((s, t) => s + Math.abs(Number(t.total)), 0);
+
             reportHtml += '<hr style="border:none;border-top:2px solid #000;margin:10px 0;">';
             reportHtml += `<div style="font-size:12px;">
-                <div style="display:flex;justify-content:space-between;"><span>Transactions:</span><span>${txns.length}</span></div>
+                <div style="display:flex;justify-content:space-between;"><span>Sales (${salesTxns.length}):</span><span>€${grossSales.toFixed(2)}</span></div>
+                ${refundTxns.length > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Refunds (${refundTxns.length}):</span><span>-€${totalRefund.toFixed(2)}</span></div>` : ''}
                 <div style="display:flex;justify-content:space-between;"><span>Cash Total:</span><span>€${totalCash.toFixed(2)}</span></div>
                 <div style="display:flex;justify-content:space-between;"><span>Card Total:</span><span>€${totalCard.toFixed(2)}</span></div>
-                <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;"><span>Revenue:</span><span>€${totalRevenue.toFixed(2)}</span></div>
+                <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:14px;margin-top:4px;border-top:1px solid #000;padding-top:4px;"><span>Net Revenue:</span><span>€${totalRevenue.toFixed(2)}</span></div>
                 <div style="display:flex;justify-content:space-between;margin-top:4px;"><span>Est. Cost of Goods:</span><span>€${totalCost.toFixed(2)}</span></div>
                 <div style="display:flex;justify-content:space-between;font-weight:bold;color:${profit >= 0 ? '#22C55E' : '#EF4444'};"><span>Est. Profit:</span><span>€${profit.toFixed(2)}</span></div>
             </div>`;
