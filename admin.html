@@ -491,6 +491,10 @@
             <div class="pos-layout">
                 <div class="pos-scanner">
                     <h3>Point of Sale</h3>
+                    <div id="posRefundBanner" style="display:none;background:#FFF3F0;border:1.5px solid #E8611A;border-radius:10px;padding:0.6rem 1rem;margin-bottom:1rem;display:none;align-items:center;gap:0.6rem;">
+                        <svg width="18" height="18" fill="none" stroke="#E8611A" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 12l4-4m-4 4 4 4"/></svg>
+                        <span style="font-size:0.88rem;font-weight:600;color:#E8611A;">REFUND MODE — items will be returned to stock</span>
+                    </div>
                     <div class="pos-scan-input">
                         <input type="text" id="posBarcodeInput" placeholder="Scan barcode or type product name..." autofocus>
                         <button class="btn btn-primary btn-sm" onclick="posLookup()">Add</button>
@@ -526,6 +530,7 @@
                     <div class="pos-actions">
                         <button class="btn btn-primary" id="posCompleteBtn" onclick="posShowPayment()" disabled>Complete Sale</button>
                         <button class="btn btn-secondary" onclick="posClearAll()">Clear All</button>
+                        <button id="posRefundToggleBtn" class="btn btn-secondary" onclick="posToggleRefundMode()" style="margin-top:0.5rem;width:100%;border-color:var(--orange);color:var(--orange);">↩ Process Refund</button>
                         <button class="btn btn-secondary" onclick="posEndOfDay()" style="margin-top:0.5rem;width:100%;background:var(--gray-50);">📋 End of Day Report</button>
                     </div>
                     <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1rem;">
@@ -546,7 +551,7 @@
             <!-- Payment Modal -->
             <div class="pos-payment-modal" id="posPaymentModal">
                 <div class="pos-payment-box">
-                    <h3>Payment</h3>
+                    <h3 id="posPaymentModalTitle">Payment</h3>
                     <div class="total-display" id="posPayTotal">€0.00</div>
                     <div class="pay-methods">
                         <div class="pay-method selected" onclick="posSelectPayMethod('card', this)">
@@ -573,7 +578,7 @@
                     </div>
                     <div id="posPayAlert" class="alert" style="margin-bottom:1rem;"></div>
                     <div style="display:flex;gap:0.75rem;">
-                        <button class="btn btn-primary" style="flex:1;" onclick="posSubmitTransaction()">Confirm & Print Receipt</button>
+                        <button class="btn btn-primary" id="posConfirmBtn" style="flex:1;" onclick="posSubmitTransaction()">Confirm & Print Receipt</button>
                         <button class="btn btn-secondary" onclick="posHidePayment()">Cancel</button>
                     </div>
                 </div>
@@ -1655,6 +1660,24 @@
         // ── POS SYSTEM ──
         let posItems = [];
         let posPayMethod = 'card';
+        let posMode = 'sale'; // 'sale' or 'refund'
+
+        function posToggleRefundMode() {
+            posMode = posMode === 'sale' ? 'refund' : 'sale';
+            posClearAll();
+            const isRefund = posMode === 'refund';
+            const banner = document.getElementById('posRefundBanner');
+            banner.style.display = isRefund ? 'flex' : 'none';
+            const toggleBtn = document.getElementById('posRefundToggleBtn');
+            toggleBtn.textContent = isRefund ? '✕ Exit Refund Mode' : '↩ Process Refund';
+            toggleBtn.style.background = isRefund ? 'var(--orange)' : '';
+            toggleBtn.style.color = isRefund ? 'white' : 'var(--orange)';
+            toggleBtn.style.borderColor = 'var(--orange)';
+            const completeBtn = document.getElementById('posCompleteBtn');
+            completeBtn.textContent = isRefund ? 'Process Refund' : 'Complete Sale';
+            const emptyMsg = document.querySelector('#posItemsBody .pos-empty');
+            if (emptyMsg) emptyMsg.textContent = isRefund ? 'Scan a barcode to add refund items' : 'Scan a barcode to start a transaction';
+        }
 
         function getReceiptWidth() {
             return localStorage.getItem('pos_receipt_width') || '80';
@@ -1942,7 +1965,10 @@
         function posShowPayment() {
             if (posItems.length === 0) return;
             const total = posItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
-            document.getElementById('posPayTotal').textContent = '€' + total.toFixed(2);
+            const isRefund = posMode === 'refund';
+            document.getElementById('posPayTotal').textContent = (isRefund ? '-' : '') + '€' + total.toFixed(2);
+            document.getElementById('posPaymentModalTitle').textContent = isRefund ? 'Refund' : 'Payment';
+            document.getElementById('posConfirmBtn').textContent = isRefund ? 'Confirm Refund & Print' : 'Confirm & Print Receipt';
             posSelectPayMethod('card');
             document.getElementById('posPaymentModal').classList.add('show');
         }
@@ -2065,23 +2091,30 @@
                 }
             }
 
+            const isRefund = posMode === 'refund';
+            // For refunds, store amounts as negative so finance reports auto-sum correctly
+            const signedTotal    = isRefund ? -total    : total;
+            const signedCash     = isRefund ? -cashAmount : cashAmount;
+            const signedCard     = isRefund ? -cardAmount : cardAmount;
+
             try {
                 // Get transaction number
                 const { data: txnNum } = await db.rpc('next_pos_txn_number');
-                const transactionNumber = txnNum || ('POS-' + Date.now());
+                const rawNumber = txnNum || ('POS-' + Date.now());
+                const transactionNumber = isRefund ? rawNumber.replace(/^POS-/, 'REF-') : rawNumber;
 
                 const user = await getCurrentUser();
 
                 // Create transaction
                 const { data: txn, error: txnError } = await db.from('pos_transactions').insert({
                     transaction_number: transactionNumber,
-                    subtotal: total,
-                    total: total,
+                    subtotal: signedTotal,
+                    total: signedTotal,
                     payment_method: posPayMethod,
-                    cash_amount: cashAmount,
-                    card_amount: cardAmount,
+                    cash_amount: signedCash,
+                    card_amount: signedCard,
                     cashier_id: user.id,
-                    status: 'completed',
+                    status: isRefund ? 'refund' : 'completed',
                     notes: multiCardAmounts ? JSON.stringify(multiCardAmounts) : null
                 }).select().single();
 
@@ -2108,35 +2141,41 @@
                 const { error: itemsError } = await db.from('pos_transaction_items').insert(txnItems);
                 if (itemsError) throw new Error(itemsError.message);
 
-                // Deduct stock for each item (skip generic items)
+                // Adjust stock — deduct on sale, restore on refund
                 for (const item of posItems) {
                     if (!item.is_generic) {
-                        await db.rpc('deduct_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+                        if (isRefund) {
+                            await db.rpc('restore_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+                        } else {
+                            await db.rpc('deduct_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+                        }
                     }
                 }
 
                 // Print receipt
-                posPrintReceipt(transactionNumber, posPayMethod, cashAmount, cardAmount, total, multiCardAmounts);
+                posPrintReceipt(transactionNumber, posPayMethod, cashAmount, cardAmount, total, multiCardAmounts, isRefund);
 
                 // Reset
                 posHidePayment();
                 posItems = [];
+                if (isRefund) posToggleRefundMode(); // return to sale mode after refund
                 posRender();
-                await loadProducts(); // Refresh stock counts
+                await loadProducts();
                 await posLoadRecent();
-                showAlert('alert', `Transaction ${transactionNumber} completed! Stock updated.`, 'success');
+                showAlert('alert', `${isRefund ? 'Refund' : 'Transaction'} ${transactionNumber} completed! Stock ${isRefund ? 'restored' : 'updated'}.`, 'success');
 
             } catch (err) {
                 showAlert('posPayAlert', 'Error: ' + err.message, 'error');
             }
         }
 
-        function posPrintReceipt(txnNumber, method, cash, card, total, cardAmounts) {
+        function posPrintReceipt(txnNumber, method, cash, card, total, cardAmounts, isRefund) {
             const now = new Date();
             const dateStr = now.toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
             const timeStr = now.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
             const w = getReceiptWidth();
-            const receiptHtml = buildReceiptHtml(txnNumber, dateStr, timeStr, posItems, method, cash, card, total, '', w, cardAmounts);
+            const note = isRefund ? 'REFUND' : '';
+            const receiptHtml = buildReceiptHtml(txnNumber, dateStr, timeStr, posItems, method, cash, card, total, note, w, cardAmounts);
             openPrintWindow(receiptHtml);
         }
 
@@ -2160,7 +2199,7 @@
 
         async function posLoadRecent() {
             const { data } = await db.from('pos_transactions')
-                .select('transaction_number, total, payment_method, created_at')
+                .select('transaction_number, total, payment_method, status, created_at')
                 .order('created_at', { ascending: false })
                 .limit(5);
             const container = document.getElementById('posRecentTxns');
@@ -2168,9 +2207,12 @@
             container.innerHTML = data.map(t => {
                 const time = new Date(t.created_at).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
                 const date = new Date(t.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short' });
-                return `<div style="display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--gray-100);">
-                    <span>${t.transaction_number}</span>
-                    <span>€${Number(t.total).toFixed(2)} · ${t.payment_method === 'multi_card' ? 'Split Cards' : cap(t.payment_method)} · ${date} ${time}</span>
+                const isRefund = t.status === 'refund';
+                const amtStr = (isRefund ? '-' : '') + '€' + Math.abs(Number(t.total)).toFixed(2);
+                const methodStr = t.payment_method === 'multi_card' ? 'Split Cards' : cap(t.payment_method);
+                return `<div style="display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--gray-100);${isRefund ? 'color:var(--orange);' : ''}">
+                    <span>${t.transaction_number}${isRefund ? ' <em style="font-size:0.75rem;">(refund)</em>' : ''}</span>
+                    <span>${amtStr} · ${methodStr} · ${date} ${time}</span>
                 </div>`;
             }).join('');
         }
@@ -4061,7 +4103,15 @@ ${finOnlineOrders.length === 0 ? '<div class="no-data">No online orders for this
                 if (error) { showAlert('tktFormAlert', 'Error: ' + error.message, 'error'); return; }
             } else {
                 const { data: num } = await db.rpc('next_ticket_number');
-                ticketData.ticket_number = num || ('RPR-' + Date.now());
+                if (num) {
+                    ticketData.ticket_number = num;
+                } else {
+                    // Fallback: RPR-YYMMDD-XXXX (date + 4 random alphanumeric chars)
+                    const d = new Date();
+                    const datePart = d.getFullYear().toString().slice(2) + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+                    const randPart = Math.random().toString(36).slice(2,6).toUpperCase();
+                    ticketData.ticket_number = `RPR-${datePart}-${randPart}`;
+                }
                 const user = await getCurrentUser();
                 ticketData.created_by = user.id;
                 const { error } = await db.from('repair_tickets').insert(ticketData);

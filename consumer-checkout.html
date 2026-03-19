@@ -281,7 +281,7 @@
                 <div class="form-group"><label for="coAddr2">Address Line 2</label><input type="text" id="coAddr2" placeholder="Apt, suite, etc."></div>
                 <div class="form-row">
                     <div class="form-group"><label for="coCity">City *</label><input type="text" id="coCity" placeholder="City" required></div>
-                    <div class="form-group"><label for="coCounty">County</label><input type="text" id="coCounty" placeholder="County"></div>
+                    <div class="form-group"><label for="coCounty">County</label><select id="coCounty" style="width:100%;padding:0.75rem 1rem;border:1.5px solid var(--gray-200);border-radius:10px;font-size:0.9rem;font-family:'DM Sans',sans-serif;outline:none;background:white;color:var(--gray-700);transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--gray-200)'"><option value="">Select county…</option><option>Carlow</option><option>Cavan</option><option>Clare</option><option>Cork</option><option>Donegal</option><option>Dublin</option><option>Galway</option><option>Kerry</option><option>Kildare</option><option>Kilkenny</option><option>Laois</option><option>Leitrim</option><option>Limerick</option><option>Longford</option><option>Louth</option><option>Mayo</option><option>Meath</option><option>Monaghan</option><option>Offaly</option><option>Roscommon</option><option>Sligo</option><option>Tipperary</option><option>Waterford</option><option>Westmeath</option><option>Wexford</option><option>Wicklow</option></select></div>
                 </div>
                 <div class="form-row">
                     <div class="form-group"><label for="coEircode">Eircode</label><input type="text" id="coEircode" placeholder="e.g. D01 AB12"></div>
@@ -364,8 +364,8 @@
             const county = document.getElementById('coCounty').value.trim();
             const eircode = document.getElementById('coEircode').value.trim();
 
-            if (!name || !email || !addr1 || !city) {
-                showAlert('alert', 'Please fill in all required fields.', 'error');
+            if (!name || !email || !addr1 || !city || !county) {
+                showAlert('alert', 'Please fill in all required fields including County.', 'error');
                 return;
             }
 

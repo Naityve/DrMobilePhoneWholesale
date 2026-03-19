@@ -18,6 +18,11 @@ async function fetchOrder(orderId) {
 }
 
 exports.handler = async (event) => {
+    if (!STRIPE_SECRET_KEY) {
+        console.error('STRIPE_SECRET_KEY environment variable is not set');
+        return { statusCode: 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Payment service is not configured. Please contact support.' }) };
+    }
+
     const requestOrigin = event.headers.origin || '';
     const corsOrigin = requestOrigin === ALLOWED_ORIGIN ? ALLOWED_ORIGIN : '';
 
