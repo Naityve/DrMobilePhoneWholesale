@@ -10,7 +10,7 @@
 const SUPABASE_URL      = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY    = process.env.RESEND_API_KEY;
-const ALLOWED_ORIGIN    = process.env.ALLOWED_ORIGIN || 'https://resonant-bavarois-13f2f9.netlify.app';
+const ALLOWED_ORIGIN    = process.env.ALLOWED_ORIGIN; // Required — set in Netlify env vars
 const SITE_URL          = process.env.SITE_URL       || 'https://drmobilephone.ie';
 
 async function fetchOrder(orderId) {

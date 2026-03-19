@@ -1,5 +1,43 @@
 [functions]
   directory = "netlify/functions"
 
+# Redirect root to consumer shop
+[[redirects]]
+  from = "/"
+  to = "/shop"
+  status = 301
+
+# Runs every 4 hours — cancels orders pending >24 hrs and restores stock
 [functions.cleanup-pending-orders]
-  schedule = "0 3 * * *"
+  schedule = "0 */4 * * *"
+
+# Security headers applied to all pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://api.stripe.com https://checkout.stripe.com https://ec.europa.eu; frame-src https://js.stripe.com https://hooks.stripe.com; img-src 'self' data: blob: https:;"
+
+# Cache static assets
+[[headers]]
+  for = "/styles.css"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

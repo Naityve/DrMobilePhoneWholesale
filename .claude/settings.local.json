@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -c \"IE1120389L\" c:/Users/User/Desktop/webapp/*.html)",
+      "Bash(node -e \":*)"
+    ]
+  }
+}

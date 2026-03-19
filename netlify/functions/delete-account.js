@@ -5,7 +5,7 @@
 
 const SUPABASE_URL         = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const ALLOWED_ORIGIN       = process.env.ALLOWED_ORIGIN || 'https://resonant-bavarois-13f2f9.netlify.app';
+const ALLOWED_ORIGIN       = process.env.ALLOWED_ORIGIN; // Required — set in Netlify env vars
 
 exports.handler = async (event) => {
     const origin = event.headers.origin || '';
@@ -66,10 +66,15 @@ exports.handler = async (event) => {
                 'Prefer':        'return=minimal'
             },
             body: JSON.stringify({
-                user_id:      null,
-                guest_name:   '[deleted]',
-                guest_email:  '[deleted]',
-                guest_phone:  null
+                user_id:            null,
+                guest_name:         '[deleted]',
+                guest_email:        '[deleted]',
+                guest_phone:        null,
+                shipping_address_1: null,
+                shipping_address_2: null,
+                shipping_city:      null,
+                shipping_county:    null,
+                shipping_eircode:   null
             })
         }
     );

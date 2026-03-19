@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout — DrMobilePhone</title>
+    <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -40,13 +41,13 @@
 </head>
 <body>
     <nav>
-        <a href="/" class="logo">
+        <a href="/shop" class="logo">
             <div class="logo-icon"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2" fill="white"/><circle cx="12" cy="18" r="1" fill="#E8611A"/></svg></div>
             <div class="logo-text">DrMobile<span>Phone</span></div>
         </a>
         <div class="nav-links" id="navLinks">
             <button class="nav-close" onclick="toggleMobileMenu()"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-            <a href="/">Shop</a>
+            <a href="/shop">Shop</a>
             <a href="/consumer-cart.html" class="consumer-cart-link">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
                 Cart <span class="consumer-cart-badge" id="consumerCartBadge">0</span>
@@ -286,10 +287,16 @@
                     <div class="form-group"><label for="coEircode">Eircode</label><input type="text" id="coEircode" placeholder="e.g. D01 AB12"></div>
                     <div class="form-group"></div>
                 </div>
-                <div style="margin:1rem 0 0.75rem;">
+                <div style="margin:1rem 0 0.5rem;">
                     <label style="display:flex;align-items:flex-start;gap:0.6rem;font-size:0.85rem;color:var(--gray-700);cursor:pointer;line-height:1.4;">
                         <input type="checkbox" id="consentTerms" style="margin-top:0.2rem;accent-color:var(--orange);flex-shrink:0;width:16px;height:16px;">
                         I have read and agree to the <a href="/terms.html" target="_blank" style="color:var(--orange);">Terms &amp; Conditions</a> and <a href="/privacy-policy.html" target="_blank" style="color:var(--orange);">Privacy Policy</a>
+                    </label>
+                </div>
+                <div style="margin:0 0 0.75rem;">
+                    <label style="display:flex;align-items:flex-start;gap:0.6rem;font-size:0.85rem;color:var(--gray-700);cursor:pointer;line-height:1.4;">
+                        <input type="checkbox" id="consentCancellation" style="margin-top:0.2rem;accent-color:var(--orange);flex-shrink:0;width:16px;height:16px;">
+                        I understand I have a <strong>14-day right to cancel</strong> from the date of delivery and have read the <a href="/returns.html" target="_blank" style="color:var(--orange);">Returns Policy</a>
                     </label>
                 </div>
                 <button class="btn btn-primary" style="width:100%;" id="payBtn" onclick="handlePay()">Pay — €${total.toFixed(2)}</button>
@@ -317,7 +324,7 @@
                 const vatNum = vatSettings.vat_number ? ` VAT No: ${esc(vatSettings.vat_number)}.` : '';
                 html += `<p style="font-size:0.78rem;color:var(--gray-500);margin-top:0.75rem;line-height:1.5;">All prices are inclusive of VAT at the applicable rate.${vatNum}</p>`;
             } else {
-                html += `<p style="font-size:0.78rem;color:var(--gray-500);margin-top:0.75rem;line-height:1.5;">Prices shown are exclusive of VAT. DrMobilePhone is not currently VAT registered for the sale of goods as the annual registration threshold has not been exceeded.</p>`;
+                html += `<p style="font-size:0.78rem;color:var(--gray-500);margin-top:0.75rem;line-height:1.5;">All prices shown are the total amount due. No VAT is charged on goods — DrMobilePhone is not currently VAT registered for the sale of goods.</p>`;
             }
 
             if (activePromos.length > 0 && discount === 0) {
@@ -340,6 +347,14 @@
         }
 
         async function handlePay() {
+            // Verify session is still valid before processing payment
+            const { data: { session: activeSession } } = await db.auth.getSession();
+            if (!activeSession) {
+                const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                window.location.href = '/consumer-login.html?return=' + returnUrl;
+                return;
+            }
+
             const name = document.getElementById('coName').value.trim();
             const email = document.getElementById('coEmail').value.trim();
             const phone = document.getElementById('coPhone').value.trim();
@@ -354,8 +369,23 @@
                 return;
             }
 
+            if (phone && !/^(\+353|0)[0-9\s]{8,12}$/.test(phone.replace(/\s/g, ''))) {
+                showAlert('alert', 'Please enter a valid Irish phone number (e.g. 085 123 4567 or +353 85 123 4567).', 'error');
+                return;
+            }
+
+            if (eircode && !/^[A-Z0-9]{3}\s?[A-Z0-9]{4}$/i.test(eircode.trim())) {
+                showAlert('alert', 'Please enter a valid Eircode (e.g. D01 AB12).', 'error');
+                return;
+            }
+
             if (!document.getElementById('consentTerms').checked) {
                 showAlert('alert', 'You must accept the Terms & Conditions and Privacy Policy to place an order.', 'error');
+                return;
+            }
+
+            if (!document.getElementById('consentCancellation').checked) {
+                showAlert('alert', 'Please acknowledge your 14-day cancellation right to continue.', 'error');
                 return;
             }
 
@@ -389,7 +419,9 @@
                     subtotal: subtotal,
                     total: total,
                     payment_method: 'card',
-                    status: 'pending'
+                    status: 'pending',
+                    terms_accepted_at: new Date().toISOString(),
+                    terms_version: '2026-03-16'
                 }).select('id').single();
 
                 if (orderErr) throw new Error('Failed to save order: ' + orderErr.message);

@@ -62,6 +62,22 @@ async function updateOrder(orderId, fields) {
     }
 }
 
+// ── Fetch order status from Supabase ─────────────────────────────────────────
+async function fetchOrderStatus(orderId) {
+    const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}&select=status`,
+        {
+            headers: {
+                'apikey':        SUPABASE_SERVICE_KEY,
+                'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+            },
+        }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows[0]?.status || null;
+}
+
 // ── Fetch order items from Supabase ──────────────────────────────────────────
 async function fetchOrderItems(orderId) {
     const res = await fetch(
@@ -136,6 +152,13 @@ exports.handler = async (event) => {
             if (!orderId) {
                 console.warn('checkout.session.completed: no client_reference_id');
                 return { statusCode: 200, body: JSON.stringify({ received: true }) };
+            }
+
+            // Idempotency check — if already paid, skip processing to prevent duplicate emails
+            const currentStatus = await fetchOrderStatus(orderId);
+            if (currentStatus === 'paid') {
+                console.log(`Order ${orderId} already paid — skipping duplicate webhook`);
+                return { statusCode: 200, body: JSON.stringify({ received: true, idempotent: true }) };
             }
 
             await updateOrder(orderId, {

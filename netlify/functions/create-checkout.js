@@ -1,5 +1,5 @@
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-const ALLOWED_ORIGIN    = process.env.ALLOWED_ORIGIN || 'https://resonant-bavarois-13f2f9.netlify.app';
+const ALLOWED_ORIGIN    = process.env.ALLOWED_ORIGIN; // Required — set in Netlify env vars
 const SUPABASE_URL      = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

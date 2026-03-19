@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /admin.html
+Disallow: /netlify/
+
+Allow: /
+
+Sitemap: https://www.drmobilephone.ie/sitemap.xml
